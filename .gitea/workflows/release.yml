@@ -53,9 +53,6 @@ jobs:
             dist/homeport-linux-arm64
             dist/checksums.txt
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -71,8 +68,9 @@ jobs:
         with:
           context: .
           file: Containerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             git.zk35.de/secalpha/homeport:${{ github.ref_name }}
             git.zk35.de/secalpha/homeport:latest
+
