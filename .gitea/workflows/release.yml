@@ -52,13 +52,12 @@ jobs:
           GITEA_URL: https://git.zk35.de
           REPO: ${{ github.repository }}
         run: |
-          echo "Token length: ${#GITEA_TOKEN}"
           curl -s -X POST "${GITEA_URL}/api/v1/repos/${REPO}/releases" \
             -H "Authorization: token ${GITEA_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"draft\":false,\"prerelease\":false}" \
             -o /tmp/release.json
-          RELEASE_ID=$(python3 -c "import json,sys; print(json.load(open('/tmp/release.json'))['id'])")
+          RELEASE_ID=$(python3 -c "import json,sys; print(json.load(open('/tmp/release.json'))'['id']')")
           for f in dist/homeport-linux-amd64 dist/homeport-linux-arm64 dist/checksums.txt; do
             curl -s -X POST "${GITEA_URL}/api/v1/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename $f)" \
               -H "Authorization: token ${GITEA_TOKEN}" \
