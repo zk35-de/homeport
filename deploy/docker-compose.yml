@@ -1,9 +1,15 @@
+# Registry-Login (einmalig):
+#   docker login git.zk35.de
+#   podman login git.zk35.de
+#
+# Starten:
+#   HOMEPORT_TOKEN=your-secret docker compose up -d
+# oder .env-Datei anlegen:
+#   echo "HOMEPORT_TOKEN=your-secret" > .env
+
 services:
   homeport:
-    image: homeport:latest
-    build:
-      context: ..
-      dockerfile: Containerfile
+    image: git.zk35.de/secalpha/homeport:latest
     ports:
       - "8855:8855"
     volumes:
@@ -12,16 +18,13 @@ services:
       - HOMEPORT_PORT=8855
       - HOMEPORT_DB=/app/data/homeport.db
       - HOMEPORT_TOKEN=${HOMEPORT_TOKEN}
-      # Optional: HOMEPORT_CORS=https://homeport.example.com
+      # - HOMEPORT_AUTH=true
+      # - HOMEPORT_PUBLIC_PROFILE=public
+      # - HOMEPORT_BACKUP_INTERVAL=24h
+      # - HOMEPORT_BACKUP_MAX_KEEP=7
+      # - HOMEPORT_CORS=https://homeport.example.com
+      # - HOMEPORT_TRUSTED_PROXIES=172.16.0.0/12
     restart: unless-stopped
-
-    # Traefik labels (optional – remove if not using Traefik)
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.homeport.rule=Host(`homeport.example.com`)"
-      - "traefik.http.routers.homeport.entrypoints=websecure"
-      - "traefik.http.routers.homeport.tls.certresolver=letsencrypt"
-      - "traefik.http.services.homeport.loadbalancer.server.port=8855"
 
 volumes:
   homeport-data:
