@@ -44,11 +44,18 @@ jobs:
           cd dist
           sha256sum homeport-linux-amd64 homeport-linux-arm64 > checksums.txt
 
+      - name: Debug context
+        run: |
+          echo "server_url: ${{ github.server_url }}"
+          echo "repository: ${{ github.repository }}"
+          echo "ref_name: ${{ github.ref_name }}"
+          podman --version
+
       - name: Create Gitea Release
         env:
           GITEA_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
-          GITEA_URL: ${{ github.server_url }}
+          GITEA_URL: https://git.zk35.de
           REPO: ${{ github.repository }}
         run: |
           curl -s -X POST "${GITEA_URL}/api/v1/repos/${REPO}/releases" \
