@@ -1,18 +1,21 @@
 # Podman Quadlet – rootless systemd-managed container
 # Pfad: ~/.config/containers/systemd/homeport.container
 # Nach Änderungen: systemctl --user daemon-reload && systemctl --user restart homeport
+#
+# Registry-Login (einmalig):
+#   podman login git.zk35.de
 
 [Unit]
 Description=homeport startpage
 After=network-online.target
 
 [Container]
-Image=localhost/homeport:latest
+Image=git.zk35.de/secalpha/homeport:latest
 PublishPort=8855:8855
 Volume=%h/homeport-data:/app/data:Z
 Environment=HOMEPORT_PORT=8855
 Environment=HOMEPORT_DB=/app/data/homeport.db
-# Token aus Secret-Datei (optional):
+# Alle Env-Vars aus Datei laden (empfohlen):
 # EnvironmentFile=%h/.config/homeport/env
 
 [Service]
