@@ -52,6 +52,7 @@ jobs:
           GITEA_URL: https://git.zk35.de
           REPO: ${{ github.repository }}
         run: |
+          echo "Token length: ${#GITEA_TOKEN}"
           curl -s -X POST "${GITEA_URL}/api/v1/repos/${REPO}/releases" \
             -H "Authorization: token ${GITEA_TOKEN}" \
             -H "Content-Type: application/json" \
