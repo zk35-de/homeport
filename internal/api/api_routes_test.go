@@ -836,6 +836,42 @@ func TestHandleAddDiscoverySource_Validation(t *testing.T) {
 	})
 }
 
+// TestHandleAddDiscoverySource_SavesToDB verifies the success path of
+// HandleAddDiscoverySource: a valid source is persisted in the database.
+func TestHandleAddDiscoverySource_SavesToDB(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	formData := url.Values{}
+	formData.Set("type", "npm")
+	formData.Set("name", "My Docker Host")
+	formData.Set("url", "http://localhost:2375")
+	formData.Set("interval", "120")
+
+	req := httptest.NewRequest("POST", "/manage/discovery/sources", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	srv.HandleAddDiscoverySource(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	sources, err := db.GetDiscoverySources()
+	if err != nil {
+		t.Fatalf("GetDiscoverySources: %v", err)
+	}
+	if len(sources) != 1 {
+		t.Fatalf("expected 1 discovery source in DB, got %d", len(sources))
+	}
+	if sources[0].Name != "My Docker Host" {
+		t.Errorf("expected name 'My Docker Host', got %q", sources[0].Name)
+	}
+	if sources[0].URL != "http://localhost:2375" {
+		t.Errorf("expected URL 'http://localhost:2375', got %q", sources[0].URL)
+	}
+}
+
 func TestHandleDeleteDiscoverySource_BadID(t *testing.T) {
 	srv, cleanup := setupTest(t)
 	defer cleanup()
@@ -996,6 +1032,32 @@ func TestHandleSetPassword_BadRequest(t *testing.T) {
 	}
 }
 
+// TestHandleSetPassword_ChangesDBState verifies that HandleSetPassword stores
+// a verifiable bcrypt hash in the database (not just returns 200).
+func TestHandleSetPassword_ChangesDBState(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	formData := url.Values{}
+	formData.Set("profile", "markus")
+	formData.Set("password", "securepass123")
+
+	req := httptest.NewRequest("POST", "/manage/auth/password", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	srv.HandleSetPassword(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if !db.CheckPassword("markus", "securepass123") {
+		t.Error("CheckPassword returned false after HandleSetPassword – hash not stored")
+	}
+	if db.CheckPassword("markus", "wrongpassword") {
+		t.Error("CheckPassword returned true for wrong password – no validation")
+	}
+}
+
 func TestHandleDeletePassword(t *testing.T) {
 	srv, cleanup := setupTest(t)
 	defer cleanup()
@@ -1010,6 +1072,41 @@ func TestHandleDeletePassword(t *testing.T) {
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+// TestHandleDeletePassword_ChangesDBState verifies that HandleDeletePassword
+// removes the password entry from the database.
+func TestHandleDeletePassword_ChangesDBState(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Pre-condition: set a password so there is something to delete.
+	if err := db.SetPassword("markus", "willbedeleted"); err != nil {
+		t.Fatalf("SetPassword precondition: %v", err)
+	}
+	if !db.CheckPassword("markus", "willbedeleted") {
+		t.Fatal("precondition failed: CheckPassword returned false before delete")
+	}
+
+	req := httptest.NewRequest("DELETE", "/manage/auth/password",
+		strings.NewReader(url.Values{"profile": {"markus"}}.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	srv.HandleDeletePassword(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if db.CheckPassword("markus", "willbedeleted") {
+		t.Error("CheckPassword returned true after delete – password not removed")
+	}
+	auth, err := db.GetUserAuth("markus")
+	if err != nil {
+		t.Fatalf("GetUserAuth after delete: %v", err)
+	}
+	if auth != nil {
+		t.Errorf("expected nil auth entry after delete, got %+v", auth)
 	}
 }
 
