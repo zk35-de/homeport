@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+  schedule:
+    - cron: "15 3 * * 1"
+  workflow_dispatch:
 
 jobs:
   release:
@@ -21,16 +24,24 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Verify Go
-        run: go version
-
       - name: Test before release
         run: go test ./...
 
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=latest" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Prepare dist directory
+        if: startsWith(github.ref, 'refs/tags/v')
         run: mkdir -p dist
 
       - name: Build linux/amd64
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GOOS: linux
           GOARCH: amd64
@@ -41,6 +52,7 @@ jobs:
             -o dist/homeport-linux-amd64 ./cmd/homeport
 
       - name: Build linux/arm64
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GOOS: linux
           GOARCH: arm64
@@ -51,11 +63,13 @@ jobs:
             -o dist/homeport-linux-arm64 ./cmd/homeport
 
       - name: Checksums
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           cd dist
           sha256sum homeport-linux-amd64 homeport-linux-arm64 > checksums.txt
 
       - name: Create Gitea Release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GITEA_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
@@ -78,10 +92,12 @@ jobs:
         env:
           REGISTRY: git.zk35.de
           IMAGE: git.zk35.de/secalpha/homeport
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.version.outputs.value }}
           GITEA_TOKEN: ${{ secrets.HOMEPORTCI }}
         run: |
           podman login ${REGISTRY} -u secalpha -p ${GITEA_TOKEN}
           podman build --no-cache --build-arg VERSION=${TAG} -f Containerfile -t ${IMAGE}:${TAG} -t ${IMAGE}:latest .
-          podman push ${IMAGE}:${TAG}
+          if [[ "${TAG}" != "latest" ]]; then
+            podman push ${IMAGE}:${TAG}
+          fi
           podman push ${IMAGE}:latest
