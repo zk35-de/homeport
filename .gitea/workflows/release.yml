@@ -13,10 +13,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
+      - name: Verify Go
+        run: go version
 
       - name: Test before release
         run: go test ./...
@@ -47,13 +45,6 @@ jobs:
           cd dist
           sha256sum homeport-linux-amd64 homeport-linux-arm64 > checksums.txt
 
-      - name: Debug context
-        run: |
-          echo "server_url: ${{ github.server_url }}"
-          echo "repository: ${{ github.repository }}"
-          echo "ref_name: ${{ github.ref_name }}"
-          podman --version
-
       - name: Create Gitea Release
         env:
           GITEA_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -66,7 +57,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"draft\":false,\"prerelease\":false}" \
             -o /tmp/release.json
-          RELEASE_ID=$(python3 -c "import json,sys; print(json.load(open('/tmp/release.json'))['id'])")
+          RELEASE_ID=$(python3 -c "import json,sys; print(json.load(open('/tmp/release.json'))[id])")
           for f in dist/homeport-linux-amd64 dist/homeport-linux-arm64 dist/checksums.txt; do
             curl -s -X POST "${GITEA_URL}/api/v1/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename $f)" \
               -H "Authorization: token ${GITEA_TOKEN}" \
