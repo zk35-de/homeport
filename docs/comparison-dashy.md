@@ -30,7 +30,7 @@ Stand: 2026-03-23
 | **Notes** | ✗ | ✓ |
 | **Bookmarks** | ✗ | ✓ |
 | **GitHub Widget** | ✓ | ✓ |
-| **System Metrics** | ✓ (umfangreich) | ✗ (offen, Issue #72) |
+| **System Metrics** | ✓ (umfangreich) | ✗ (out of scope – homeport ist Startpage) |
 | **Proxmox Widget** | ✓ | ✗ |
 | **Pi-Hole / AdGuard / etc.** | ✓ | ✗ |
 | **Router Widget** | ✗ | ✓ (Speedport, FritzBox) |
