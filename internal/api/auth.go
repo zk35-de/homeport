@@ -28,6 +28,8 @@ func SessionProfile(r *http.Request) string {
 
 // RequireAuth middleware: if auth is enabled, check session.
 // Unauthenticated requests are redirected to /login (or shown public profile).
+// Active sessions are renewed (rolling/sliding expiry) when less than
+// SessionDays/2 remain, so inactive sessions expire after SessionDays.
 func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +47,26 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			profile := SessionProfile(r)
+			// Rolling session: check expiry and renew if within threshold
+			var profile string
+			if c, err := r.Cookie(sessionCookie); err == nil {
+				if info := db.GetSessionInfo(c.Value); info != nil {
+					profile = info.Profile
+					threshold := time.Duration(cfg.SessionDays/2) * 24 * time.Hour
+					if time.Until(info.ExpiresAt) < threshold {
+						if extErr := db.ExtendSession(c.Value, cfg.SessionDays); extErr == nil {
+							http.SetCookie(w, &http.Cookie{
+								Name:     sessionCookie,
+								Value:    c.Value,
+								Path:     "/",
+								MaxAge:   cfg.SessionDays * 86400,
+								HttpOnly: true,
+								SameSite: http.SameSiteLaxMode,
+							})
+						}
+					}
+				}
+			}
 			if profile != "" {
 				next.ServeHTTP(w, r)
 				return
