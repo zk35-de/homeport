@@ -1,21 +1,9 @@
-name: CI
-
-on: [push, pull_request]
-
+# This file is intentionally disabled – use ci.yml instead
+name: CI (disabled)
+on:
+  workflow_dispatch:
 jobs:
-  test:
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-
-      - name: Build
-        run: go build ./...
-
-      - name: Test
-        run: go test ./... -timeout 60s -count=1
+      - run: echo "disabled"
