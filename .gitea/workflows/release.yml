@@ -21,6 +21,9 @@ jobs:
       - name: Test before release
         run: go test ./...
 
+      - name: Prepare dist directory
+        run: mkdir -p dist
+
       - name: Build linux/amd64
         env:
           GOOS: linux
