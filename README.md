@@ -290,7 +290,12 @@ named volume (Compose).
 - **Session auth** (`HOMEPORT_AUTH=true`): bcrypt + secure cookie; no session → redirect to `/login`
 - **CSRF**: Double-Submit Cookie (`hp_csrf`); all POST/PATCH/DELETE without valid token → 403; HTMX injects token automatically
 - **Rate-limiting** on `/login`: 5 attempts / 5 min per IP, then 2s delay; X-Forwarded-For aware
-- **Security Headers** on every response: `Content-Security-Policy` (`default-src 'self'`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`
+- **Security Headers** on every response:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: SAMEORIGIN`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Content-Security-Policy`: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'self'`
+  - No `unsafe-inline` – all templates use CSS classes, no inline `style=""` attributes
 - **SSRF** protection on `/api/favicon`: scheme validation (http/https only); private IPs allowed for homelab targets
 - **Supply chain**: `go.sum` pinned, `govulncheck` in CI, embedded JS assets (htmx, sse.js) served locally
 
