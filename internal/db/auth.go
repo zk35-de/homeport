@@ -142,6 +142,37 @@ func GetSession(token string) string {
 	return profile
 }
 
+// SessionInfo holds session data including expiry.
+type SessionInfo struct {
+	Profile   string
+	ExpiresAt time.Time
+}
+
+// GetSessionInfo returns session info for a valid (non-expired) token.
+// Returns nil if not found or expired.
+func GetSessionInfo(token string) *SessionInfo {
+	var profile, expiresStr string
+	err := DB.QueryRow(`
+		SELECT profile, expires_at FROM sessions
+		WHERE token = ? AND expires_at > datetime('now')`, token).Scan(&profile, &expiresStr)
+	if err != nil {
+		return nil
+	}
+	expires, err := time.Parse("2006-01-02 15:04:05", expiresStr)
+	if err != nil {
+		return &SessionInfo{Profile: profile}
+	}
+	return &SessionInfo{Profile: profile, ExpiresAt: expires.UTC()}
+}
+
+// ExtendSession updates the expiry of an existing session.
+func ExtendSession(token string, days int) error {
+	expires := time.Now().UTC().Add(time.Duration(days) * 24 * time.Hour)
+	_, err := DB.Exec(`UPDATE sessions SET expires_at = ? WHERE token = ?`,
+		expires.Format("2006-01-02 15:04:05"), token)
+	return err
+}
+
 // DeleteSession removes a session (logout).
 func DeleteSession(token string) error {
 	_, err := DB.Exec(`DELETE FROM sessions WHERE token = ?`, token)
