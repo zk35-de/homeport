@@ -47,10 +47,10 @@ func Load() *Config {
 	authEnabled := os.Getenv("HOMEPORT_AUTH") == "true"
 	publicProfile := os.Getenv("HOMEPORT_PUBLIC_PROFILE")
 
-	sessionDays := 30
+	sessionDays := 10
 	if s := os.Getenv("HOMEPORT_SESSION_DAYS"); s != "" {
 		if fmt.Sscanf(s, "%d", &sessionDays); sessionDays <= 0 {
-			sessionDays = 30
+			sessionDays = 10
 		}
 	}
 
