@@ -2,7 +2,7 @@
 # Rootless Podman / Docker – alle Assets sind go:embed eingebettet, nur Binary nötig
 
 # --- Build Stage ---
-FROM golang:1.25-alpine AS builder
+FROM docker.io/library/golang:1.25-alpine AS builder
 
 WORKDIR /src
 
@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/homeport ./cmd/homeport
 
 # --- Final Stage ---
-FROM alpine:3.21
+FROM docker.io/library/alpine:3.21
 
 # Non-root user
 RUN addgroup -S homeport && adduser -S -G homeport -u 1000 homeport
