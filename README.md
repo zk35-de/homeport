@@ -60,6 +60,7 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `HOMEPORT_AUTH` | `false` | Enable session-based login (`true`/`false`) |
 | `HOMEPORT_PUBLIC_PROFILE` | `` | Profile slug accessible without login (e.g. `public`) |
 | `HOMEPORT_SESSION_DAYS` | `30` | Cookie lifetime in days |
+| `HOMEPORT_TRUSTED_PROXIES` | `` | CIDR list of trusted proxy IPs (e.g. `172.16.0.0/12`) – required for correct rate-limiting behind a reverse proxy |
 
 ## Routes
 
@@ -117,7 +118,7 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `PATCH /api/user/preferences` | Partial update preferences |
 | `POST /api/todos` | Add todo item |
 | `POST /api/todos/{id}/toggle` | Toggle todo done/undone |
-| `DELETE /api/todos/{id}` | Delete todo |
+| `DELETE /api/todos/{id}` | Delete todo item |
 | `POST /api/widgets/{id}/bookmark` | Add bookmark link (form: name, url) |
 | `DELETE /api/widgets/{id}/bookmark/{idx}` | Remove bookmark link by index |
 | `PUT /api/notes/{id}` | Save note content `{"content":"..."}` |
@@ -218,28 +219,67 @@ sessions          → token, profile, expires_at, created_at
 
 Gitea Actions workflows in `.gitea/workflows/`:
 - `ci.yml` – build + test + vet + govulncheck on every push to `main`
-- `release.yml` – linux/amd64 + linux/arm64 binaries + checksums on `v*` tags
+- `release.yml` – linux/amd64 + linux/arm64 binaries + container image on `v*` tags
+- Container image: `git.zk35.de/secalpha/homeport:latest` (and `:<tag>`)
 
 ## Deploy
 
-### Build from source
+Container images are published to `git.zk35.de/secalpha/homeport` on every release.
+
+### Registry login (once)
+
 ```bash
-go build -o homeport ./cmd/homeport
-HOMEPORT_TOKEN=your-secret ./homeport
+podman login git.zk35.de   # or: docker login git.zk35.de
 ```
 
-### Podman Quadlet (systemd)
+### Podman Quadlet (systemd, recommended)
+
 ```bash
 cp deploy/homeport.container ~/.config/containers/systemd/
 systemctl --user daemon-reload
 systemctl --user start homeport
 ```
 
+The container file mounts `~/homeport-data` for persistent storage. Adjust
+`Volume` and `EnvironmentFile` as needed before starting.
+
 ### Docker Compose
+
 ```bash
 cp deploy/docker-compose.yml .
-HOMEPORT_TOKEN=your-secret docker compose up -d
+echo "HOMEPORT_TOKEN=your-secret" > .env
+docker compose up -d          # or: podman compose up -d
 ```
+
+### Build from source
+
+```bash
+go build -o homeport ./cmd/homeport
+HOMEPORT_TOKEN=your-secret ./homeport
+```
+
+### First start
+
+1. Open http://localhost:8855/manage
+2. Create your first profile
+3. If auth is enabled (`HOMEPORT_AUTH=true`), set a password:
+   ```bash
+   # Quadlet:
+   podman exec -it systemd-homeport homeport passwd <profile>
+   # Docker Compose:
+   docker compose exec homeport homeport passwd <profile>
+   ```
+4. The first profile to receive a password becomes admin
+
+### Backup
+
+The SQLite database is at `/app/data/homeport.db` inside the container,
+mounted to `~/homeport-data/homeport.db` (Quadlet) or the `homeport-data`
+named volume (Compose).
+
+- **Manual:** `GET /manage/backup` → downloads a snapshot
+- **Scheduled:** set `HOMEPORT_BACKUP_INTERVAL=24h` → writes to `/app/backups/`
+  (mount an additional volume if you want backups outside the container)
 
 ## Security
 
