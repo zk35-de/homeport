@@ -188,6 +188,8 @@ func getUserVersion(db *sql.DB) (int, error) {
 }
 
 func setUserVersion(db *sql.DB, v int) error {
+	// SQLite PRAGMA user_version does not support parameterized values (?).
+	// v is an internal int, never user-supplied – no injection risk.
 	_, err := db.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, v))
 	return err
 }
