@@ -5,14 +5,14 @@
   <div class="analytics-header">
     <h2>📊 {{.T "analytics.title"}}</h2>
     <div class="analytics-filter">
-      <label style="color:var(--sub);font-size:0.9rem">{{.T "analytics.filter.profile"}}</label>
+      <label class="analytics-filter-label">{{.T "analytics.filter.profile"}}</label>
       <select id="analytics-profile-select">
         <option value="" {{if eq .FilterProfile ""}}selected{{end}}>{{.T "analytics.filter.all"}}</option>
         {{range .Profiles}}
         <option value="{{.Slug}}" {{if eq $.FilterProfile .Slug}}selected{{end}}>{{.Name}}</option>
         {{end}}
       </select>
-      <a href="/manage" style="color:var(--sub);font-size:0.85rem;margin-left:1rem">{{.T "analytics.back"}}</a>
+      <a href="/manage" class="analytics-back">{{.T "analytics.back"}}</a>
     </div>
   </div>
 
