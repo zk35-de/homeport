@@ -59,10 +59,10 @@
                 </div>
                 <div class="form-group">
                     <label>{{.T "manage.icon"}}</label>
-                    <div style="display:flex;gap:0.4rem;align-items:center">
+                    <div class="icon-input-row">
                         <input type="text" name="icon" id="svc-icon-input" placeholder="🏠 oder leer lassen">
                         <button type="button" class="btn-sm" id="fetch-favicon-btn" title="Favicon von der URL laden">🌐</button>
-                        <img id="favicon-preview" src="" alt="" style="width:20px;height:20px;display:none;border-radius:3px">
+                        <img id="favicon-preview" src="" alt="" class="favicon-preview hidden">
                     </div>
                 </div>
                 <div class="form-group">
@@ -74,7 +74,7 @@
                     <input type="url" name="status_check">
                 </div>
                 <div class="form-group">
-                    <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer">
+                    <label class="checkbox-label">
                         <input type="checkbox" name="no_check" value="1"> {{.T "manage.no_check"}}
                     </label>
                 </div>
@@ -91,7 +91,7 @@
 
         <div class="manage-category">
             <h3>Suchmaschine</h3>
-            <div class="form-group" style="margin-bottom:0.4rem">
+            <div class="form-group form-group-xs">
                 <label>Suchmaschine</label>
                 <select name="search_engine"
                         hx-patch="/api/user/preferences"
@@ -120,13 +120,13 @@
 
 <section class="manage-panel manage-section" id="discovery-sources">
   <h2>{{.T "manage.discovery.sources"}}</h2>
-  <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem">
+  <p class="section-desc">
     Nginx Proxy Manager, Docker und Traefik werden automatisch auf neue Dienste gescannt.
   </p>
 
   <form hx-post="/manage/discovery/sources" hx-target="#discovery-sources-list" hx-swap="outerHTML"
-        style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1.5rem">
-    <div class="form-group" style="margin-bottom:0">
+        class="discovery-form-grid">
+    <div class="form-group">
       <label>Typ</label>
       <select name="type">
         <option value="npm">Nginx Proxy Manager</option>
@@ -134,24 +134,24 @@
         <option value="docker">Docker TCP</option>
       </select>
     </div>
-    <div class="form-group" style="margin-bottom:0">
+    <div class="form-group">
       <label>{{.T "manage.name"}}</label>
       <input type="text" name="name" placeholder="Mein NPM" required>
     </div>
-    <div class="form-group" style="margin-bottom:0">
+    <div class="form-group">
       <label>{{.T "manage.url"}}</label>
       <input type="url" name="url" placeholder="http://192.168.2.1:81" required>
     </div>
-    <div class="form-group" style="margin-bottom:0">
+    <div class="form-group">
       <label>Token / identity:secret</label>
       <input type="text" name="token" placeholder="admin@example.com:passwort">
     </div>
-    <div class="form-group" style="margin-bottom:0">
+    <div class="form-group">
       <label>Intervall (Sekunden)</label>
       <input type="number" name="interval" value="300" min="10">
     </div>
-    <div style="display:flex;align-items:flex-end">
-      <button type="submit" class="btn-primary" style="width:100%">{{.T "manage.discovery.add"}}</button>
+    <div class="flex-align-end">
+      <button type="submit" class="btn-primary btn-full">{{.T "manage.discovery.add"}}</button>
     </div>
   </form>
 
@@ -162,9 +162,9 @@
 
 <section class="manage-panel manage-section" id="analytics-link">
   <h2>{{.T "analytics.title"}}</h2>
-  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+  <div class="flex-row-wrap">
     <a href="/manage/analytics" class="btn-sm">📊 {{.T "analytics.title"}} {{.T "manage.edit"}}</a>
-    <span style="font-size:0.8rem;color:var(--sub)">{{.T "analytics.description"}}</span>
+    <span class="text-hint">{{.T "analytics.description"}}</span>
   </div>
 </section>
 
@@ -172,15 +172,15 @@
   <h2>Backup & Restore</h2>
 
   <!-- Manueller Backup-Download -->
-  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem">
+  <div class="flex-row-wrap-mb">
     <a href="/manage/backup" class="btn-sm" download>💾 Backup herunterladen</a>
-    <span style="font-size:0.8rem;color:var(--sub)">Lädt homeport.db als Snapshot</span>
+    <span class="text-hint">Lädt homeport.db als Snapshot</span>
   </div>
 
   <!-- Restore-Upload -->
   <form id="restore-form" method="post" action="/manage/restore" enctype="multipart/form-data">
-    <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap">
-      <div class="form-group" style="margin-bottom:0">
+    <div class="flex-row-align-end-wrap">
+      <div class="form-group form-group-mb0">
         <label>DB-Datei wiederherstellen</label>
         <input type="file" name="file" accept=".db" required>
       </div>
@@ -191,20 +191,20 @@
 
 <section class="manage-panel manage-section" id="appearance">
   <h2>{{.T "manage.settings"}}</h2>
-  <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
+  <div class="settings-row">
 
-    <div class="form-group" style="flex:0 0 auto">
+    <div class="form-group flex-no-shrink">
       <label>{{.T "manage.theme"}}</label>
-      <div style="display:flex;gap:0.4rem;margin-top:0.25rem">
+      <div class="btn-group-sm">
         <button class="btn-sm theme-btn {{if eq .Prefs.Theme "dark"}}active{{end}}" data-theme="dark">🌙 Dark</button>
         <button class="btn-sm theme-btn {{if eq .Prefs.Theme "light"}}active{{end}}" data-theme="light">☀️ Light</button>
         <button class="btn-sm theme-btn {{if eq .Prefs.Theme "system"}}active{{end}}" data-theme="system">💻 System</button>
       </div>
     </div>
 
-    <div class="form-group" style="flex:0 0 auto">
+    <div class="form-group flex-no-shrink">
       <label>{{.T "manage.language"}}</label>
-      <div style="margin-top:0.25rem">
+      <div class="mt-xs">
         <select name="language" hx-patch="/api/user/preferences" hx-ext="json-enc" hx-trigger="change" hx-swap="none">
           <option value="de" {{if eq .Prefs.Language "de"}}selected{{end}}>{{.T "pref.language.de"}}</option>
           <option value="en" {{if eq .Prefs.Language "en"}}selected{{end}}>{{.T "pref.language.en"}}</option>
@@ -212,25 +212,23 @@
       </div>
     </div>
 
-
-
-    <div class="form-group" style="flex:0 0 auto">
+    <div class="form-group flex-no-shrink">
       <label>{{.T "manage.accent_color"}}</label>
-      <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.25rem">
+      <div class="color-picker-row">
         <input type="color" id="accent-picker" value="{{.Prefs.AccentColor}}">
-        <span id="accent-hex" style="font-size:0.8rem;color:var(--sub)">{{.Prefs.AccentColor}}</span>
+        <span id="accent-hex" class="accent-hex">{{.Prefs.AccentColor}}</span>
         <button class="btn-sm" id="reset-accent-btn">Reset</button>
       </div>
     </div>
 
   </div>
 
-  <div class="form-group" style="margin-top:1rem">
+  <div class="form-group form-group-mt">
     <label>Custom CSS (Override)</label>
     <textarea id="custom-css-input" rows="6"
-              style="width:100%;font-family:monospace;font-size:0.8rem;resize:vertical"
+              class="css-editor"
               placeholder="/* z.B. .widget { border-radius: 0; } */">{{.Prefs.CustomCSS}}</textarea>
-    <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+    <div class="btn-group">
       <button class="btn-sm" id="save-css-btn">{{.T "manage.save"}}</button>
       <button class="btn-sm" id="reset-css-btn">{{.T "manage.cancel"}}</button>
     </div>
@@ -239,18 +237,18 @@
 
 <section class="manage-panel manage-section" id="auth">
   <h2>{{.T "manage.auth"}}</h2>
-  <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
+  <p class="section-desc-sm">
     Auth aktiv wenn <code>HOMEPORT_AUTH=true</code> gesetzt ist.
     Erster User mit Passwort wird automatisch Admin.
   </p>
   <div hx-get="/manage/auth" hx-trigger="load" hx-swap="innerHTML" id="auth-list-wrap">Lade…</div>
   <form hx-post="/manage/auth/password" hx-target="#auth-list-wrap" hx-swap="innerHTML"
         hx-on::after-request="this.reset()"
-        style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
-    <select name="profile" style="flex:1;min-width:120px">
+        class="form-row-wrap">
+    <select name="profile" class="flex-1-min120">
       {{range .Profiles}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
     </select>
-    <input type="password" name="password" placeholder="Neues Passwort" required style="flex:2;min-width:150px">
+    <input type="password" name="password" placeholder="Neues Passwort" required class="flex-2-min150">
     <button class="btn-sm" type="submit">{{.T "manage.auth.set"}}</button>
   </form>
 </section>
@@ -260,12 +258,12 @@
   <div id="profile-list">
     {{template "profile_list" .}}
   </div>
-  <form hx-post="/manage/profile" hx-target="#profile-list" hx-swap="innerHTML" style="display:flex;gap:0.5rem;margin-top:0.75rem">
-    <input type="text" name="name" placeholder="Profilname" required style="flex:1">
-    <input type="text" name="slug" placeholder="slug (URL)" required pattern="[a-z0-9-]+" style="flex:1">
+  <form hx-post="/manage/profile" hx-target="#profile-list" hx-swap="innerHTML" class="form-row">
+    <input type="text" name="name" placeholder="Profilname" required class="flex-1">
+    <input type="text" name="slug" placeholder="slug (URL)" required pattern="[a-z0-9-]+" class="flex-1">
     <button class="btn-sm" type="submit">+ {{.T "manage.profile"}}</button>
   </form>
-  <form hx-post="/manage/profile/{{.DefaultProfile}}/clone" hx-swap="outerHTML" hx-target="body" style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
+  <form hx-post="/manage/profile/{{.DefaultProfile}}/clone" hx-swap="outerHTML" hx-target="body" class="form-row-center">
     <input type="text" name="name" placeholder="{{.T "manage.clone_target_name"}}" class="form-input" required>
     <button type="submit" class="btn-sm">{{.T "manage.clone_profile"}}</button>
   </form>
@@ -273,27 +271,27 @@
 
 <section class="manage-panel manage-section" id="pages">
   <h2>{{.T "manage.pages"}}</h2>
-  <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
+  <p class="section-desc-sm">
     Pages erlauben es, Kategorien und Widgets auf verschiedene Tabs aufzuteilen (Work / Personal / Hobby).
     Nicht zugewiesene Inhalte (Page 0) erscheinen auf allen Tabs.
   </p>
   {{if .Profiles}}
   {{range .Profiles}}
-  <h4 style="margin:0.75rem 0 0.4rem">{{.Name}} ({{.Slug}})</h4>
+  <h4 class="profile-section-title">{{.Name}} ({{.Slug}})</h4>
   <div id="page-list-{{.Slug}}"
        hx-get="/manage/page-list?profile={{.Slug}}" hx-trigger="load"
        hx-swap="innerHTML">Lade…</div>
   <form hx-post="/manage/page" hx-target="#page-list-{{.Slug}}" hx-swap="innerHTML"
         hx-on::after-request="this.reset()"
-        style="display:flex;gap:0.5rem;margin-top:0.4rem;flex-wrap:wrap">
+        class="form-row-wrap-sm">
     <input type="hidden" name="profile" value="{{.Slug}}">
-    <input type="text" name="icon" placeholder="📄" style="width:3rem">
-    <input type="text" name="name" placeholder="Page Name (z.B. Work)" required style="flex:1">
+    <input type="text" name="icon" placeholder="📄" class="icon-input-sm">
+    <input type="text" name="name" placeholder="Page Name (z.B. Work)" required class="flex-1">
     <button class="btn-sm" type="submit">+ {{$.T "manage.add_page"}}</button>
   </form>
   {{end}}
   {{end}}
-  <div style="margin-top:1rem;font-size:0.85rem;color:var(--text-muted)">
+  <div class="hint-block">
     Kategorien einer Page zuordnen: Im Kategorie-Bereich oben → "Page" Dropdown pro Kategorie.
   </div>
 </section>
