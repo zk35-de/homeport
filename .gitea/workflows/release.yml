@@ -47,7 +47,7 @@ jobs:
 
       - name: Create Gitea Release
         env:
-          GITEA_TOKEN: ${{ secrets.homeportci }}
+          GITEA_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
           GITEA_URL: https://git.zk35.de
           REPO: ${{ github.repository }}
@@ -57,7 +57,6 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"draft\":false,\"prerelease\":false}" \
             -o /tmp/release.json
-          cat /tmp/release.json
           RELEASE_ID=$(python3 -c "import json,sys; print(json.load(open('/tmp/release.json'))['id'])")
           for f in dist/homeport-linux-amd64 dist/homeport-linux-arm64 dist/checksums.txt; do
             curl -s -X POST "${GITEA_URL}/api/v1/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename $f)" \
