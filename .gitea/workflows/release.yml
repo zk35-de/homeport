@@ -64,7 +64,7 @@ jobs:
         with:
           registry: git.zk35.de
           username: secalpha
-          password: ${{ secrets.GITEA_TOKEN }}
+          password: ${{ secrets.homeportci }}
 
       - name: Build and push container image
         uses: docker/build-push-action@v6
