@@ -57,6 +57,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    cursor: pointer;
 }
 
 .category-title {
@@ -595,6 +596,7 @@
     z-index: 200;
     max-height: 360px;
     overflow-y: auto;
+    display: none;
 }
 .spotlight-item {
     display: flex;
@@ -822,3 +824,111 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
     background: transparent;
     cursor: pointer;
 }
+
+/* ─── Issue #107: Inline style removal (CSP unsafe-inline) ──── */
+
+/* Login page */
+.login-outer { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.login-inner { width: 100%; max-width: 360px; }
+.login-header { text-align: center; margin-bottom: 2rem; }
+.login-logo-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.login-title { margin: 0; font-size: 1.5rem; font-weight: 700; }
+.login-card { padding: 2rem; }
+.login-card button[type="submit"] { width: 100%; margin-top: 0.5rem; }
+.login-error { background: rgba(248,113,113,0.15); border: 1px solid var(--red); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; color: var(--red); font-size: 0.9rem; }
+
+/* Onboarding */
+.onboarding-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.onboarding-title { margin: 0 0 0.5rem; }
+.onboarding-desc { color: var(--text-muted); margin: 0 0 1.25rem; }
+
+/* Category color CSS variables via data attribute */
+[data-color="indigo"] { --cat-color: var(--indigo); }
+[data-color="blue"]   { --cat-color: var(--blue); }
+[data-color="cyan"]   { --cat-color: var(--cyan); }
+[data-color="green"]  { --cat-color: var(--green); }
+[data-color="yellow"] { --cat-color: var(--yellow); }
+[data-color="orange"] { --cat-color: var(--orange); }
+[data-color="red"]    { --cat-color: var(--red); }
+[data-color="purple"] { --cat-color: var(--purple); }
+[data-color="gray"]   { --cat-color: var(--gray); }
+
+/* Color helper classes (for category titles and similar) */
+.color-indigo { color: var(--indigo); }
+.color-blue   { color: var(--blue); }
+.color-cyan   { color: var(--cyan); }
+.color-green  { color: var(--green); }
+.color-yellow { color: var(--yellow); }
+.color-orange { color: var(--orange); }
+.color-red    { color: var(--red); }
+.color-purple { color: var(--purple); }
+.color-gray   { color: var(--gray); }
+
+/* Analytics */
+.analytics-filter-label { color: var(--sub); font-size: 0.9rem; }
+.analytics-back { color: var(--sub); font-size: 0.85rem; margin-left: 1rem; }
+
+/* Favicon preview thumbnail */
+.favicon-preview { width: 20px; height: 20px; border-radius: 3px; }
+
+/* Manage – form & layout utilities */
+.icon-input-row { display: flex; gap: 0.4rem; align-items: center; }
+.checkbox-label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+.form-group-mb0 { margin-bottom: 0; }
+.form-group-xs { margin-bottom: 0.4rem; }
+.form-group-mt { margin-top: 1rem; }
+.section-desc { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem; }
+.section-desc-sm { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+.discovery-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1.5rem; }
+.discovery-form-grid .form-group { margin-bottom: 0; }
+.flex-align-end { display: flex; align-items: flex-end; }
+.btn-full { width: 100%; }
+.flex-row-wrap { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.flex-row-wrap-mb { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.text-hint { font-size: 0.8rem; color: var(--sub); }
+.flex-row-align-end-wrap { display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap; }
+.settings-row { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }
+.flex-no-shrink { flex: 0 0 auto; }
+.btn-group-sm { display: flex; gap: 0.4rem; margin-top: 0.25rem; }
+.mt-xs { margin-top: 0.25rem; }
+.color-picker-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem; }
+.accent-hex { font-size: 0.8rem; color: var(--sub); }
+.css-editor { width: 100%; font-family: monospace; font-size: 0.8rem; resize: vertical; }
+.btn-group { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+.form-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+.form-row-wrap { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+.flex-1-min120 { flex: 1; min-width: 120px; }
+.flex-2-min150 { flex: 2; min-width: 150px; }
+.form-row-center { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+.profile-section-title { margin: 0.75rem 0 0.4rem; }
+.form-row-wrap-sm { display: flex; gap: 0.5rem; margin-top: 0.4rem; flex-wrap: wrap; }
+.icon-input-sm { width: 3rem; }
+.hint-block { margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+.form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+
+/* Discovery Sources table */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.table-header-row { border-bottom: 1px solid var(--glass-border); color: var(--text-muted); }
+.th-left { text-align: left; padding: 0.4rem 0.5rem; }
+.th-cell { padding: 0.4rem 0.5rem; }
+.table-row { border-bottom: 1px solid var(--glass-border); }
+.td-cell { padding: 0.5rem; }
+.td-type { padding: 0.5rem; text-transform: uppercase; font-size: 0.75rem; color: var(--text-muted); }
+.td-muted { padding: 0.5rem; color: var(--text-muted); font-size: 0.8rem; }
+.td-muted-plain { padding: 0.5rem; color: var(--text-muted); }
+.status-active { color: var(--green); font-size: 0.75rem; }
+.status-paused { color: var(--text-muted); font-size: 0.75rem; }
+.td-actions { padding: 0.5rem; display: flex; gap: 0.4rem; }
+
+/* Auth list */
+.auth-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--glass-border); }
+.auth-name { flex: 1; font-weight: 500; }
+.auth-slug { color: var(--text-muted); font-size: 0.8rem; }
+.auth-status-ok { font-size: 0.75rem; color: var(--green); }
+.auth-status-none { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Page list */
+.page-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.page-id { font-size: 0.75rem; color: var(--text-muted); }
+.page-empty { color: var(--text-muted); font-size: 0.85rem; }
