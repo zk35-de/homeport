@@ -36,7 +36,7 @@ Stand: 2026-03-23
 | **Router Widget** | ✗ | ✓ (Speedport, FritzBox) |
 | **CalDAV** | ✗ | ✓ |
 | **Cloud Backup** | ✓ (encrypted) | ✗ |
-| **Mehrsprachig** | ✓ (10+ Sprachen) | ✗ (de only) |
+| **Mehrsprachig** | ✓ (10+ Sprachen) | 🚧 in Entwicklung (Issue #79) |
 | **Mobile** | ✓ | ✓ |
 | **Binary-Größe** | groß (Node.js) | klein (single Go binary) |
 | **Public release** | seit Jahren etabliert | in Entwicklung |
