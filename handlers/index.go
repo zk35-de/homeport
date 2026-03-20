@@ -39,6 +39,7 @@ func InitTemplates(fs embed.FS) {
 
 type IndexData struct {
 	Categories []db.Category
+	Widgets    []db.Widget
 	Profile    string
 }
 
@@ -55,8 +56,21 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	widgets, err := db.GetWidgets(profile)
+	if err != nil {
+		log.Printf("Error fetching widgets: %v", err)
+		widgets = nil
+	}
+	// Populate widget events from cache
+	for i := range widgets {
+		if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {
+			widgets[i].Events = cache.Events
+		}
+	}
+
 	data := IndexData{
 		Categories: categories,
+		Widgets:    widgets,
 		Profile:    profile,
 	}
 

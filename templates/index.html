@@ -1,4 +1,9 @@
 {{define "content"}}
+{{if .Widgets}}
+<div class="widgets-row">
+    {{range .Widgets}}{{template "widget_ical" .}}{{end}}
+</div>
+{{end}}
 <div class="dashboard">
     {{range .Categories}}
     {{if .Services}}

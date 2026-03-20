@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,6 +33,28 @@ type Service struct {
 	Alive       bool   // joined from service_status
 	LastCheck   string // joined from service_status (sqlite datetime string)
 	VisibleTo   []string  // profiles
+}
+
+type Widget struct {
+	ID        int
+	Type      string
+	Name      string
+	Config    string // json string
+	Profile   string
+	SortOrder int
+	Events    []ICalEvent `json:"-"` // populated from cache
+}
+
+type ICalEvent struct {
+	Title      string
+	Start      string
+	End        string
+	IsToday    bool
+	IsTomorrow bool
+}
+
+type WidgetCacheEntry struct {
+	Events []ICalEvent
 }
 
 func InitDB(dbPath string) error {
@@ -82,6 +105,19 @@ func InitDB(dbPath string) error {
 			alive INTEGER,
 			last_check DATETIME
 		);`,
+		`CREATE TABLE IF NOT EXISTS widgets (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			type TEXT NOT NULL DEFAULT 'ical',
+			name TEXT NOT NULL,
+			config TEXT NOT NULL,
+			profile TEXT NOT NULL DEFAULT 'all',
+			sort_order INTEGER NOT NULL DEFAULT 0
+		);`,
+		`CREATE TABLE IF NOT EXISTS widget_cache (
+			widget_id INTEGER PRIMARY KEY REFERENCES widgets(id) ON DELETE CASCADE,
+			data TEXT NOT NULL,
+			fetched_at DATETIME NOT NULL
+		);`,
 	}
 
 	for _, q := range queries {
@@ -106,12 +142,12 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder); err != nil {
 			return nil, err
 		}
-		
+
 		// Get services for this category visible to profile
 		// Or if profile is empty (manage mode), get all services
 		var sRows *sql.Rows
 		var sErr error
-		
+
 		query := `
 			SELECT s.id, s.category_id, s.name, s.url, s.icon, s.description, s.status_check, s.sort_order, 
 			       COALESCE(ss.alive, 0), COALESCE(ss.last_check, '0001-01-01 00:00:00')
@@ -119,7 +155,7 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 			LEFT JOIN service_status ss ON s.id = ss.service_id
 			WHERE s.category_id = ?
 		`
-		
+
 		if profile != "" {
 			query += ` AND s.id IN (SELECT service_id FROM visibility WHERE profile = ?)`
 			query += ` ORDER BY s.sort_order ASC`
@@ -141,7 +177,7 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 				return nil, err
 			}
 			s.Alive = alive == 1
-			
+
 			// If managing (profile == ""), fetch visibility
 			if profile == "" {
 				vRows, vErr := DB.Query(`SELECT profile FROM visibility WHERE service_id = ?`, s.ID)
@@ -229,5 +265,76 @@ func UpdateCategorySort(id, newOrder int) error {
 
 func UpdateServiceSort(id, newOrder int) error {
 	_, err := DB.Exec(`UPDATE services SET sort_order = ? WHERE id = ?`, newOrder, id)
+	return err
+}
+
+// Widgets
+
+func AddWidget(name, icalURL, profile string) error {
+	config := fmt.Sprintf(`{"url": "%s"}`, icalURL)
+	_, err := DB.Exec(`INSERT INTO widgets (name, config, profile, sort_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM widgets))`, name, config, profile)
+	return err
+}
+
+func DeleteWidget(id int) error {
+	_, err := DB.Exec(`DELETE FROM widgets WHERE id = ?`, id)
+	return err
+}
+
+func GetWidgets(profile string) ([]Widget, error) {
+	rows, err := DB.Query(`SELECT id, type, name, config, profile, sort_order FROM widgets WHERE profile = ? OR profile = 'all' ORDER BY sort_order ASC`, profile)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var widgets []Widget
+	for rows.Next() {
+		var w Widget
+		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
+			return nil, err
+		}
+		widgets = append(widgets, w)
+	}
+	return widgets, nil
+}
+
+func GetAllWidgets() ([]Widget, error) {
+	rows, err := DB.Query(`SELECT id, type, name, config, profile, sort_order FROM widgets ORDER BY sort_order ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var widgets []Widget
+	for rows.Next() {
+		var w Widget
+		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
+			return nil, err
+		}
+		widgets = append(widgets, w)
+	}
+	return widgets, nil
+}
+
+func GetWidgetCache(widgetID int) (*WidgetCacheEntry, error) {
+	row := DB.QueryRow(`SELECT data FROM widget_cache WHERE widget_id = ?`, widgetID)
+	var data string
+	if err := row.Scan(&data); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Not found is not an error
+		}
+		return nil, err
+	}
+
+	var entry WidgetCacheEntry
+	if err := json.Unmarshal([]byte(data), &entry); err != nil {
+		return nil, err
+	}
+	return &entry, nil
+}
+
+func UpdateWidgetCache(widgetID int, data string) error {
+	_, err := DB.Exec(`INSERT INTO widget_cache (widget_id, data, fetched_at) VALUES (?, ?, datetime('now')) ON CONFLICT(widget_id) DO UPDATE SET data = ?, fetched_at = datetime('now')`, widgetID, data, data)
 	return err
 }

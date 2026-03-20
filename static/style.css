@@ -311,3 +311,39 @@ button.danger {
     color: var(--text-muted);
     margin-left: 0.5rem;
 }
+
+/* Widgets */
+.widgets-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+.widget {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    min-width: 220px;
+    flex: 1;
+}
+.widget-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #888);
+    margin: 0 0 0.75rem 0;
+}
+.event {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+.event:last-child { border-bottom: none; }
+.event-date { color: var(--text-muted, #888); white-space: nowrap; }
+.event-title { flex: 1; }
+.event.today { color: var(--accent, #6d28d9); font-weight: 600; }
+.event.tomorrow { color: var(--text); font-weight: 500; }
+.event-empty { color: var(--text-muted, #888); font-size: 0.875rem; }

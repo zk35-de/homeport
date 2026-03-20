@@ -161,6 +161,35 @@ func HandleSortService(w http.ResponseWriter, r *http.Request) {
 	renderCategoryList(w)
 }
 
+func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	name := r.FormValue("name")
+	url := r.FormValue("url")
+	profile := r.FormValue("profile")
+	if profile == "" {
+		profile = "all"
+	}
+	if err := db.AddWidget(name, url, profile); err != nil {
+		log.Printf("Error adding widget: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func HandleDeleteWidget(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	if err := db.DeleteWidget(id); err != nil {
+		log.Printf("Error deleting widget: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func renderCategoryList(w http.ResponseWriter) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
