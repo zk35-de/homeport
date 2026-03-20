@@ -135,6 +135,15 @@ func InitDB(dbPath string) error {
 			profile        TEXT PRIMARY KEY,
 			search_engine  TEXT NOT NULL DEFAULT 'https://duckduckgo.com/'
 		);`,
+		`CREATE TABLE IF NOT EXISTS user_preferences (
+			profile       TEXT PRIMARY KEY,
+			theme         TEXT NOT NULL DEFAULT 'dark',
+			accent_color  TEXT NOT NULL DEFAULT '#6366f1',
+			search_engine TEXT NOT NULL DEFAULT 'https://duckduckgo.com/',
+			background    TEXT NOT NULL DEFAULT 'aurora',
+			language      TEXT NOT NULL DEFAULT 'de',
+			layout        TEXT NOT NULL DEFAULT 'grid'
+		);`,
 	}
 
 	for _, q := range queries {
@@ -142,6 +151,9 @@ func InitDB(dbPath string) error {
 			return fmt.Errorf("migration failed: %w", err)
 		}
 	}
+
+	// Idempotent migrations: ignore errors (column may already exist)
+	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN visible INTEGER NOT NULL DEFAULT 1`)
 
 	return nil
 }
@@ -451,6 +463,40 @@ func GetWidgets(profile string) ([]Widget, error) {
 	return widgets, nil
 }
 
+// UpdateWidget partially updates a widget's mutable fields (nil = no change).
+func UpdateWidget(id int, name, config, profile *string) error {
+	if name == nil && config == nil && profile == nil {
+		return nil
+	}
+	q := `UPDATE widgets SET`
+	args := []any{}
+	sep := " "
+	if name != nil {
+		q += sep + `name = ?`
+		args = append(args, *name)
+		sep = ", "
+	}
+	if config != nil {
+		q += sep + `config = ?`
+		args = append(args, *config)
+		sep = ", "
+	}
+	if profile != nil {
+		q += sep + `profile = ?`
+		args = append(args, *profile)
+	}
+	q += ` WHERE id = ?`
+	args = append(args, id)
+	_, err := DB.Exec(q, args...)
+	return err
+}
+
+// UpdateWidgetSort sets sort_order for a single widget.
+func UpdateWidgetSort(id, sortOrder int) error {
+	_, err := DB.Exec(`UPDATE widgets SET sort_order = ? WHERE id = ?`, sortOrder, id)
+	return err
+}
+
 func GetAllWidgets() ([]Widget, error) {
 	rows, err := DB.Query(`SELECT id, type, name, config, profile, sort_order FROM widgets ORDER BY sort_order ASC`)
 	if err != nil {
@@ -597,4 +643,54 @@ func GetAllSearchEngines() map[string]string {
 		}
 	}
 	return result
+}
+
+// UserPreferences holds per-profile UI preferences.
+type UserPreferences struct {
+	Profile      string `json:"profile"`
+	Theme        string `json:"theme"`
+	AccentColor  string `json:"accent_color"`
+	SearchEngine string `json:"search_engine"`
+	Background   string `json:"background"`
+	Language     string `json:"language"`
+	Layout       string `json:"layout"`
+}
+
+// GetUserPreferences returns preferences for a profile (defaults if not found).
+func GetUserPreferences(profile string) (*UserPreferences, error) {
+	p := &UserPreferences{
+		Profile:      profile,
+		Theme:        "dark",
+		AccentColor:  "#6366f1",
+		SearchEngine: "https://duckduckgo.com/",
+		Background:   "aurora",
+		Language:     "de",
+		Layout:       "grid",
+	}
+	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, background, language, layout
+		FROM user_preferences WHERE profile = ?`, profile)
+	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Background, &p.Language, &p.Layout)
+	if err == sql.ErrNoRows {
+		return p, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// SetUserPreferences upserts preferences for a profile.
+func SetUserPreferences(profile string, prefs UserPreferences) error {
+	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, background, language, layout)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(profile) DO UPDATE SET
+			theme = excluded.theme,
+			accent_color = excluded.accent_color,
+			search_engine = excluded.search_engine,
+			background = excluded.background,
+			language = excluded.language,
+			layout = excluded.layout`,
+		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
+		prefs.Background, prefs.Language, prefs.Layout)
+	return err
 }

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"git.zk35.de/secalpha/homeport/db"
+	"git.zk35.de/secalpha/homeport/internal/db"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 

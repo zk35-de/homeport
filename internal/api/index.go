@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"embed"
@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"git.zk35.de/secalpha/homeport/db"
+	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
 // Separate template sets per page to avoid {{define "content"}} conflicts.

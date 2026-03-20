@@ -1,4 +1,4 @@
-package handlers_test
+package api_test
 
 import (
 	"embed"
@@ -15,8 +15,8 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"git.zk35.de/secalpha/homeport/db"
-	"git.zk35.de/secalpha/homeport/handlers"
+	"git.zk35.de/secalpha/homeport/internal/db"
+	"git.zk35.de/secalpha/homeport/internal/api"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
@@ -84,8 +84,8 @@ func setupTest(t *testing.T) func() {
 		os.Remove(dbPath)
 		t.Fatalf("Failed to parse manage test templates: %v", err)
 	}
-	handlers.IndexTmpl = indexTmpl
-	handlers.ManageTmpl = manageTmpl
+	api.IndexTmpl = indexTmpl
+	api.ManageTmpl = manageTmpl
 
 	return func() {
 		if db.DB != nil {
@@ -93,8 +93,8 @@ func setupTest(t *testing.T) func() {
 			db.DB = nil
 		}
 		os.Remove(dbPath)
-		handlers.IndexTmpl = nil
-		handlers.ManageTmpl = nil
+		api.IndexTmpl = nil
+		api.ManageTmpl = nil
 		log.SetOutput(os.Stderr)
 	}
 }
@@ -119,7 +119,7 @@ func TestHandleIndex(t *testing.T) {
 	t.Run("markus profile", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		rr := httptest.NewRecorder()
-		handlers.HandleIndex(rr, req)
+		api.HandleIndex(rr, req)
 
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -141,7 +141,7 @@ func TestHandleIndex(t *testing.T) {
 	t.Run("andrea profile", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/andrea", nil)
 		rr := httptest.NewRecorder()
-		handlers.HandleIndex(rr, req)
+		api.HandleIndex(rr, req)
 
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -177,7 +177,7 @@ func TestHandleManage(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/manage", nil)
 	rr := httptest.NewRecorder()
-	handlers.HandleManage(rr, req)
+	api.HandleManage(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -205,7 +205,7 @@ func TestHandleSetSearchEngine(t *testing.T) {
 	req := httptest.NewRequest("POST", "/set-search-engine", strings.NewReader(formData.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	handlers.HandleSetSearchEngine(rr, req)
+	api.HandleSetSearchEngine(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -222,7 +222,7 @@ func TestHandleSetSearchEngine(t *testing.T) {
 	req = httptest.NewRequest("POST", "/set-search-engine", strings.NewReader(formData.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	rr = httptest.NewRecorder()
-	handlers.HandleSetSearchEngine(rr, req)
+	api.HandleSetSearchEngine(rr, req)
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned wrong status code for invalid profile: got %v want %v", status, http.StatusBadRequest)
 	}
@@ -240,7 +240,7 @@ func TestHandleAddCategory(t *testing.T) {
 	req := httptest.NewRequest("POST", "/add-category", strings.NewReader(formData.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	handlers.HandleAddCategory(rr, req)
+	api.HandleAddCategory(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -277,7 +277,7 @@ func TestHandleAddService(t *testing.T) {
 	req := httptest.NewRequest("POST", "/add-service", strings.NewReader(formData.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	handlers.HandleAddService(rr, req)
+	api.HandleAddService(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -302,7 +302,7 @@ func TestHandleDeleteCategory(t *testing.T) {
 	catID := cats[0].ID
 
 	r := chi.NewRouter()
-	r.Delete("/delete-category/{id}", handlers.HandleDeleteCategory)
+	r.Delete("/delete-category/{id}", api.HandleDeleteCategory)
 
 	req := httptest.NewRequest("DELETE", fmt.Sprintf("/delete-category/%d", catID), nil)
 	rr := httptest.NewRecorder()
@@ -334,7 +334,7 @@ func TestHandleDeleteService(t *testing.T) {
 	svcID := catsWithSvc[0].Services[0].ID
 
 	r := chi.NewRouter()
-	r.Delete("/delete-service/{id}", handlers.HandleDeleteService)
+	r.Delete("/delete-service/{id}", api.HandleDeleteService)
 
 	req := httptest.NewRequest("DELETE", fmt.Sprintf("/delete-service/%d", svcID), nil)
 	rr := httptest.NewRecorder()
@@ -364,7 +364,7 @@ func TestHandleSortCategory(t *testing.T) {
 	catBID := cats[1].ID // SO 1
 
 	r := chi.NewRouter()
-	r.Post("/sort-category/{id}/{direction}", handlers.HandleSortCategory)
+	r.Post("/sort-category/{id}/{direction}", api.HandleSortCategory)
 
 	// Move CatB up (swap with CatA)
 	req := httptest.NewRequest("POST", fmt.Sprintf("/sort-category/%d/up", catBID), nil)
@@ -398,7 +398,7 @@ func TestHandleSortService(t *testing.T) {
 	svc2ID := catsWithSvc[0].Services[1].ID
 
 	r := chi.NewRouter()
-	r.Post("/sort-service/{id}/{direction}", handlers.HandleSortService)
+	r.Post("/sort-service/{id}/{direction}", api.HandleSortService)
 
 	// Move Svc2 up (swap with Svc1)
 	req := httptest.NewRequest("POST", fmt.Sprintf("/sort-service/%d/up", svc2ID), nil)
@@ -430,7 +430,7 @@ func TestHandleAddWidget(t *testing.T) {
 	req := httptest.NewRequest("POST", "/add-widget", strings.NewReader(formData.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	handlers.HandleAddWidget(rr, req)
+	api.HandleAddWidget(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -451,7 +451,7 @@ func TestHandleDeleteWidget(t *testing.T) {
 	widgetID := widgets[0].ID
 
 	r := chi.NewRouter()
-	r.Delete("/delete-widget/{id}", handlers.HandleDeleteWidget)
+	r.Delete("/delete-widget/{id}", api.HandleDeleteWidget)
 
 	req := httptest.NewRequest("DELETE", fmt.Sprintf("/delete-widget/%d", widgetID), nil)
 	rr := httptest.NewRecorder()
@@ -478,7 +478,7 @@ func TestHandleCloneToAndrea(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/clone-to-andrea", nil)
 	rr := httptest.NewRecorder()
-	handlers.HandleCloneToAndrea(rr, req)
+	api.HandleCloneToAndrea(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -516,7 +516,7 @@ func TestHandleDiscoveryInbox(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/discovery-inbox", nil)
 	rr := httptest.NewRecorder()
-	handlers.HandleDiscoveryInbox(rr, req)
+	api.HandleDiscoveryInbox(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -541,7 +541,7 @@ func TestHandleAcceptDiscovery(t *testing.T) {
 	db.AddCategory("Discovered", "tiles", "orange")
 
 	r := chi.NewRouter()
-	r.Post("/accept-discovery/{id}", handlers.HandleAcceptDiscovery)
+	r.Post("/accept-discovery/{id}", api.HandleAcceptDiscovery)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/accept-discovery/%d", itemID), nil)
 	rr := httptest.NewRecorder()
@@ -590,7 +590,7 @@ func TestHandleIgnoreDiscovery(t *testing.T) {
 	itemID := items[0].ID
 
 	r := chi.NewRouter()
-	r.Post("/ignore-discovery/{id}", handlers.HandleIgnoreDiscovery)
+	r.Post("/ignore-discovery/{id}", api.HandleIgnoreDiscovery)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/ignore-discovery/%d", itemID), nil)
 	rr := httptest.NewRecorder()

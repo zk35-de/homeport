@@ -1,0 +1,66 @@
+package config
+
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"os"
+	"strings"
+)
+
+// Config holds all runtime configuration for homeport.
+type Config struct {
+	Port   string
+	DBPath string
+	Token  string
+	CORS   []string
+}
+
+// Load reads configuration from environment variables and applies defaults.
+// If HOMEPORT_TOKEN is empty, a random 32-byte hex token is generated and
+// printed to stderr so the operator can record it.
+func Load() *Config {
+	port := os.Getenv("HOMEPORT_PORT")
+	if port == "" {
+		port = "8855"
+	}
+
+	dbPath := os.Getenv("HOMEPORT_DB")
+	if dbPath == "" {
+		dbPath = "./data/homeport.db"
+	}
+
+	token := os.Getenv("HOMEPORT_TOKEN")
+	if token == "" {
+		token = generateToken()
+		fmt.Fprintf(os.Stderr, "HOMEPORT_TOKEN not set – generated token: %s\n", token)
+	}
+
+	rawCORS := os.Getenv("HOMEPORT_CORS")
+	var cors []string
+	if rawCORS == "" {
+		cors = []string{"*"}
+	} else {
+		for _, s := range strings.Split(rawCORS, ",") {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				cors = append(cors, s)
+			}
+		}
+	}
+
+	return &Config{
+		Port:   port,
+		DBPath: dbPath,
+		Token:  token,
+		CORS:   cors,
+	}
+}
+
+func generateToken() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic(fmt.Sprintf("config: failed to generate token: %v", err))
+	}
+	return hex.EncodeToString(b)
+}

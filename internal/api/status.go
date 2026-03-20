@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"git.zk35.de/secalpha/homeport/db"
+	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
 type StatusUpdate struct {

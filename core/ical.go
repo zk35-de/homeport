@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"git.zk35.de/secalpha/homeport/db"
+	"git.zk35.de/secalpha/homeport/internal/db"
 	"github.com/emersion/go-ical"
 )
 

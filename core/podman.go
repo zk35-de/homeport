@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"git.zk35.de/secalpha/homeport/db"
+	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
 // podmanContainer represents the structure of a Podman container object from 'podman ps --format json'.

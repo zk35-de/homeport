@@ -1,0 +1,72 @@
+package api
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"git.zk35.de/secalpha/homeport/internal/db"
+)
+
+// HandleGetPreferences returns user preferences for a profile.
+// GET /api/user/preferences?profile=markus
+func HandleGetPreferences(w http.ResponseWriter, r *http.Request) {
+	profile := r.URL.Query().Get("profile")
+	if profile == "" {
+		profile = "markus"
+	}
+	prefs, err := db.GetUserPreferences(profile)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(prefs)
+}
+
+// HandleSetPreferences partially updates user preferences for a profile.
+// PATCH /api/user/preferences?profile=markus  (JSON body with optional fields)
+func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
+	profile := r.URL.Query().Get("profile")
+	if profile == "" {
+		profile = "markus"
+	}
+
+	// Load current preferences as base
+	current, err := db.GetUserPreferences(profile)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Decode partial update using a map so we only change provided fields
+	var patch map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	if v, ok := patch["theme"]; ok {
+		current.Theme = v
+	}
+	if v, ok := patch["accent_color"]; ok {
+		current.AccentColor = v
+	}
+	if v, ok := patch["search_engine"]; ok {
+		current.SearchEngine = v
+	}
+	if v, ok := patch["background"]; ok {
+		current.Background = v
+	}
+	if v, ok := patch["language"]; ok {
+		current.Language = v
+	}
+	if v, ok := patch["layout"]; ok {
+		current.Layout = v
+	}
+
+	if err := db.SetUserPreferences(profile, *current); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

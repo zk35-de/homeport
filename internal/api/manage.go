@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"git.zk35.de/secalpha/homeport/db"
+	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
 type ManageData struct {
