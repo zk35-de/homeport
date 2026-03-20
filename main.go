@@ -42,6 +42,7 @@ func main() {
 	// 4. Start Background Tasks
 	handlers.StartStatusChecker()
 	go runICalFetcher()
+	go runPodmanScanner()
 
 	// 5. Router
 	r := chi.NewRouter()
@@ -77,6 +78,11 @@ func main() {
 		r.Delete("/service/{id}", handlers.HandleDeleteService)
 		r.Post("/sort/category/{id}/{direction}", handlers.HandleSortCategory)
 		r.Post("/sort/service/{id}/{direction}", handlers.HandleSortService)
+
+		// Discovery Inbox Routes
+		r.Get("/discovery", handlers.HandleDiscoveryInbox)
+		r.Post("/discovery/{id}/accept", handlers.HandleAcceptDiscovery)
+		r.Post("/discovery/{id}/ignore", handlers.HandleIgnoreDiscovery)
 	})
 
 	log.Printf("Starting server on :%s", port)
@@ -116,3 +122,33 @@ func runICalFetcher() {
 		fetchAll()
 	}
 }
+
+func runPodmanScanner() {
+	scan := func() {
+		services, containerIDs, err := core.ScanPodmanContainers()
+		if err != nil {
+			log.Printf("Podman scanner: error scanning containers: %v", err)
+			return
+		}
+		if services == nil { // Podman not available
+			return
+		}
+
+		for i, svc := range services {
+			suggestedJSON, err := json.Marshal(svc)
+			if err != nil {
+				log.Printf("Podman scanner: error marshaling service %v: %v", svc.Name, err)
+				continue
+			}
+			err = db.AddDiscoveryItem(containerIDs[i], string(suggestedJSON))
+			if err != nil {
+				log.Printf("Podman scanner: error adding discovery item for %s: %v", svc.Name, err)
+			}
+		}
+	}
+	scan() // Run once immediately
+	for range time.Tick(60 * time.Second) {
+		scan()
+	}
+}
+

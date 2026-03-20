@@ -118,12 +118,141 @@ func InitDB(dbPath string) error {
 			data TEXT NOT NULL,
 			fetched_at DATETIME NOT NULL
 		);`,
+		`CREATE TABLE IF NOT EXISTS discovery_inbox (
+			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			container_id TEXT NOT NULL UNIQUE,
+			suggested    TEXT NOT NULL,
+			seen_at      DATETIME NOT NULL DEFAULT (datetime('now')),
+			ignored      INTEGER NOT NULL DEFAULT 0
+		);`,
 	}
 
 	for _, q := range queries {
 		if _, err := DB.Exec(q); err != nil {
 			return fmt.Errorf("migration failed: %w", err)
 		}
+	}
+
+	return nil
+}
+
+type DiscoveryItem struct {
+	ID          int
+	ContainerID string
+	Suggested   SuggestedService // JSON-decoded aus suggested
+	SeenAt      string
+}
+
+type SuggestedService struct {
+	Name        string `json:"name"`
+	URL         string `json:"url"`
+	Icon        string `json:"icon"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	Profile     string `json:"profile"`
+	StatusCheck string `json:"status_check"`
+}
+
+// GetDiscoveryInbox returns all non-ignored discovery items.
+func GetDiscoveryInbox() ([]DiscoveryItem, error) {
+	rows, err := DB.Query(`SELECT id, container_id, suggested, seen_at FROM discovery_inbox WHERE ignored = 0 ORDER BY seen_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []DiscoveryItem
+	for rows.Next() {
+		var item DiscoveryItem
+		var suggestedJSON string
+		if err := rows.Scan(&item.ID, &item.ContainerID, &suggestedJSON, &item.SeenAt); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(suggestedJSON), &item.Suggested); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal suggested service for item %d: %w", item.ID, err)
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+// AddDiscoveryItem adds a new discovery item if it doesn't already exist (based on container_id).
+func AddDiscoveryItem(containerID, suggested string) error {
+	_, err := DB.Exec(`INSERT OR IGNORE INTO discovery_inbox (container_id, suggested) VALUES (?, ?)`, containerID, suggested)
+	return err
+}
+
+// IgnoreDiscoveryItem sets the ignored flag for a discovery item.
+func IgnoreDiscoveryItem(id int) error {
+	_, err := DB.Exec(`UPDATE discovery_inbox SET ignored = 1 WHERE id = ?`, id)
+	return err
+}
+
+// AcceptDiscoveryItem reads an item, calls AddService(), then deletes the item.
+func AcceptDiscoveryItem(id int) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
+	var containerID string
+	var suggestedJSON string
+	err = tx.QueryRow(`SELECT container_id, suggested FROM discovery_inbox WHERE id = ?`, id).Scan(&containerID, &suggestedJSON)
+	if err != nil {
+		return fmt.Errorf("failed to get discovery item %d: %w", id, err)
+	}
+
+	var suggestedService SuggestedService
+	if err := json.Unmarshal([]byte(suggestedJSON), &suggestedService); err != nil {
+		return fmt.Errorf("failed to unmarshal suggested service for item %d: %w", id, err)
+	}
+
+	// For now, add to category ID 1 and profiles markus, andrea.
+	// In a real application, this might be configurable or selected by the user.
+	// We need to ensure a category with ID 1 exists. If not, the AddService will fail or we need to create one.
+	// For simplicity, assuming category 1 exists or handling the error.
+	categoryID := 1 // Default category
+	profiles := []string{"markus", "andrea"} // Default profiles
+
+	// Check if the suggested category exists, if not, create it.
+	var catID int
+	err = tx.QueryRow(`SELECT id FROM categories WHERE name = ?`, suggestedService.Category).Scan(&catID)
+	if err == sql.ErrNoRows {
+		// Category doesn't exist, create it
+		res, err := tx.Exec(`INSERT INTO categories (name, layout, color) VALUES (?, ?, ?)`, suggestedService.Category, "tiles", "indigo") // Default layout and color
+		if err != nil {
+			return fmt.Errorf("failed to create category %s: %w", suggestedService.Category, err)
+		}
+		lastID, err := res.LastInsertId()
+		if err != nil {
+			return fmt.Errorf("failed to get last insert ID for category: %w", err)
+		}
+		categoryID = int(lastID)
+	} else if err != nil {
+		return fmt.Errorf("failed to query category %s: %w", suggestedService.Category, err)
+	} else {
+		categoryID = catID
+	}
+
+
+	err = AddService(categoryID, suggestedService.Name, suggestedService.URL, suggestedService.Icon, suggestedService.Description, suggestedService.StatusCheck, profiles)
+	if err != nil {
+		return fmt.Errorf("failed to add service from discovery item %d: %w", id, err)
+	}
+
+	_, err = tx.Exec(`DELETE FROM discovery_inbox WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete discovery item %d: %w", id, err)
 	}
 
 	return nil

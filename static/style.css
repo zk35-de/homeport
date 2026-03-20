@@ -347,3 +347,10 @@ button.danger {
 .event.today { color: var(--accent, #6d28d9); font-weight: 600; }
 .event.tomorrow { color: var(--text); font-weight: 500; }
 .event-empty { color: var(--text-muted, #888); font-size: 0.875rem; }
+
+.inbox-badge { background: var(--accent, #6d28d9); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; margin-bottom: 0.75rem; display: inline-block; }
+.inbox-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.inbox-info { flex: 1; font-size: 0.875rem; }
+.inbox-actions { display: flex; gap: 0.5rem; }
+.inbox-empty { color: var(--text-muted, #888); font-size: 0.875rem; }
+

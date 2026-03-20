@@ -101,5 +101,9 @@
     <div id="category-list">
         {{template "category_list" .}}
     </div>
+
+    <div id="discovery-inbox-wrapper" 
+         hx-get="/manage/discovery" hx-trigger="load" hx-swap="innerHTML">
+    </div>
 </div>
 {{end}}

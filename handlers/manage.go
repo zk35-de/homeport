@@ -230,3 +230,62 @@ func renderCategoryList(w http.ResponseWriter) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
+
+// HandleDiscoveryInbox handles the GET request for the discovery inbox partial.
+func HandleDiscoveryInbox(w http.ResponseWriter, r *http.Request) {
+	renderDiscoveryInbox(w)
+}
+
+// HandleAcceptDiscovery handles accepting a discovered service.
+func HandleAcceptDiscovery(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.AcceptDiscoveryItem(id); err != nil {
+		log.Printf("Error accepting discovery item %d: %v", id, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	renderDiscoveryInbox(w)
+}
+
+// HandleIgnoreDiscovery handles ignoring a discovered service.
+func HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.IgnoreDiscoveryItem(id); err != nil {
+		log.Printf("Error ignoring discovery item %d: %v", id, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	renderDiscoveryInbox(w)
+}
+
+// renderDiscoveryInbox fetches discovery items and renders the discovery_inbox partial.
+func renderDiscoveryInbox(w http.ResponseWriter) {
+	items, err := db.GetDiscoveryInbox()
+	if err != nil {
+		log.Printf("Error fetching discovery inbox items: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Items []db.DiscoveryItem
+	}{
+		Items: items,
+	}
+
+	if err := ManageTmpl.ExecuteTemplate(w, "discovery_inbox", data); err != nil {
+		log.Printf("Error executing discovery_inbox template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+

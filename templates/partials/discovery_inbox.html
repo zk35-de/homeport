@@ -1,0 +1,23 @@
+{{define "discovery_inbox"}}
+<div id="discovery-inbox">
+  {{if .Items}}
+  <div class="inbox-badge">{{len .Items}} neue Dienste gefunden</div>
+  {{range .Items}}
+  <div class="inbox-item">
+    <div class="inbox-info">
+      <strong>{{.Suggested.Name}}</strong> – {{.Suggested.URL}}
+      <span class="tag">{{.Suggested.Category}}</span>
+    </div>
+    <div class="inbox-actions">
+      <button hx-post="/manage/discovery/{{.ID}}/accept"
+              hx-target="#discovery-inbox" hx-swap="outerHTML">Übernehmen</button>
+      <button hx-post="/manage/discovery/{{.ID}}/ignore"
+              hx-target="#discovery-inbox" hx-swap="outerHTML">Ignorieren</button>
+    </div>
+  </div>
+  {{end}}
+  {{else}}
+  <div class="inbox-empty">Keine neuen Dienste erkannt</div>
+  {{end}}
+</div>
+{{end}}
