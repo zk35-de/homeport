@@ -1,0 +1,182 @@
+package handlers
+
+import (
+	"log"
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"git.zk35.de/secalpha/homeport/db"
+)
+
+func HandleManage(w http.ResponseWriter, r *http.Request) {
+	categories, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		log.Printf("Error fetching categories: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Categories []db.Category
+	}{
+		Categories: categories,
+	}
+
+	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	name := r.FormValue("name")
+	layout := r.FormValue("layout")
+	color := r.FormValue("color")
+
+	if err := db.AddCategory(name, layout, color); err != nil {
+		log.Printf("Error adding category: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	renderCategoryList(w)
+}
+
+func HandleAddService(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
+	name := r.FormValue("name")
+	url := r.FormValue("url")
+	icon := r.FormValue("icon")
+	desc := r.FormValue("description")
+	statusCheck := r.FormValue("status_check")
+	profiles := r.Form["visibility"]
+
+	if err := db.AddService(categoryID, name, url, icon, desc, statusCheck, profiles); err != nil {
+		log.Printf("Error adding service: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	renderCategoryList(w)
+}
+
+func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	if err := db.DeleteCategory(id); err != nil {
+		log.Printf("Error deleting category: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	renderCategoryList(w)
+}
+
+func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	if err := db.DeleteService(id); err != nil {
+		log.Printf("Error deleting service: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	renderCategoryList(w)
+}
+
+func HandleSortCategory(w http.ResponseWriter, r *http.Request) {
+	// Simple swap logic or full reorder logic.
+	// For simplicity, we assume we just swap with adjacent.
+	// But "Up/Down" requires knowing the adjacent ID or using sort_order.
+	// Better approach: Get all categories, find index, swap sort_order with prev/next, update both.
+	
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	direction := chi.URLParam(r, "direction")
+
+	categories, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	for i, c := range categories {
+		if c.ID == id {
+			if direction == "up" && i > 0 {
+				prev := categories[i-1]
+				db.UpdateCategorySort(c.ID, prev.SortOrder)
+				db.UpdateCategorySort(prev.ID, c.SortOrder)
+			} else if direction == "down" && i < len(categories)-1 {
+				next := categories[i+1]
+				db.UpdateCategorySort(c.ID, next.SortOrder)
+				db.UpdateCategorySort(next.ID, c.SortOrder)
+			}
+			break
+		}
+	}
+
+	renderCategoryList(w)
+}
+
+func HandleSortService(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	direction := chi.URLParam(r, "direction")
+
+	// Need to find service and its siblings.
+	// We can fetch all categories (which include services sorted) and find the service.
+	categories, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	found := false
+	for _, c := range categories {
+		for i, s := range c.Services {
+			if s.ID == id {
+				if direction == "up" && i > 0 {
+					prev := c.Services[i-1]
+					db.UpdateServiceSort(s.ID, prev.SortOrder)
+					db.UpdateServiceSort(prev.ID, s.SortOrder)
+				} else if direction == "down" && i < len(c.Services)-1 {
+					next := c.Services[i+1]
+					db.UpdateServiceSort(s.ID, next.SortOrder)
+					db.UpdateServiceSort(next.ID, s.SortOrder)
+				}
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+
+	renderCategoryList(w)
+}
+
+func renderCategoryList(w http.ResponseWriter) {
+	categories, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		log.Printf("Error fetching categories: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Categories []db.Category
+	}{
+		Categories: categories,
+	}
+
+	if err := ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}

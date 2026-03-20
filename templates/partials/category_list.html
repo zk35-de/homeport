@@ -1,0 +1,34 @@
+{{define "category_list"}}
+<div class="category-list">
+    {{range .Categories}}
+    <div class="manage-category" id="cat-{{.ID}}">
+        <div class="manage-header">
+            <span class="category-title" style="color: var(--{{.Color}})">{{.Name}} ({{.Layout}})</span>
+            <div class="actions">
+                <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
+                <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/down" hx-target="#category-list" hx-swap="innerHTML">⬇️</button>
+                <button class="btn-icon delete" hx-delete="/manage/category/{{.ID}}" hx-confirm="Are you sure?" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
+            </div>
+        </div>
+        <div class="manage-service-list">
+            {{range .Services}}
+            <div class="manage-service-item">
+                <div class="service-info">
+                    <strong>{{.Name}}</strong> 
+                    <span class="text-muted"> - {{.URL}}</span>
+                    {{range .VisibleTo}}
+                    <span class="tag">{{.}}</span>
+                    {{end}}
+                </div>
+                <div class="actions">
+                    <button class="btn-icon" hx-post="/manage/sort/service/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
+                    <button class="btn-icon" hx-post="/manage/sort/service/{{.ID}}/down" hx-target="#category-list" hx-swap="innerHTML">⬇️</button>
+                    <button class="btn-icon delete" hx-delete="/manage/service/{{.ID}}" hx-confirm="Are you sure?" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

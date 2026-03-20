@@ -1,0 +1,53 @@
+{{define "content"}}
+<div class="dashboard">
+    {{range .Categories}}
+    {{if .Services}}
+    <div class="category">
+        <div class="category-header">
+            <span class="category-title" style="color: var(--{{.Color}})">{{.Name}}</span>
+        </div>
+        <div class="grid-{{.Layout}}">
+            {{range .Services}}
+            <a href="{{.URL}}" target="_blank" class="service-card" id="service-{{.ID}}">
+                {{if .Icon}}
+                <div class="service-icon">{{.Icon}}</div>
+                {{else}}
+                <div class="service-icon">?</div>
+                {{end}}
+                
+                <div class="service-content">
+                    <div class="service-name">{{.Name}}</div>
+                    {{if .Description}}
+                    <div class="service-desc">{{.Description}}</div>
+                    {{end}}
+                </div>
+
+                {{if .StatusCheck}}
+                <div id="status-{{.ID}}" class="status-dot {{if .Alive}}alive{{else}}dead{{end}}"></div>
+                {{end}}
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+    {{end}}
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const evtSource = new EventSource("/status/stream");
+        evtSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                const el = document.getElementById("status-" + data.id);
+                if (el) {
+                    el.classList.remove("alive", "dead");
+                    el.classList.add(data.alive ? "alive" : "dead");
+                }
+            } catch (e) {
+                console.error("Error parsing SSE data", e);
+            }
+        };
+    });
+</script>
+{{end}}
