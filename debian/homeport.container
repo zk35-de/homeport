@@ -1,0 +1,17 @@
+[Unit]
+Description=homeport startpage
+After=network-online.target
+
+[Container]
+Image=localhost/homeport:latest
+PublishPort=8854:8854
+Volume=%h/homeport-data:/app/data:Z
+Environment=HOMEPORT_PORT=8854
+Environment=HOMEPORT_DB=/app/data/homeport.db
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
