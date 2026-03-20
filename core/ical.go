@@ -36,7 +36,6 @@ func FetchICalEvents(url string) ([]db.ICalEvent, error) {
 	now := time.Now()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	tomorrow := today.AddDate(0, 0, 1)
-	dayAfterTomorrow := today.AddDate(0, 0, 2)
 
 	for _, event := range cal.Events() {
 		start, err := event.DateTimeStart(now.Location())
@@ -48,8 +47,8 @@ func FetchICalEvents(url string) ([]db.ICalEvent, error) {
 			continue // Skip events with invalid end time
 		}
 
-		// Skip past events
-		if end.Before(now) {
+		// Skip events that started before today (yesterday and older)
+		if start.Before(today) {
 			continue
 		}
 
@@ -58,8 +57,9 @@ func FetchICalEvents(url string) ([]db.ICalEvent, error) {
 			continue
 		}
 
-		isToday := start.After(today) && start.Before(tomorrow)
-		isTomorrow := start.After(tomorrow) && start.Before(dayAfterTomorrow)
+		startDay := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+		isToday := startDay.Equal(today)
+		isTomorrow := startDay.Equal(tomorrow)
 
 		events = append(events, db.ICalEvent{
 			Title:      titleProp.Value,

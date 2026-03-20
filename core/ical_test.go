@@ -17,13 +17,14 @@ func icalTime(t time.Time) string {
 }
 
 func buildMockICAL() string {
-	now := time.Now().UTC()
+	now := time.Now()
 	stamp := icalTime(now)
-	// Events relative to now so tests don't break based on time of day
-	todayFuture := now.Add(2 * time.Hour)    // 2h from now → future, today
-	tomorrowMid := now.Add(26 * time.Hour)   // 26h from now → tomorrow
-	dayAfter := now.Add(50 * time.Hour)      // 50h from now → day after tomorrow
-	pastYesterday := now.Add(-25 * time.Hour) // yesterday → past
+	// Use noon UTC on specific days so times are stable regardless of time-of-day
+	todayNoon := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.UTC)
+	todayFuture := todayNoon                          // noon today → IsToday
+	tomorrowMid := todayNoon.AddDate(0, 0, 1)        // noon tomorrow → IsTomorrow
+	dayAfter := todayNoon.AddDate(0, 0, 2)            // noon day-after-tomorrow
+	pastYesterday := todayNoon.AddDate(0, 0, -1)      // noon yesterday → past
 
 	return fmt.Sprintf(`BEGIN:VCALENDAR
 VERSION:2.0
