@@ -55,10 +55,10 @@ func main() {
 	staticFS, _ := fs.Sub(embedFS, "static")
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
-	r.Get("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+	r.Handle("/sw.js", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 		http.ServeFileFS(w, r, embedFS, "static/sw.js")
-	})
+	}))
 
 	// Routes
 	r.Get("/", handlers.HandleIndex)
