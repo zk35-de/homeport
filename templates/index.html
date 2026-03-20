@@ -1,4 +1,8 @@
 {{define "content"}}
+<form class="search-bar" action="{{.SearchAction}}" method="get" target="_blank">
+    <input type="search" name="q" placeholder="Suchen..." autocomplete="off" autofocus>
+    <button type="submit" class="btn-sm">↵</button>
+</form>
 {{if .Widgets}}
 <div class="widgets-row">
     {{range .Widgets}}{{template "widget_ical" .}}{{end}}

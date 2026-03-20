@@ -10,6 +10,11 @@ import (
 	"git.zk35.de/secalpha/homeport/db"
 )
 
+type ManageData struct {
+	Categories    []db.Category
+	SearchEngines map[string]string
+}
+
 func HandleManage(w http.ResponseWriter, r *http.Request) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
@@ -18,16 +23,38 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := struct {
-		Categories []db.Category
-	}{
-		Categories: categories,
+	data := ManageData{
+		Categories:    categories,
+		SearchEngines: db.GetAllSearchEngines(),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
 		log.Printf("Error executing template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+func HandleSetSearchEngine(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	profile := r.FormValue("profile")
+	engine := r.FormValue("engine")
+	if profile != "markus" && profile != "andrea" {
+		http.Error(w, "Invalid profile", http.StatusBadRequest)
+		return
+	}
+	if engine == "" {
+		http.Error(w, "Missing engine", http.StatusBadRequest)
+		return
+	}
+	if err := db.SetSearchEngine(profile, engine); err != nil {
+		log.Printf("Error setting search engine: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func HandleAddCategory(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,57 @@
+/* PRISM Base – Reset + Body + Typography */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-size: 1.05rem; margin-bottom: 1.2rem;
+  color: rgba(255,255,255,0.9);
+  font-weight: 300; letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+h2 {
+  font-size: 0.75rem; margin-bottom: 0.8rem;
+  color: var(--sub); font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.16em;
+}
+h3 {
+  font-size: 0.68rem; margin-bottom: 0.6rem;
+  color: var(--sub); text-transform: uppercase; letter-spacing: 0.12em;
+}
+
+a { color: inherit; text-decoration: none; }
+
+code {
+  font-family: var(--mono); font-size: 0.88em;
+  color: rgba(99,102,241,0.9);
+  background: rgba(99,102,241,0.1);
+  padding: 0.1rem 0.32rem; border-radius: var(--radius-sm);
+}
+
+main {
+  position: relative; z-index: 1;
+  padding: var(--space-lg); max-width: 1400px; margin: 0 auto;
+}
+
+.muted { color: var(--sub); }
+.mt    { margin-top: var(--space-md); }
+.full-width { width: 100%; text-align: center; }
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}

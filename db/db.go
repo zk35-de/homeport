@@ -66,8 +66,14 @@ func InitDB(dbPath string) error {
 		return fmt.Errorf("failed to create db directory: %w", err)
 	}
 
+	// Encode foreign_keys pragma directly in DSN so it applies to every connection.
+	dsn := dbPath + "?_pragma=foreign_keys(on)"
+	if dbPath == ":memory:" {
+		dsn = ":memory:?_pragma=foreign_keys(on)"
+	}
+
 	var err error
-	DB, err = sql.Open("sqlite", dbPath)
+	DB, err = sql.Open("sqlite", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to open db: %w", err)
 	}
@@ -124,6 +130,10 @@ func InitDB(dbPath string) error {
 			suggested    TEXT NOT NULL,
 			seen_at      DATETIME NOT NULL DEFAULT (datetime('now')),
 			ignored      INTEGER NOT NULL DEFAULT 0
+		);`,
+		`CREATE TABLE IF NOT EXISTS user_settings (
+			profile        TEXT PRIMARY KEY,
+			search_engine  TEXT NOT NULL DEFAULT 'https://duckduckgo.com/'
 		);`,
 	}
 
@@ -245,9 +255,22 @@ func AcceptDiscoveryItem(id int) error {
 	}
 
 
-	err = AddService(categoryID, suggestedService.Name, suggestedService.URL, suggestedService.Icon, suggestedService.Description, suggestedService.StatusCheck, profiles)
+	// Insert service within the transaction (not via AddService which uses DB directly).
+	res, err := tx.Exec(`INSERT INTO services (category_id, name, url, icon, description, status_check, sort_order)
+		VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM services WHERE category_id = ?))`,
+		categoryID, suggestedService.Name, suggestedService.URL, suggestedService.Icon,
+		suggestedService.Description, suggestedService.StatusCheck, categoryID)
 	if err != nil {
 		return fmt.Errorf("failed to add service from discovery item %d: %w", id, err)
+	}
+	svcID, err := res.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get service ID for discovery item %d: %w", id, err)
+	}
+	for _, p := range profiles {
+		if _, err := tx.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?, ?)`, svcID, p); err != nil {
+			return fmt.Errorf("failed to set visibility for service from discovery item %d: %w", id, err)
+		}
 	}
 
 	_, err = tx.Exec(`DELETE FROM discovery_inbox WHERE id = ?`, id)
@@ -536,4 +559,42 @@ func GetWidgetCache(widgetID int) (*WidgetCacheEntry, error) {
 func UpdateWidgetCache(widgetID int, data string) error {
 	_, err := DB.Exec(`INSERT INTO widget_cache (widget_id, data, fetched_at) VALUES (?, ?, datetime('now')) ON CONFLICT(widget_id) DO UPDATE SET data = ?, fetched_at = datetime('now')`, widgetID, data, data)
 	return err
+}
+
+// GetSearchEngine returns the configured search engine action URL for a profile.
+// Falls back to DuckDuckGo if not set.
+func GetSearchEngine(profile string) string {
+	var url string
+	err := DB.QueryRow(`SELECT search_engine FROM user_settings WHERE profile = ?`, profile).Scan(&url)
+	if err != nil || url == "" {
+		return "https://duckduckgo.com/"
+	}
+	return url
+}
+
+// SetSearchEngine stores the search engine action URL for a profile.
+func SetSearchEngine(profile, engineURL string) error {
+	_, err := DB.Exec(`INSERT INTO user_settings (profile, search_engine) VALUES (?, ?)
+		ON CONFLICT(profile) DO UPDATE SET search_engine = ?`, profile, engineURL, engineURL)
+	return err
+}
+
+// GetAllSearchEngines returns search engine settings for all known profiles.
+func GetAllSearchEngines() map[string]string {
+	result := map[string]string{
+		"markus": "https://duckduckgo.com/",
+		"andrea": "https://duckduckgo.com/",
+	}
+	rows, err := DB.Query(`SELECT profile, search_engine FROM user_settings`)
+	if err != nil {
+		return result
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var p, u string
+		if rows.Scan(&p, &u) == nil {
+			result[p] = u
+		}
+	}
+	return result
 }

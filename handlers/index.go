@@ -38,9 +38,10 @@ func InitTemplates(fs embed.FS) {
 }
 
 type IndexData struct {
-	Categories []db.Category
-	Widgets    []db.Widget
-	Profile    string
+	Categories   []db.Category
+	Widgets      []db.Widget
+	Profile      string
+	SearchAction string
 }
 
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
@@ -69,9 +70,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := IndexData{
-		Categories: categories,
-		Widgets:    widgets,
-		Profile:    profile,
+		Categories:   categories,
+		Widgets:      widgets,
+		Profile:      profile,
+		SearchAction: db.GetSearchEngine(profile),
 	}
 
 	if err := IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {

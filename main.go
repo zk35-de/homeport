@@ -24,7 +24,7 @@ func main() {
 	// 1. Env / Config
 	port := os.Getenv("HOMEPORT_PORT")
 	if port == "" {
-		port = "8854"
+		port = "8855"
 	}
 	dbPath := os.Getenv("HOMEPORT_DB")
 	if dbPath == "" {
@@ -83,6 +83,9 @@ func main() {
 		r.Get("/discovery", handlers.HandleDiscoveryInbox)
 		r.Post("/discovery/{id}/accept", handlers.HandleAcceptDiscovery)
 		r.Post("/discovery/{id}/ignore", handlers.HandleIgnoreDiscovery)
+
+		// User Settings
+		r.Post("/settings/search", handlers.HandleSetSearchEngine)
 	})
 
 	log.Printf("Starting server on :%s", port)

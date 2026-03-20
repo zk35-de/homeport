@@ -1,0 +1,145 @@
+/* PRISM Design Tokens v1.1 – secalpha/prism-ui */
+/* Light/Dark Mode + Per-App Accent Override */
+
+/* ── Dark Mode (Default) ── */
+:root, [data-theme="dark"] {
+  --bg:    #04060f;
+  --bg2:   #080c1a;
+  --text:  #e8edf5;
+  --sub:   #64748b;
+  --accent:       #6366f1;
+  --accent-hover: #818cf8;
+  --cyan:         #06b6d4;
+  --ok:    #22c55e;
+  --warn:  #f59e0b;
+  --fehler: #ef4444;
+
+  --muted:   var(--sub);
+  --primary: var(--accent);
+
+  --surface:  rgba(255,255,255,0.04);
+  --surface2: rgba(255,255,255,0.02);
+  --border:   rgba(255,255,255,0.1);
+
+  --glass:          rgba(255,255,255,0.04);
+  --glass-h:        rgba(255,255,255,0.075);
+  --glass-border:   rgba(255,255,255,0.1);
+  --glass-border-a: rgba(var(--accent-rgb), 0.45);
+
+  --card-bg: linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.015) 100%);
+  --nav-bg:  rgba(4,6,15,0.85);
+
+  --shadow-card: 0 2px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
+  --shadow-btn:  0 4px 16px rgba(var(--accent-rgb),0.28), inset 0 1px 0 rgba(255,255,255,0.14);
+
+  --aurora-1: rgba(var(--accent-rgb), 0.18);
+  --aurora-2: rgba(6,182,212,0.11);
+  --aurora-3: rgba(139,92,246,0.08);
+
+  color-scheme: dark;
+}
+
+/* ── Light Mode ── */
+[data-theme="light"] {
+  --bg:    #f0f2f8;
+  --bg2:   #e6e9f2;
+  --text:  #1a1d2e;
+  --sub:   #64748b;
+
+  --surface:  rgba(0,0,0,0.04);
+  --surface2: rgba(0,0,0,0.02);
+  --border:   rgba(0,0,0,0.1);
+
+  --glass:          rgba(255,255,255,0.6);
+  --glass-h:        rgba(255,255,255,0.8);
+  --glass-border:   rgba(0,0,0,0.1);
+  --glass-border-a: rgba(var(--accent-rgb), 0.4);
+
+  --card-bg: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.55) 100%);
+  --nav-bg:  rgba(240,242,248,0.88);
+
+  --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+  --shadow-btn:  0 4px 16px rgba(var(--accent-rgb),0.22), inset 0 1px 0 rgba(255,255,255,0.4);
+
+  --aurora-1: rgba(var(--accent-rgb), 0.10);
+  --aurora-2: rgba(6,182,212,0.07);
+  --aurora-3: rgba(139,92,246,0.05);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg:    #f0f2f8;
+    --bg2:   #e6e9f2;
+    --text:  #1a1d2e;
+    --sub:   #64748b;
+    --surface:  rgba(0,0,0,0.04);
+    --surface2: rgba(0,0,0,0.02);
+    --border:   rgba(0,0,0,0.1);
+    --glass:          rgba(255,255,255,0.6);
+    --glass-h:        rgba(255,255,255,0.8);
+    --glass-border:   rgba(0,0,0,0.1);
+    --glass-border-a: rgba(var(--accent-rgb), 0.4);
+    --card-bg: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.55) 100%);
+    --nav-bg:  rgba(240,242,248,0.88);
+    --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+    --shadow-btn:  0 4px 16px rgba(var(--accent-rgb),0.22), inset 0 1px 0 rgba(255,255,255,0.4);
+    --aurora-1: rgba(var(--accent-rgb), 0.10);
+    --aurora-2: rgba(6,182,212,0.07);
+    --aurora-3: rgba(139,92,246,0.05);
+    color-scheme: light;
+  }
+}
+
+/* ── Per-App Accent Overrides ── */
+:root {
+  --accent-rgb: 99,102,241;
+}
+
+/* homeport: Indigo (default) */
+.app-homeport {
+  --accent:       #6366f1;
+  --accent-hover: #818cf8;
+  --accent-rgb:   99,102,241;
+}
+
+/* elplan: Amber */
+.app-elplan {
+  --accent:       #f59e0b;
+  --accent-hover: #fbbf24;
+  --accent-rgb:   245,158,11;
+}
+
+/* itmap: Cyan */
+.app-itmap {
+  --accent:       #06b6d4;
+  --accent-hover: #22d3ee;
+  --accent-rgb:   6,182,212;
+}
+
+/* panelforge: Violet */
+.app-panelforge {
+  --accent:       #8b5cf6;
+  --accent-hover: #a78bfa;
+  --accent-rgb:   139,92,246;
+}
+
+/* ── Typography + Spacing ── */
+:root {
+  --mono: 'Fira Code', 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+  --font: var(--mono);
+  --font-size-base: 13px;
+  --line-height: 1.6;
+  --space-xs:  0.3rem;
+  --space-sm:  0.5rem;
+  --space-md:  1rem;
+  --space-lg:  1.5rem;
+  --space-xl:  2rem;
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  10px;
+  --radius-xl:  14px;
+  --radius-2xl: 16px;
+  --nav-height: 44px;
+}

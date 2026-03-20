@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de" class="app-homeport">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Homeport</title>
+    <link rel="stylesheet" href="/static/css/prism-tokens.css">
+    <link rel="stylesheet" href="/static/css/prism-base.css">
+    <link rel="stylesheet" href="/static/css/prism-aurora.css">
+    <link rel="stylesheet" href="/static/css/prism-components.css">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#6d28d9">
+    <meta name="theme-color" content="#6366f1">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
     <script>
@@ -16,18 +20,20 @@
     </script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Homeport</h1>
-            <nav>
-                <a href="/">Markus</a>
-                <a href="/andrea">Andrea</a>
-                <a href="/manage">Manage</a>
-            </nav>
-        </header>
-        <main>
-            {{block "content" .}}{{end}}
-        </main>
+    <div class="aurora">
+        <div class="ab ab-1"></div>
+        <div class="ab ab-2"></div>
+        <div class="ab ab-3"></div>
     </div>
+    <nav>
+        <a href="/" class="brand">homeport</a>
+        <span class="brand-sep">·</span>
+        <a href="/">Markus</a>
+        <a href="/andrea">Andrea</a>
+        <a href="/manage" class="nav-action">Manage</a>
+    </nav>
+    <main>
+        {{block "content" .}}{{end}}
+    </main>
 </body>
 </html>

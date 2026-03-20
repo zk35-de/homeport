@@ -4,9 +4,9 @@ After=network-online.target
 
 [Container]
 Image=localhost/homeport:latest
-PublishPort=8854:8854
+PublishPort=8855:8855
 Volume=%h/homeport-data:/app/data:Z
-Environment=HOMEPORT_PORT=8854
+Environment=HOMEPORT_PORT=8855
 Environment=HOMEPORT_DB=/app/data/homeport.db
 
 [Service]

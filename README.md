@@ -18,7 +18,7 @@ Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
 | DB | SQLite (modernc, pure Go, no CGO) |
 | Frontend | html/template + HTMX |
 | CSS | prism-ui (coming) / embedded minimal CSS |
-| Port | 8854 |
+| Port | 8855 |
 
 ## Run
 
@@ -31,7 +31,7 @@ Environment variables:
 
 | Var | Default | Description |
 |-----|---------|-------------|
-| `HOMEPORT_PORT` | `8854` | Listen port |
+| `HOMEPORT_PORT` | `8855` | Listen port |
 | `HOMEPORT_DB` | `./data/homeport.db` | SQLite DB path |
 
 ## Routes
