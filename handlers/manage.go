@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -188,6 +189,26 @@ func HandleDeleteWidget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func HandleCloneToAndrea(w http.ResponseWriter, r *http.Request) {
+	added, skipped, err := db.CloneToAndrea()
+	if err != nil {
+		log.Printf("Error cloning services to Andrea: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		Added   int `json:"added"`
+		Skipped int `json:"skipped"`
+	}{
+		Added:   added,
+		Skipped: skipped,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func renderCategoryList(w http.ResponseWriter) {

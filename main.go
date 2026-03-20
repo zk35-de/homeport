@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -51,7 +52,13 @@ func main() {
 	// We need to serve "static" folder from embedFS
 	// But handlers.InitTemplates used the same embedFS
 	// It's safer to use a sub-fs
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(embedFS))))
+	staticFS, _ := fs.Sub(embedFS, "static")
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+
+	r.Get("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript")
+		http.ServeFileFS(w, r, embedFS, "static/sw.js")
+	})
 
 	// Routes
 	r.Get("/", handlers.HandleIndex)
@@ -60,6 +67,7 @@ func main() {
 	r.Get("/status/stream", handlers.HandleStatusStream)
 
 	r.Route("/manage", func(r chi.Router) {
+		r.Post("/clone-andrea", handlers.HandleCloneToAndrea)
 		r.Post("/widget", handlers.HandleAddWidget)
 		r.Delete("/widget/{id}", handlers.HandleDeleteWidget)
 		r.Get("/", handlers.HandleManage)

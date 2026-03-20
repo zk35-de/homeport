@@ -317,6 +317,76 @@ func GetAllWidgets() ([]Widget, error) {
 	return widgets, nil
 }
 
+// CloneToAndrea kopiert alle Services die 'markus' in visibility haben auch zu 'andrea',
+// überspringt dabei Services die zur Kategorie mit color='cyan' gehören (IT-Kategorien)
+// oder die visibility='andrea' bereits haben.
+func CloneToAndrea() (added int, skipped int, err error) {
+	tx, err := DB.Begin()
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r) // re-throw panic
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
+	rows, err := tx.Query(`
+		SELECT
+			s.id
+		FROM
+			services s
+		JOIN
+			visibility vm ON s.id = vm.service_id
+		JOIN
+			categories c ON s.category_id = c.id
+		WHERE
+			vm.profile = 'markus'
+			AND c.color != 'cyan'
+	`)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to query services for markus: %w", err)
+	}
+	defer rows.Close()
+
+	var serviceIDsToClone []int
+	for rows.Next() {
+		var serviceID int
+		if err := rows.Scan(&serviceID); err != nil {
+			return 0, 0, fmt.Errorf("failed to scan service ID: %w", err)
+		}
+		serviceIDsToClone = append(serviceIDsToClone, serviceID)
+	}
+
+	for _, serviceID := range serviceIDsToClone {
+		// Check if service is already visible to 'andrea'
+		var exists int
+		err := tx.QueryRow(`SELECT COUNT(*) FROM visibility WHERE service_id = ? AND profile = 'andrea'`, serviceID).Scan(&exists)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to check existing visibility for service %d: %w", serviceID, err)
+		}
+
+		if exists > 0 {
+			skipped++
+			continue
+		}
+
+		// Insert new visibility for 'andrea'
+		_, err = tx.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?, 'andrea')`, serviceID)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to insert visibility for service %d and andrea: %w", serviceID, err)
+		}
+		added++
+	}
+
+	return added, skipped, nil
+}
+
 func GetWidgetCache(widgetID int) (*WidgetCacheEntry, error) {
 	row := DB.QueryRow(`SELECT data FROM widget_cache WHERE widget_id = ?`, widgetID)
 	var data string
