@@ -173,3 +173,81 @@ details > div { padding: 0 var(--space-md) var(--space-md); }
 .prism-table .ok-cell   { color: var(--ok); }
 .prism-table .warn-cell { color: var(--warn); }
 .prism-table .err-cell  { color: var(--fehler); }
+
+/* ── Weather Widget ── */
+.widget-weather { min-width: 200px; }
+
+.weather-current {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.weather-temp {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.weather-desc {
+  font-size: 0.9rem;
+  color: var(--sub);
+}
+
+.weather-meta {
+  font-size: 0.78rem;
+  color: var(--sub);
+  font-family: var(--mono);
+}
+
+.weather-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-top: 1px solid var(--glass-border);
+  padding-top: 0.6rem;
+  margin-top: 0.2rem;
+}
+
+.forecast-day {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.forecast-date {
+  color: var(--sub);
+  font-family: var(--mono);
+  min-width: 5.5rem;
+}
+
+.forecast-desc {
+  flex: 1;
+  color: var(--text);
+}
+
+.forecast-temps {
+  color: var(--sub);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+/* ── Manage Section (URL Shortener etc.) ── */
+.manage-section {
+  margin: 2rem var(--space-lg);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+.manage-section h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}

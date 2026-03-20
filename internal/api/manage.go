@@ -13,6 +13,7 @@ import (
 type ManageData struct {
 	Categories    []db.Category
 	SearchEngines map[string]string
+	ShortURLs     []db.ShortURL
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -23,9 +24,11 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	shortURLs, _ := db.GetAllShortURLs()
 	data := ManageData{
 		Categories:    categories,
 		SearchEngines: db.GetAllSearchEngines(),
+		ShortURLs:     shortURLs,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -293,6 +296,57 @@ func HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	renderDiscoveryInbox(w)
+}
+
+// HandleManageShorten handles POST /manage/shorten from the manage page form.
+func HandleManageShorten(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	targetURL := r.FormValue("url")
+	customCode := r.FormValue("code")
+	if targetURL == "" {
+		http.Redirect(w, r, "/manage#shortener", http.StatusSeeOther)
+		return
+	}
+
+	code := customCode
+	if code == "" {
+		var err error
+		for i := 0; i < 5; i++ {
+			code, err = generateCode()
+			if err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			existing, _ := db.GetShortURL(code)
+			if existing == nil {
+				break
+			}
+			code = ""
+		}
+		if code == "" {
+			http.Error(w, "Could not generate code", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		existing, _ := db.GetShortURL(code)
+		if existing != nil {
+			http.Redirect(w, r, "/manage#shortener", http.StatusSeeOther)
+			return
+		}
+	}
+
+	_ = db.CreateShortURL(code, targetURL)
+	http.Redirect(w, r, "/manage#shortener", http.StatusSeeOther)
+}
+
+// HandleManageUnshorten handles POST /manage/unshorten/{code} from the manage page.
+func HandleManageUnshorten(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+	_ = db.DeleteShortURL(code)
+	http.Redirect(w, r, "/manage#shortener", http.StatusSeeOther)
 }
 
 // renderDiscoveryInbox fetches discovery items and renders the discovery_inbox partial.

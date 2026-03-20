@@ -62,10 +62,17 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error fetching widgets: %v", err)
 		widgets = nil
 	}
-	// Populate widget events from cache
+	// Populate widget data from cache
 	for i := range widgets {
-		if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {
-			widgets[i].Events = cache.Events
+		switch widgets[i].Type {
+		case "weather":
+			if wc, err := db.GetWeatherCache(widgets[i].ID); err == nil && wc != nil {
+				widgets[i].Weather = wc
+			}
+		default:
+			if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {
+				widgets[i].Events = cache.Events
+			}
 		}
 	}
 

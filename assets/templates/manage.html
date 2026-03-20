@@ -121,8 +121,55 @@
         {{template "category_list" .}}
     </div>
 
-    <div id="discovery-inbox-wrapper" 
+    <div id="discovery-inbox-wrapper"
          hx-get="/manage/discovery" hx-trigger="load" hx-swap="innerHTML">
     </div>
 </div>
+
+<section class="manage-section" id="shortener">
+  <h2>URL Kürzer</h2>
+  <form method="post" action="/manage/shorten" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+    <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0">
+      <label>URL</label>
+      <input type="url" name="url" placeholder="https://..." required>
+    </div>
+    <div class="form-group" style="flex:1;min-width:120px;margin-bottom:0">
+      <label>Eigener Code (optional)</label>
+      <input type="text" name="code" placeholder="mein-link">
+    </div>
+    <div class="form-group" style="margin-bottom:0;align-self:flex-end">
+      <button type="submit">Kürzen</button>
+    </div>
+  </form>
+  {{if .ShortURLs}}
+  <table class="prism-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>URL</th>
+        <th class="num-cell">Klicks</th>
+        <th>Erstellt</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .ShortURLs}}
+      <tr>
+        <td><a href="/s/{{.Code}}" target="_blank">/s/{{.Code}}</a></td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{.URL}}</td>
+        <td class="num-cell">{{.Clicks}}</td>
+        <td>{{.CreatedAt}}</td>
+        <td>
+          <form method="post" action="/manage/unshorten/{{.Code}}" style="margin:0">
+            <button type="submit" class="btn-sm">×</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p style="color:var(--sub);font-size:0.85rem">Noch keine Short-URLs angelegt.</p>
+  {{end}}
+</section>
 {{end}}

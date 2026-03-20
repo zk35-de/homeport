@@ -5,7 +5,11 @@
 </form>
 {{if .Widgets}}
 <div class="widgets-row">
-    {{range .Widgets}}{{template "widget_ical" .}}{{end}}
+    {{range .Widgets}}
+      {{if eq .Type "weather"}}{{template "widget_weather" .}}
+      {{else}}{{template "widget_ical" .}}
+      {{end}}
+    {{end}}
 </div>
 {{end}}
 <div class="dashboard">
@@ -43,7 +47,45 @@
 </div>
 
 <script>
+    const BANGS = {
+        '!g':  'https://www.google.com/search?q=',
+        '!d':  'https://duckduckgo.com/?q=',
+        '!ddg':'https://duckduckgo.com/?q=',
+        '!b':  'https://search.brave.com/search?q=',
+        '!gh': 'https://github.com/search?q=',
+        '!yt': 'https://www.youtube.com/results?search_query=',
+        '!w':  'https://de.wikipedia.org/w/index.php?search=',
+        '!wp': 'https://en.wikipedia.org/w/index.php?search=',
+        '!sp': 'https://www.startpage.com/search?q=',
+    };
+
     document.addEventListener("DOMContentLoaded", function() {
+        // Bang search handling
+        const searchForm = document.querySelector(".search-bar");
+        if (searchForm) {
+            searchForm.addEventListener("submit", function(e) {
+                const input = searchForm.querySelector("input[name='q']");
+                if (!input) return;
+                const query = input.value.trim();
+                const parts = query.split(/\s+/);
+                // Check first or last token for bang
+                let bang = null;
+                let rest = query;
+                if (parts.length > 0 && BANGS[parts[0]]) {
+                    bang = parts[0];
+                    rest = parts.slice(1).join(' ');
+                } else if (parts.length > 1 && BANGS[parts[parts.length - 1]]) {
+                    bang = parts[parts.length - 1];
+                    rest = parts.slice(0, -1).join(' ');
+                }
+                if (bang) {
+                    e.preventDefault();
+                    window.open(BANGS[bang] + encodeURIComponent(rest), '_blank');
+                }
+            });
+        }
+
+        // Status SSE
         const evtSource = new EventSource("/status/stream");
         evtSource.onmessage = function(event) {
             try {

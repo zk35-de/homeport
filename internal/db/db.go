@@ -42,7 +42,8 @@ type Widget struct {
 	Config    string // json string
 	Profile   string
 	SortOrder int
-	Events    []ICalEvent `json:"-"` // populated from cache
+	Events    []ICalEvent   `json:"-"` // populated from cache
+	Weather   *WeatherCache `json:"-"` // populated from cache for weather widgets
 }
 
 type ICalEvent struct {
@@ -55,6 +56,26 @@ type ICalEvent struct {
 
 type WidgetCacheEntry struct {
 	Events []ICalEvent
+}
+
+// WeatherCache holds cached weather data for weather widgets.
+type WeatherCache struct {
+	Temperature float64
+	WeatherCode int
+	Description string
+	WindSpeed   float64
+	Humidity    int
+	IsDay       bool
+	CityName    string
+	Forecast    []WeatherForecastDay
+}
+
+type WeatherForecastDay struct {
+	Date    string
+	TempMax float64
+	TempMin float64
+	Code    int
+	Desc    string
 }
 
 func InitDB(dbPath string) error {
@@ -143,6 +164,12 @@ func InitDB(dbPath string) error {
 			background    TEXT NOT NULL DEFAULT 'aurora',
 			language      TEXT NOT NULL DEFAULT 'de',
 			layout        TEXT NOT NULL DEFAULT 'grid'
+		);`,
+		`CREATE TABLE IF NOT EXISTS short_urls (
+			code       TEXT PRIMARY KEY,
+			url        TEXT NOT NULL,
+			clicks     INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT (datetime('now'))
 		);`,
 	}
 
@@ -692,5 +719,79 @@ func SetUserPreferences(profile string, prefs UserPreferences) error {
 			layout = excluded.layout`,
 		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
 		prefs.Background, prefs.Language, prefs.Layout)
+	return err
+}
+
+// GetWeatherCache returns the cached WeatherCache for a weather widget (nil if none).
+func GetWeatherCache(widgetID int) (*WeatherCache, error) {
+	row := DB.QueryRow(`SELECT data FROM widget_cache WHERE widget_id = ?`, widgetID)
+	var data string
+	if err := row.Scan(&data); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var cache WeatherCache
+	if err := json.Unmarshal([]byte(data), &cache); err != nil {
+		return nil, err
+	}
+	return &cache, nil
+}
+
+// ShortURL represents a shortened URL entry.
+type ShortURL struct {
+	Code      string
+	URL       string
+	Clicks    int
+	CreatedAt string
+}
+
+// CreateShortURL inserts a new short URL entry.
+func CreateShortURL(code, url string) error {
+	_, err := DB.Exec(`INSERT INTO short_urls (code, url) VALUES (?, ?)`, code, url)
+	return err
+}
+
+// GetShortURL returns the ShortURL for the given code, or nil if not found.
+func GetShortURL(code string) (*ShortURL, error) {
+	row := DB.QueryRow(`SELECT code, url, clicks, created_at FROM short_urls WHERE code = ?`, code)
+	var s ShortURL
+	if err := row.Scan(&s.Code, &s.URL, &s.Clicks, &s.CreatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &s, nil
+}
+
+// IncrementClicks increments the click counter for a short URL.
+func IncrementClicks(code string) error {
+	_, err := DB.Exec(`UPDATE short_urls SET clicks = clicks + 1 WHERE code = ?`, code)
+	return err
+}
+
+// GetAllShortURLs returns all short URL entries ordered by creation date desc.
+func GetAllShortURLs() ([]ShortURL, error) {
+	rows, err := DB.Query(`SELECT code, url, clicks, created_at FROM short_urls ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var urls []ShortURL
+	for rows.Next() {
+		var s ShortURL
+		if err := rows.Scan(&s.Code, &s.URL, &s.Clicks, &s.CreatedAt); err != nil {
+			return nil, err
+		}
+		urls = append(urls, s)
+	}
+	return urls, nil
+}
+
+// DeleteShortURL removes a short URL entry.
+func DeleteShortURL(code string) error {
+	_, err := DB.Exec(`DELETE FROM short_urls WHERE code = ?`, code)
 	return err
 }

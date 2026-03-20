@@ -97,6 +97,11 @@ func checkService(s db.Service) {
 	}
 	msg, _ := json.Marshal(update)
 	StatusBroker.Messages <- string(msg)
+
+	DefaultHub.Broadcast(Message{
+		Type:    ServiceStatusMsg,
+		Payload: update,
+	})
 }
 
 func HandleStatusStream(w http.ResponseWriter, r *http.Request) {
