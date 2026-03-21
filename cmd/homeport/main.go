@@ -73,6 +73,10 @@ func main() {
 		r.Post("/service", api.HandleAddService)
 		r.Delete("/category/{id}", api.HandleDeleteCategory)
 		r.Delete("/service/{id}", api.HandleDeleteService)
+		r.Get("/category/{id}/edit", api.HandleGetCategory)
+		r.Patch("/category/{id}", api.HandleUpdateCategory)
+		r.Get("/service/{id}/edit", api.HandleGetService)
+		r.Patch("/service/{id}", api.HandleUpdateService)
 		r.Post("/sort/category/{id}/{direction}", api.HandleSortCategory)
 		r.Post("/sort/service/{id}/{direction}", api.HandleSortService)
 

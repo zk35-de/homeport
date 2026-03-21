@@ -122,6 +122,97 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 	renderCategoryList(w)
 }
 
+func HandleGetService(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	svc, err := db.GetService(id)
+	if err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+
+	categories, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Service    *db.Service
+		Categories []db.Category
+	}{
+		Service:    svc,
+		Categories: categories,
+	}
+
+	if err := ManageTmpl.ExecuteTemplate(w, "service_edit_form", data); err != nil {
+		log.Printf("Error executing service_edit_form: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	name := r.FormValue("name")
+	url := r.FormValue("url")
+	icon := r.FormValue("icon")
+	desc := r.FormValue("description")
+	statusCheck := r.FormValue("status_check")
+	profiles := r.Form["visibility"]
+
+	if err := db.UpdateService(id, name, url, icon, desc, statusCheck, profiles); err != nil {
+		log.Printf("Error updating service %d: %v", id, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	renderCategoryList(w)
+}
+
+func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	cat, err := db.GetCategory(id)
+	if err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+
+	data := struct {
+		Category *db.Category
+	}{
+		Category: cat,
+	}
+
+	if err := ManageTmpl.ExecuteTemplate(w, "category_edit_form", data); err != nil {
+		log.Printf("Error executing category_edit_form: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	name := r.FormValue("name")
+	layout := r.FormValue("layout")
+	color := r.FormValue("color")
+
+	if err := db.UpdateCategory(id, name, layout, color); err != nil {
+		log.Printf("Error updating category %d: %v", id, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	renderCategoryList(w)
+}
+
 func HandleSortCategory(w http.ResponseWriter, r *http.Request) {
 	// Simple swap logic or full reorder logic.
 	// For simplicity, we assume we just swap with adjacent.

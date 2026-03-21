@@ -177,6 +177,24 @@
   {{end}}
 </section>
 
+<style>
+.edit-form {
+    background: var(--surface-2, rgba(255,255,255,0.05));
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+.edit-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.4rem 1rem;
+}
+.edit-form .form-group {
+    margin-bottom: 0;
+}
+</style>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const btn = document.getElementById("fetch-favicon-btn");
@@ -214,5 +232,30 @@ document.addEventListener("DOMContentLoaded", function() {
         preview.style.display = "inline";
     }
 });
+
+async function fetchFaviconEdit(svcId) {
+    const urlInput = document.querySelector(`#svc-edit-${svcId} input[name='url']`);
+    const iconInput = document.getElementById(`edit-icon-${svcId}`);
+    const preview = document.getElementById(`edit-favicon-preview-${svcId}`);
+    const btn = event.target;
+    if (!urlInput || !urlInput.value.trim()) { return; }
+
+    btn.textContent = "⏳";
+    const faviconURL = "/api/favicon?url=" + encodeURIComponent(urlInput.value.trim());
+    try {
+        const resp = await fetch(faviconURL);
+        if (resp.ok) {
+            iconInput.value = faviconURL;
+            preview.src = faviconURL;
+            preview.style.display = "inline";
+            btn.textContent = "✅";
+        } else {
+            btn.textContent = "❌";
+        }
+    } catch {
+        btn.textContent = "❌";
+    }
+    setTimeout(() => btn.textContent = "🌐", 2000);
+}
 </script>
 {{end}}

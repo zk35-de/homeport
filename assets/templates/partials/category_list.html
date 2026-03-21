@@ -7,14 +7,19 @@
             <div class="actions">
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/down" hx-target="#category-list" hx-swap="innerHTML">⬇️</button>
+                <button class="btn-icon"
+                    hx-get="/manage/category/{{.ID}}/edit"
+                    hx-target="#cat-edit-{{.ID}}"
+                    hx-swap="innerHTML">✏️</button>
                 <button class="btn-icon delete" hx-delete="/manage/category/{{.ID}}" hx-confirm="Are you sure?" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
             </div>
         </div>
+        <div id="cat-edit-{{.ID}}"></div>
         <div class="manage-service-list">
             {{range .Services}}
-            <div class="manage-service-item">
+            <div class="manage-service-item" id="svc-row-{{.ID}}">
                 <div class="service-info">
-                    <strong>{{.Name}}</strong> 
+                    <strong>{{.Name}}</strong>
                     <span class="text-muted"> - {{.URL}}</span>
                     {{range .VisibleTo}}
                     <span class="tag">{{.}}</span>
@@ -23,12 +28,110 @@
                 <div class="actions">
                     <button class="btn-icon" hx-post="/manage/sort/service/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
                     <button class="btn-icon" hx-post="/manage/sort/service/{{.ID}}/down" hx-target="#category-list" hx-swap="innerHTML">⬇️</button>
+                    <button class="btn-icon"
+                        hx-get="/manage/service/{{.ID}}/edit"
+                        hx-target="#svc-edit-{{.ID}}"
+                        hx-swap="innerHTML">✏️</button>
                     <button class="btn-icon delete" hx-delete="/manage/service/{{.ID}}" hx-confirm="Are you sure?" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
                 </div>
+                <div id="svc-edit-{{.ID}}"></div>
             </div>
             {{end}}
         </div>
     </div>
     {{end}}
 </div>
+{{end}}
+
+{{define "service_edit_form"}}
+<form class="edit-form"
+      hx-patch="/manage/service/{{.Service.ID}}"
+      hx-target="#category-list"
+      hx-swap="innerHTML">
+    <div class="edit-form-grid">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="{{.Service.Name}}" required>
+        </div>
+        <div class="form-group">
+            <label>URL</label>
+            <input type="url" name="url" value="{{.Service.URL}}" required>
+        </div>
+        <div class="form-group">
+            <label>Icon</label>
+            <div style="display:flex;gap:0.4rem;align-items:center">
+                <input type="text" name="icon" id="edit-icon-{{.Service.ID}}" value="{{.Service.Icon}}" placeholder="🏠 oder leer">
+                <button type="button" class="btn-sm" onclick="fetchFaviconEdit({{.Service.ID}})" title="Favicon laden">🌐</button>
+                <img id="edit-favicon-preview-{{.Service.ID}}" src="{{if .Service.Icon}}{{.Service.Icon}}{{end}}"
+                    alt="" style="width:20px;height:20px;{{if not .Service.Icon}}display:none{{end}};border-radius:3px">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <input type="text" name="description" value="{{.Service.Description}}">
+        </div>
+        <div class="form-group">
+            <label>Status Check URL</label>
+            <input type="url" name="status_check" value="{{.Service.StatusCheck}}">
+        </div>
+        <div class="form-group">
+            <label>Kategorie</label>
+            <select name="category_id">
+                {{range .Categories}}
+                <option value="{{.ID}}" {{if eq .ID $.Service.CategoryID}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Visibility</label>
+            <select name="visibility" multiple size="2">
+                <option value="markus" {{range $.Service.VisibleTo}}{{if eq . "markus"}}selected{{end}}{{end}}>Markus</option>
+                <option value="andrea" {{range $.Service.VisibleTo}}{{if eq . "andrea"}}selected{{end}}{{end}}>Andrea</option>
+            </select>
+        </div>
+    </div>
+    <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+        <button type="submit" class="btn-sm">Speichern</button>
+        <button type="button" class="btn-sm" onclick="document.getElementById('svc-edit-{{.Service.ID}}').innerHTML=''">Abbrechen</button>
+    </div>
+</form>
+{{end}}
+
+{{define "category_edit_form"}}
+<form class="edit-form"
+      hx-patch="/manage/category/{{.Category.ID}}"
+      hx-target="#category-list"
+      hx-swap="innerHTML">
+    <div class="edit-form-grid">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="{{.Category.Name}}" required>
+        </div>
+        <div class="form-group">
+            <label>Layout</label>
+            <select name="layout">
+                <option value="tiles" {{if eq .Category.Layout "tiles"}}selected{{end}}>Tiles</option>
+                <option value="list" {{if eq .Category.Layout "list"}}selected{{end}}>List</option>
+                <option value="icons" {{if eq .Category.Layout "icons"}}selected{{end}}>Icons</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Color</label>
+            <select name="color">
+                <option value="indigo" {{if eq .Category.Color "indigo"}}selected{{end}}>Indigo</option>
+                <option value="red" {{if eq .Category.Color "red"}}selected{{end}}>Red</option>
+                <option value="green" {{if eq .Category.Color "green"}}selected{{end}}>Green</option>
+                <option value="yellow" {{if eq .Category.Color "yellow"}}selected{{end}}>Yellow</option>
+                <option value="blue" {{if eq .Category.Color "blue"}}selected{{end}}>Blue</option>
+                <option value="purple" {{if eq .Category.Color "purple"}}selected{{end}}>Purple</option>
+                <option value="gray" {{if eq .Category.Color "gray"}}selected{{end}}>Gray</option>
+                <option value="cyan" {{if eq .Category.Color "cyan"}}selected{{end}}>Cyan</option>
+            </select>
+        </div>
+    </div>
+    <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+        <button type="submit" class="btn-sm">Speichern</button>
+        <button type="button" class="btn-sm" onclick="document.getElementById('cat-edit-{{.Category.ID}}').innerHTML=''">Abbrechen</button>
+    </div>
+</form>
 {{end}}

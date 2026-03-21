@@ -459,6 +459,67 @@ func UpdateServiceSort(id, newOrder int) error {
 	return err
 }
 
+func UpdateService(id int, name, url, icon, desc, statusCheck string, profiles []string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`UPDATE services SET name=?, url=?, icon=?, description=?, status_check=? WHERE id=?`,
+		name, url, icon, desc, statusCheck, id); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(`DELETE FROM service_profiles WHERE service_id=?`, id); err != nil {
+		return err
+	}
+	for _, p := range profiles {
+		if _, err := tx.Exec(`INSERT INTO service_profiles (service_id, profile) VALUES (?, ?)`, id, p); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func UpdateCategory(id int, name, layout, color string) error {
+	_, err := DB.Exec(`UPDATE categories SET name=?, layout=?, color=? WHERE id=?`, name, layout, color, id)
+	return err
+}
+
+// GetService returns a single service by ID.
+func GetService(id int) (*Service, error) {
+	row := DB.QueryRow(`SELECT id, category_id, name, url, icon, description, status_check, sort_order FROM services WHERE id=?`, id)
+	var s Service
+	if err := row.Scan(&s.ID, &s.CategoryID, &s.Name, &s.URL, &s.Icon, &s.Description, &s.StatusCheck, &s.SortOrder); err != nil {
+		return nil, err
+	}
+	rows, err := DB.Query(`SELECT profile FROM service_profiles WHERE service_id=?`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		s.VisibleTo = append(s.VisibleTo, p)
+	}
+	return &s, nil
+}
+
+// GetCategory returns a single category by ID (without services).
+func GetCategory(id int) (*Category, error) {
+	row := DB.QueryRow(`SELECT id, name, layout, color, sort_order FROM categories WHERE id=?`, id)
+	var c Category
+	if err := row.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 // Widgets
 
 func AddWidget(name, icalURL, profile string) error {
