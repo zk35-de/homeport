@@ -214,7 +214,7 @@ sessions          → token, profile, expires_at, created_at
 ## CI/CD
 
 Gitea Actions workflows in `.gitea/workflows/`:
-- `ci.yml` – build + test + vet on every push to `main`
+- `ci.yml` – build + test + vet + govulncheck on every push to `main`
 - `release.yml` – linux/amd64 + linux/arm64 binaries + checksums on `v*` tags
 
 ## Deploy
@@ -245,7 +245,11 @@ HOMEPORT_TOKEN=your-secret docker compose up -d
 - **XSS**: Go `html/template` auto-escaping enforced; `javascript:` href sanitized to `#ZgotmplZ`
 - API routes under `/api/*` require Bearer token auth (except `/api/health`, `/api/search`, `/api/favicon`)
 - **Session auth** (`HOMEPORT_AUTH=true`): bcrypt + secure cookie; no session → redirect to `/login`
-- **SSRF** protection on `/api/favicon`: scheme validation (http/https only); no private-IP blocking to support homelab use
+- **CSRF**: Double-Submit Cookie (`hp_csrf`); all POST/PATCH/DELETE without valid token → 403; HTMX injects token automatically
+- **Rate-limiting** on `/login`: 5 attempts / 5 min per IP, then 2s delay; X-Forwarded-For aware
+- **Security Headers** on every response: `Content-Security-Policy` (`default-src 'self'`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`
+- **SSRF** protection on `/api/favicon`: scheme validation (http/https only); private IPs allowed for homelab targets
+- **Supply chain**: `go.sum` pinned, `govulncheck` in CI, embedded JS assets (htmx, sse.js) served locally
 
 ## Dev
 
