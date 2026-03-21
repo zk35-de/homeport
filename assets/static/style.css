@@ -63,7 +63,7 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     padding: 1rem;
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-card), 0 0 8px 1px color-mix(in srgb, var(--cat-color, var(--accent)) 18%, transparent);
     transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     position: relative;
     display: flex;
@@ -75,7 +75,7 @@
 .service-card:hover {
     transform: translateY(-2px);
     border-color: var(--cat-color, var(--accent));
-    box-shadow: var(--shadow-card), 0 0 14px 2px color-mix(in srgb, var(--cat-color, var(--accent)) 40%, transparent);
+    box-shadow: var(--shadow-card), 0 0 16px 3px color-mix(in srgb, var(--cat-color, var(--accent)) 45%, transparent);
 }
 
 .service-icon {
