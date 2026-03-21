@@ -1,0 +1,16 @@
+{{define "widget_rss"}}
+<div class="widget widget-rss">
+  <h3 class="widget-title">{{.Name}}</h3>
+  {{if .RSSItems}}
+  <ul class="rss-list">
+    {{range .RSSItems}}
+    <li class="rss-item">
+      <a href="{{.URL}}" target="_blank" rel="noopener" class="rss-link">{{.Title}}</a>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <div class="event-empty">Feed wird geladen…</div>
+  {{end}}
+</div>
+{{end}}

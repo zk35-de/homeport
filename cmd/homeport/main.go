@@ -55,6 +55,7 @@ func main() {
 	api.StartStatusChecker()
 	go runICalFetcher()
 	go runWeatherFetcher()
+	go runRSSFetcher()
 	go runPodmanScanner()
 
 	// Router
@@ -117,6 +118,11 @@ func main() {
 		r.Delete("/profile/{slug}", api.HandleDeleteProfile)
 		r.Post("/profile/{slug}/default", api.HandleSetDefaultProfile)
 	})
+
+	// Todo routes (no auth – HTMX from index page)
+	r.Post("/api/todos", api.HandleAddTodo)
+	r.Post("/api/todos/{id}/toggle", api.HandleToggleTodo)
+	r.Delete("/api/todos/{id}", api.HandleDeleteTodo)
 
 	// REST API Routes
 	r.Route("/api", func(r chi.Router) {
@@ -292,5 +298,54 @@ func runPodmanScanner() {
 	scan()
 	for range time.Tick(60 * time.Second) {
 		scan()
+	}
+}
+
+func runRSSFetcher() {
+	fetchAll := func() {
+		widgets, err := db.GetAllWidgets()
+		if err != nil {
+			slog.Error("RSS fetcher: error loading widgets", "err", err)
+			return
+		}
+		for _, w := range widgets {
+			if w.Type != "rss" {
+				continue
+			}
+			var cfg struct {
+				URL string      `json:"url"`
+				Max json.Number `json:"max"`
+			}
+			if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil || cfg.URL == "" {
+				continue
+			}
+			items, err := core.FetchRSSFeed(cfg.URL)
+			if err != nil {
+				slog.Error("RSS fetcher: widget error", "widget_id", w.ID, "err", err)
+				continue
+			}
+			max, _ := cfg.Max.Int64()
+			if max <= 0 || max > 50 {
+				max = 10
+			}
+			if int64(len(items)) > max {
+				items = items[:max]
+			}
+			// Convert core.RSSItem → db.RSSItem
+			dbItems := make([]db.RSSItem, len(items))
+			for i, it := range items {
+				dbItems[i] = db.RSSItem{Title: it.Title, URL: it.URL, PubDate: it.PubDate}
+			}
+			data, _ := json.Marshal(struct {
+				RSSItems []db.RSSItem `json:"RSSItems"`
+			}{RSSItems: dbItems})
+			if err := db.UpdateWidgetCache(w.ID, string(data)); err != nil {
+				slog.Error("RSS fetcher: cache update error", "widget_id", w.ID, "err", err)
+			}
+		}
+	}
+	fetchAll()
+	for range time.Tick(30 * time.Minute) {
+		fetchAll()
 	}
 }

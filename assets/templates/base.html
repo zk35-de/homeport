@@ -146,10 +146,11 @@
     function updateWidgetForm() {
       const sel = document.getElementById('widget-type-select');
       if (!sel) return;
-      const ical  = document.getElementById('widget-ical-fields');
-      const clock = document.getElementById('widget-clock-fields');
-      if (ical)  ical.style.display  = sel.value === 'ical'  ? '' : 'none';
-      if (clock) clock.style.display = sel.value === 'clock' ? '' : 'none';
+      const types = ['ical', 'clock', 'weather', 'rss', 'todo'];
+      types.forEach(t => {
+        const el = document.getElementById('widget-' + t + '-fields');
+        if (el) el.style.display = sel.value === t ? '' : 'none';
+      });
       const modeEl = document.querySelector('select[name="clock_mode"]');
       if (modeEl) updateClockMode(modeEl);
     }

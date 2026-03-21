@@ -1,13 +1,18 @@
 {{define "content"}}
-<form class="search-bar" action="{{.SearchAction}}" method="get" target="_blank">
-    <input type="search" name="q" placeholder="Suchen..." autocomplete="off" autofocus>
+<div class="search-wrap">
+  <form class="search-bar" action="{{.SearchAction}}" method="get" target="_blank" id="search-form">
+    <input type="search" name="q" id="search-input" placeholder="Suchen… (/ fokussiert, !g !d !b !yt !w)" autocomplete="off" autofocus>
     <button type="submit" class="btn-sm">↵</button>
-</form>
+  </form>
+  <ul class="search-history" id="search-history" style="display:none"></ul>
+</div>
 {{if .Widgets}}
 <div class="widgets-row">
     {{range .Widgets}}
       {{if eq .Type "weather"}}{{template "widget_weather" .}}
       {{else if eq .Type "clock"}}{{template "widget_clock" .}}
+      {{else if eq .Type "rss"}}{{template "widget_rss" .}}
+      {{else if eq .Type "todo"}}{{template "widget_todo" .}}
       {{else}}{{template "widget_ical" .}}
       {{end}}
     {{end}}
@@ -61,25 +66,59 @@
         '!sp': 'https://www.startpage.com/search?q=',
     };
 
+    const SEARCH_HISTORY_KEY = 'hp-search-history';
+    function getHistory() {
+        try { return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]'); } catch { return []; }
+    }
+    function saveToHistory(q) {
+        if (!q) return;
+        let h = getHistory().filter(x => x !== q);
+        h.unshift(q);
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(h.slice(0, 8)));
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-        // Bang search handling
-        const searchForm = document.querySelector(".search-bar");
+        // Bang search + history
+        const searchForm = document.getElementById("search-form");
+        const searchInput = document.getElementById("search-input");
+        const historyEl = document.getElementById("search-history");
+
+        function renderHistory(filter) {
+            if (!historyEl) return;
+            const h = getHistory().filter(x => !filter || x.toLowerCase().includes(filter.toLowerCase()));
+            if (!h.length) { historyEl.style.display = 'none'; return; }
+            historyEl.innerHTML = h.map((q, i) =>
+                `<li class="search-hist-item" data-q="${q.replace(/"/g,'&quot;')}">${q}</li>`
+            ).join('');
+            historyEl.style.display = '';
+            historyEl.querySelectorAll('li').forEach(li => {
+                li.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    searchInput.value = li.dataset.q;
+                    historyEl.style.display = 'none';
+                    searchForm.submit();
+                });
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('focus', () => renderHistory(searchInput.value));
+            searchInput.addEventListener('input', () => renderHistory(searchInput.value));
+            searchInput.addEventListener('blur', () => setTimeout(() => historyEl && (historyEl.style.display='none'), 150));
+        }
+
         if (searchForm) {
             searchForm.addEventListener("submit", function(e) {
-                const input = searchForm.querySelector("input[name='q']");
-                if (!input) return;
-                const query = input.value.trim();
+                if (!searchInput) return;
+                const query = searchInput.value.trim();
                 const parts = query.split(/\s+/);
-                // Check first or last token for bang
-                let bang = null;
-                let rest = query;
+                let bang = null, rest = query;
                 if (parts.length > 0 && BANGS[parts[0]]) {
-                    bang = parts[0];
-                    rest = parts.slice(1).join(' ');
+                    bang = parts[0]; rest = parts.slice(1).join(' ');
                 } else if (parts.length > 1 && BANGS[parts[parts.length - 1]]) {
-                    bang = parts[parts.length - 1];
-                    rest = parts.slice(0, -1).join(' ');
+                    bang = parts[parts.length - 1]; rest = parts.slice(0, -1).join(' ');
                 }
+                saveToHistory(query);
                 if (bang) {
                     e.preventDefault();
                     window.open(BANGS[bang] + encodeURIComponent(rest), '_blank');

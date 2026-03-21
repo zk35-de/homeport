@@ -496,3 +496,78 @@
     color: var(--sub);
     border-top: 1px solid var(--glass-border);
 }
+
+/* Search history dropdown */
+.search-wrap { position: relative; }
+.search-history {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    list-style: none;
+    margin: 0.2rem 0 0;
+    padding: 0.25rem 0;
+    z-index: 200;
+}
+.search-hist-item {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text);
+    cursor: pointer;
+}
+.search-hist-item:hover { background: var(--glass); color: var(--accent); }
+
+/* Weather widget */
+.weather-current {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-bottom: 0.75rem;
+}
+.weather-temp { font-size: 2rem; font-weight: 700; color: var(--fg); line-height: 1; }
+.weather-desc { font-size: 0.85rem; color: var(--text); }
+.weather-meta { font-size: 0.75rem; color: var(--sub); }
+.weather-forecast { display: flex; flex-direction: column; gap: 0.2rem; }
+.forecast-day {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--text);
+}
+.forecast-day:last-child { border-bottom: none; }
+.forecast-date { color: var(--sub); min-width: 5rem; }
+.forecast-temps { color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* RSS widget */
+.rss-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.rss-item { font-size: 0.82rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.3rem; }
+.rss-item:last-child { border-bottom: none; }
+.rss-link { color: var(--text); text-decoration: none; }
+.rss-link:hover { color: var(--accent); }
+
+/* Todo widget */
+.widget-todo { min-width: 240px; }
+.todo-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 0.85rem;
+}
+.todo-item:last-of-type { border-bottom: none; }
+.todo-item.done .todo-text { text-decoration: line-through; color: var(--sub); }
+.todo-check { background: none; border: none; cursor: pointer; padding: 0; font-size: 1rem; line-height: 1; }
+.todo-text { flex: 1; }
+.todo-due { font-size: 0.72rem; color: var(--sub); white-space: nowrap; }
+.todo-del { opacity: 0; transition: opacity 0.15s; font-size: 0.75rem; }
+.todo-item:hover .todo-del { opacity: 1; }
+.todo-add-form { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+.todo-input { flex: 1; font-size: 0.82rem; }

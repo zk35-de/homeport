@@ -53,12 +53,31 @@ type Widget struct {
 	SortOrder int
 	Events    []ICalEvent   `json:"-"` // populated from cache
 	Weather   *WeatherCache `json:"-"` // populated from cache for weather widgets
+	RSSItems  []RSSItem     `json:"-"` // populated from cache for rss widgets
+	Todos     []TodoItem    `json:"-"` // populated from DB for todo widgets
 	// Clock widget fields (populated for type=clock)
-	ClockMode       string `json:"-"`
-	ClockTimezone   string `json:"-"`
-	ClockShowSeconds bool  `json:"-"`
-	ClockShowDate   bool   `json:"-"`
-	ClockCountdown  string `json:"-"`
+	ClockMode        string `json:"-"`
+	ClockTimezone    string `json:"-"`
+	ClockShowSeconds bool   `json:"-"`
+	ClockShowDate    bool   `json:"-"`
+	ClockCountdown   string `json:"-"`
+}
+
+// RSSItem is one entry from an RSS/Atom feed.
+type RSSItem struct {
+	Title   string `json:"title"`
+	URL     string `json:"url"`
+	PubDate string `json:"pub_date"`
+}
+
+// TodoItem is a single to-do entry linked to a widget.
+type TodoItem struct {
+	ID        int    `json:"id"`
+	WidgetID  int    `json:"widget_id"`
+	Text      string `json:"text"`
+	Done      bool   `json:"done"`
+	DueDate   string `json:"due_date"`
+	SortOrder int    `json:"sort_order"`
 }
 
 type ICalEvent struct {
@@ -70,7 +89,8 @@ type ICalEvent struct {
 }
 
 type WidgetCacheEntry struct {
-	Events []ICalEvent
+	Events   []ICalEvent `json:"Events,omitempty"`
+	RSSItems []RSSItem   `json:"RSSItems,omitempty"`
 }
 
 // WeatherCache holds cached weather data for weather widgets.
@@ -191,6 +211,14 @@ func InitDB(dbPath string) error {
 			slug       TEXT NOT NULL UNIQUE,
 			name       TEXT NOT NULL,
 			is_default INTEGER NOT NULL DEFAULT 0,
+			sort_order INTEGER NOT NULL DEFAULT 0
+		);`,
+		`CREATE TABLE IF NOT EXISTS todos (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			widget_id  INTEGER NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+			text       TEXT NOT NULL,
+			done       INTEGER NOT NULL DEFAULT 0,
+			due_date   TEXT NOT NULL DEFAULT '',
 			sort_order INTEGER NOT NULL DEFAULT 0
 		);`,
 	}
@@ -1058,5 +1086,68 @@ func SetDefaultProfile(slug string) error {
 	}
 
 	return tx.Commit()
+}
+
+// GetRSSCache returns parsed RSS items from widget cache.
+func GetRSSCache(widgetID int) ([]RSSItem, error) {
+	cache, err := GetWidgetCache(widgetID)
+	if err != nil || cache == nil {
+		return nil, err
+	}
+	return cache.RSSItems, nil
+}
+
+// GetTodos returns all todos for a widget, ordered by done then sort_order.
+func GetTodos(widgetID int) ([]TodoItem, error) {
+	rows, err := DB.Query(
+		`SELECT id, widget_id, text, done, due_date, sort_order FROM todos WHERE widget_id = ? ORDER BY done ASC, sort_order ASC, id ASC`,
+		widgetID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var todos []TodoItem
+	for rows.Next() {
+		var t TodoItem
+		var done int
+		if err := rows.Scan(&t.ID, &t.WidgetID, &t.Text, &done, &t.DueDate, &t.SortOrder); err != nil {
+			return nil, err
+		}
+		t.Done = done == 1
+		todos = append(todos, t)
+	}
+	return todos, rows.Err()
+}
+
+// AddTodo adds a new todo item for a widget.
+func AddTodo(widgetID int, text, dueDate string) (int64, error) {
+	res, err := DB.Exec(
+		`INSERT INTO todos (widget_id, text, due_date) VALUES (?, ?, ?)`,
+		widgetID, text, dueDate,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+// ToggleTodo flips the done state of a todo.
+func ToggleTodo(id int) error {
+	_, err := DB.Exec(`UPDATE todos SET done = 1 - done WHERE id = ?`, id)
+	return err
+}
+
+// DeleteTodo removes a todo item.
+func DeleteTodo(id int) error {
+	_, err := DB.Exec(`DELETE FROM todos WHERE id = ?`, id)
+	return err
+}
+
+// GetTodoWidgetID returns the widget_id for a todo (ownership check).
+func GetTodoWidgetID(todoID int) (int, error) {
+	var wid int
+	err := DB.QueryRow(`SELECT widget_id FROM todos WHERE id = ?`, todoID).Scan(&wid)
+	return wid, err
 }
 
