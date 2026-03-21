@@ -29,8 +29,8 @@
       {{if .Prefs.CustomCSS}}{{.Prefs.CustomCSS}}{{end}}
     </style>
     {{end}}
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/sse.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js');

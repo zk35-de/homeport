@@ -35,7 +35,7 @@
 <div class="dashboard" id="dashboard">
     {{range .Categories}}
     {{if .Services}}
-    <div class="category" data-cat-id="{{.ID}}" data-span="{{.ColSpan}}" data-page="{{.PageID}}">
+    <div class="category" data-cat-id="{{.ID}}" data-span="{{.ColSpan}}" data-page="{{.PageID}}" style="--cat-color: var(--{{.Color}})">
         <div class="category-header" onclick="toggleCategory({{.ID}})" style="cursor:pointer">
             <span class="cat-arrow" id="cat-arrow-{{.ID}}">▼</span>
             <span class="category-title" style="color: var(--{{.Color}})">{{.Name}}</span>

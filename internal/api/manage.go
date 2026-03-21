@@ -17,6 +17,7 @@ type ManageData struct {
 	Prefs         *db.UserPreferences
 	Profiles      []db.Profile
 	Pages         []db.Page
+	Profile       string // für base.html (.Profile)
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +33,9 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 
 	var prefs *db.UserPreferences
 	var pages []db.Page
+	defaultSlug := ""
 	if def, _ := db.GetDefaultProfile(); def != nil {
+		defaultSlug = def.Slug
 		prefs, _ = db.GetUserPreferences(def.Slug)
 		pages, _ = db.GetPages(def.Slug)
 	}
@@ -46,6 +49,7 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		Prefs:         prefs,
 		Profiles:      profiles,
 		Pages:         pages,
+		Profile:       defaultSlug,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
