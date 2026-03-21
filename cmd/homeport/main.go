@@ -75,6 +75,7 @@ func main() {
 		r.Delete("/service/{id}", api.HandleDeleteService)
 		r.Get("/category/{id}/edit", api.HandleGetCategory)
 		r.Patch("/category/{id}", api.HandleUpdateCategory)
+		r.Post("/category/{id}/span/{span}", api.HandleUpdateCategorySpan)
 		r.Get("/service/{id}/edit", api.HandleGetService)
 		r.Patch("/service/{id}", api.HandleUpdateService)
 		r.Post("/sort/category/{id}/{direction}", api.HandleSortCategory)

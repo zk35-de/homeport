@@ -358,3 +358,45 @@
 .clock-minute { stroke: var(--fg); stroke-width: 2.5; stroke-linecap: round; }
 .clock-second { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
 .clock-center { fill: var(--accent); }
+
+/* Dashboard Grid (col_span) */
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0 1.5rem;
+    align-items: start;
+}
+
+.category[data-span="1"] { grid-column: span 6; }
+.category[data-span="2"] { grid-column: span 3; }
+.category[data-span="3"] { grid-column: span 2; }
+
+@media (max-width: 768px) {
+    .category[data-span="2"],
+    .category[data-span="3"] { grid-column: span 6; }
+}
+
+/* Collapsible categories */
+.category-body {
+    max-height: none;
+    transition: max-height 0.28s ease;
+}
+
+.cat-arrow {
+    font-size: 0.6rem;
+    color: var(--sub);
+    transition: transform 0.2s ease;
+    display: inline-block;
+    user-select: none;
+}
+
+.cat-arrow.collapsed {
+    transform: rotate(-90deg);
+}
+
+/* Span-toggle active state in manage */
+.span-active {
+    color: var(--accent);
+    outline: 1px solid var(--accent);
+    border-radius: 4px;
+}

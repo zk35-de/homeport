@@ -7,6 +7,12 @@
             <div class="actions">
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/down" hx-target="#category-list" hx-swap="innerHTML">⬇️</button>
+                <button class="btn-icon {{if eq .ColSpan 1}}span-active{{end}}" title="Volle Breite"
+                    hx-post="/manage/category/{{.ID}}/span/1" hx-target="#category-list" hx-swap="innerHTML">▦</button>
+                <button class="btn-icon {{if eq .ColSpan 2}}span-active{{end}}" title="Halbe Breite"
+                    hx-post="/manage/category/{{.ID}}/span/2" hx-target="#category-list" hx-swap="innerHTML">▥</button>
+                <button class="btn-icon {{if eq .ColSpan 3}}span-active{{end}}" title="Drittel"
+                    hx-post="/manage/category/{{.ID}}/span/3" hx-target="#category-list" hx-swap="innerHTML">▤</button>
                 <button class="btn-icon"
                     hx-get="/manage/category/{{.ID}}/edit"
                     hx-target="#cat-edit-{{.ID}}"

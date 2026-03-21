@@ -219,6 +219,17 @@ func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	renderCategoryList(w)
 }
 
+func HandleUpdateCategorySpan(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	span, _ := strconv.Atoi(chi.URLParam(r, "span"))
+	if err := db.UpdateCategorySpan(id, span); err != nil {
+		log.Printf("Error updating category span %d: %v", id, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	renderCategoryList(w)
+}
+
 func HandleSortCategory(w http.ResponseWriter, r *http.Request) {
 	// Simple swap logic or full reorder logic.
 	// For simplicity, we assume we just swap with adjacent.

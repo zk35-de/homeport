@@ -16,31 +16,32 @@
 <div class="dashboard">
     {{range .Categories}}
     {{if .Services}}
-    <div class="category">
-        <div class="category-header">
+    <div class="category" data-cat-id="{{.ID}}" data-span="{{.ColSpan}}">
+        <div class="category-header" onclick="toggleCategory({{.ID}})" style="cursor:pointer">
+            <span class="cat-arrow" id="cat-arrow-{{.ID}}">▼</span>
             <span class="category-title" style="color: var(--{{.Color}})">{{.Name}}</span>
         </div>
-        <div class="grid-{{.Layout}}">
-            {{range .Services}}
-            <a href="{{.URL}}" target="_blank" class="service-card" id="service-{{.ID}}">
-                {{if .Icon}}
-                <div class="service-icon">{{if isImgURL .Icon}}<img src="{{.Icon}}" alt="" loading="lazy">{{else}}{{.Icon}}{{end}}</div>
-                {{else}}
-                <div class="service-icon">?</div>
-                {{end}}
-                
-                <div class="service-content">
-                    <div class="service-name">{{.Name}}</div>
-                    {{if .Description}}
-                    <div class="service-desc">{{.Description}}</div>
+        <div class="category-body" id="cat-body-{{.ID}}">
+            <div class="grid-{{.Layout}}">
+                {{range .Services}}
+                <a href="{{.URL}}" target="_blank" class="service-card" id="service-{{.ID}}">
+                    {{if .Icon}}
+                    <div class="service-icon">{{if isImgURL .Icon}}<img src="{{.Icon}}" alt="" loading="lazy">{{else}}{{.Icon}}{{end}}</div>
+                    {{else}}
+                    <div class="service-icon">?</div>
                     {{end}}
-                </div>
-
-                {{if .StatusCheck}}
-                <div id="status-{{.ID}}" class="status-dot {{if .Alive}}alive{{else}}dead{{end}}"></div>
+                    <div class="service-content">
+                        <div class="service-name">{{.Name}}</div>
+                        {{if .Description}}
+                        <div class="service-desc">{{.Description}}</div>
+                        {{end}}
+                    </div>
+                    {{if .StatusCheck}}
+                    <div id="status-{{.ID}}" class="status-dot {{if .Alive}}alive{{else}}dead{{end}}"></div>
+                    {{end}}
+                </a>
                 {{end}}
-            </a>
-            {{end}}
+            </div>
         </div>
     </div>
     {{end}}
@@ -86,6 +87,14 @@
             });
         }
 
+        // Collapsible categories – restore state
+        document.querySelectorAll('.category[data-cat-id]').forEach(el => {
+            const id = el.dataset.catId;
+            if (localStorage.getItem('hp-cat-' + id) === '1') {
+                _collapseCategory(id, false);
+            }
+        });
+
         // Status SSE
         const evtSource = new EventSource("/status/stream");
         evtSource.onmessage = function(event) {
@@ -101,5 +110,47 @@
             }
         };
     });
+
+    function _collapseCategory(id, animate) {
+        const body  = document.getElementById('cat-body-' + id);
+        const arrow = document.getElementById('cat-arrow-' + id);
+        if (!body) return;
+        if (!animate) body.style.transition = 'none';
+        body.style.maxHeight = '0';
+        body.style.overflow  = 'hidden';
+        if (arrow) arrow.classList.add('collapsed');
+        if (!animate) requestAnimationFrame(() => body.style.transition = '');
+    }
+
+    function _expandCategory(id) {
+        const body  = document.getElementById('cat-body-' + id);
+        const arrow = document.getElementById('cat-arrow-' + id);
+        if (!body) return;
+        body.style.maxHeight = body.scrollHeight + 'px';
+        body.style.overflow  = 'hidden';
+        if (arrow) arrow.classList.remove('collapsed');
+        body.addEventListener('transitionend', function h() {
+            body.style.maxHeight = '';
+            body.style.overflow  = '';
+            body.removeEventListener('transitionend', h);
+        });
+    }
+
+    function toggleCategory(id) {
+        const body = document.getElementById('cat-body-' + id);
+        if (!body) return;
+        const isCollapsed = body.style.maxHeight === '0px' || body.style.maxHeight === '0';
+        if (isCollapsed) {
+            _expandCategory(id);
+            localStorage.removeItem('hp-cat-' + id);
+        } else {
+            // set explicit height first so transition works
+            body.style.maxHeight = body.scrollHeight + 'px';
+            body.style.overflow  = 'hidden';
+            requestAnimationFrame(() => { body.style.maxHeight = '0'; });
+            document.getElementById('cat-arrow-' + id)?.classList.add('collapsed');
+            localStorage.setItem('hp-cat-' + id, '1');
+        }
+    }
 </script>
 {{end}}

@@ -18,6 +18,7 @@ type Category struct {
 	Layout    string // 'tiles', 'list', 'icons'
 	Color     string // e.g., 'indigo'
 	SortOrder int
+	ColSpan   int    // 1=full, 2=half, 3=third
 	Services  []Service
 }
 
@@ -188,6 +189,7 @@ func InitDB(dbPath string) error {
 	// Idempotent migrations: ignore errors (column may already exist)
 	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN visible INTEGER NOT NULL DEFAULT 1`)
 	_, _ = DB.Exec(`ALTER TABLE user_preferences ADD COLUMN custom_css TEXT NOT NULL DEFAULT ''`)
+	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN col_span INTEGER NOT NULL DEFAULT 1`)
 
 	return nil
 }
@@ -328,7 +330,7 @@ func AcceptDiscoveryItem(id int) error {
 }
 
 func GetCategoriesWithServices(profile string) ([]Category, error) {
-	rows, err := DB.Query(`SELECT id, name, layout, color, sort_order FROM categories ORDER BY sort_order ASC`)
+	rows, err := DB.Query(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1) FROM categories ORDER BY sort_order ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -337,8 +339,11 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 	var categories []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan); err != nil {
 			return nil, err
+		}
+		if c.ColSpan < 1 || c.ColSpan > 3 {
+			c.ColSpan = 1
 		}
 
 		// Get services for this category visible to profile
@@ -519,12 +524,20 @@ func GetService(id int) (*Service, error) {
 
 // GetCategory returns a single category by ID (without services).
 func GetCategory(id int) (*Category, error) {
-	row := DB.QueryRow(`SELECT id, name, layout, color, sort_order FROM categories WHERE id=?`, id)
+	row := DB.QueryRow(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1) FROM categories WHERE id=?`, id)
 	var c Category
-	if err := row.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder); err != nil {
+	if err := row.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan); err != nil {
 		return nil, err
 	}
 	return &c, nil
+}
+
+func UpdateCategorySpan(id, span int) error {
+	if span < 1 || span > 3 {
+		span = 1
+	}
+	_, err := DB.Exec(`UPDATE categories SET col_span=? WHERE id=?`, span, id)
+	return err
 }
 
 // Widgets
