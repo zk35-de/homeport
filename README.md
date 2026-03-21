@@ -5,6 +5,7 @@ Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
 **Why homeport?**
 - No config file editing – everything via management Web-UI
 - Multi-profile: `/` default, `/{slug}` per user (no login needed)
+- **Multi-page layouts**: Work / Personal / Hobby tabs with keyboard shortcuts
 - Per-category layout: tiles | list | icons + collapsible + grid span
 - Written in Go – single binary, no runtime, minimal attack surface
 - Live status indicators via SSE
@@ -65,6 +66,12 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `POST /manage/profile` | Add profile |
 | `DELETE /manage/profile/{slug}` | Delete profile |
 | `POST /manage/profile/{slug}/default` | Set default profile |
+| `GET /manage/page-list?profile=` | Page list partial (HTMX) |
+| `POST /manage/page` | Add page (form: profile, name, icon) |
+| `DELETE /manage/page/{id}` | Delete page |
+| `PATCH /manage/page/{id}` | Update page name/icon |
+| `POST /manage/sort/page/{id}/{direction}` | Reorder page (up\|down) |
+| `POST /manage/category/{id}/page/{pageID}` | Assign category to page (0=unassigned) |
 | `GET /manage/backup` | Download SQLite snapshot |
 | `POST /manage/restore` | Upload & restore backup |
 | `GET /manage/analytics` | Click analytics (top-25 per profile) |
@@ -118,6 +125,15 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 - Bang syntax: `!g` Google · `!d` DuckDuckGo · `!b` Brave · `!gh` GitHub · `!yt` YouTube · `!w` Wikipedia
 - Search history (last 8 queries, localStorage), dropdown on focus
 
+### Multi-Page Layouts
+- Create named pages per profile (Work / Personal / Hobby / …)
+- Tab bar appears automatically when pages exist
+- Assign categories to pages via manage UI → "Page" dropdown
+- Unassigned content (Page 0) appears on **all** tabs
+- **Keyboard shortcuts:** `0` / `` ` `` = All, `1`–`9` = page 1–9
+- Active tab persisted in `localStorage` per profile
+- No page reload – client-side show/hide
+
 ### Command Palette (Ctrl+K or /)
 - Fuzzy search over all service cards in DOM
 - Server-side search via `/api/search` for cross-profile results
@@ -147,12 +163,13 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 
 ```
 profiles         → slug, name, is_default, sort_order
-categories       → name, layout, color, sort_order, col_span, sort_mode
+pages            → profile, name, icon, sort_order
+categories       → name, layout, color, sort_order, col_span, sort_mode, page_id→pages
 services         → category_id, name, url, icon, description, status_check, sort_order
 visibility       → service_id, profile
 service_status   → service_id, alive, last_check
 service_clicks   → service_id, profile, click_count, last_clicked
-widgets          → type, name, config (json), profile, sort_order
+widgets          → type, name, config (json), profile, sort_order, page_id→pages
 widget_cache     → widget_id, data (json), fetched_at
 todos            → widget_id, text, done, due_date, sort_order
 notes            → widget_id, content, updated_at
@@ -189,11 +206,19 @@ cp deploy/docker-compose.yml .
 HOMEPORT_TOKEN=your-secret docker compose up -d
 ```
 
+## Security
+
+- **Open Redirect** protection on `/r/{id}`: non-http(s) target URLs (e.g. `javascript:`, `data:`) → 404
+- **SSRF** protection on `/api/favicon`: private/loopback IPs (RFC1918, 127.x, 169.254.x) blocked via DNS resolution → 403
+- **XSS**: Go `html/template` auto-escaping enforced; `javascript:` href sanitized to `#ZgotmplZ`
+- API routes under `/api/*` require Bearer token auth (except `/api/health`, `/api/search`, `/api/favicon`)
+
 ## Dev
 
 ```bash
-go test ./...   # run tests
-go build ./...  # compile all packages
+go test ./...              # run tests
+go test ./... -cover       # with coverage (api ≥30%, db ≥55%)
+go build ./...             # compile all packages
 ```
 
 No Node.js required. Frontend is Go templates + HTMX + embedded CSS.
