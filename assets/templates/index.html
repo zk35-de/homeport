@@ -1,10 +1,25 @@
 {{define "content"}}
 <div class="search-wrap">
-  <form class="search-bar" action="{{.SearchAction}}" method="get" target="_blank" id="search-form">
-    <input type="search" name="q" id="search-input" placeholder="Suchen… (/ fokussiert, !g !d !b !yt !w)" autocomplete="off" autofocus>
-    <button type="submit" class="btn-sm">↵</button>
-  </form>
-  <ul class="search-history" id="search-history" style="display:none"></ul>
+  <div class="search-bar-outer">
+    <form class="search-bar" id="search-form" action="{{.SearchAction}}" method="get" target="_blank">
+      <input type="search" name="q" id="search-input"
+             placeholder="Suchen… (Ctrl+K, !g !d !b !yt !w)"
+             autocomplete="off" autofocus>
+      <button type="button" class="search-engine-btn" id="search-engine-btn" title="Suchanbieter wählen" tabindex="0">
+        <span id="search-engine-label">{{if .SearchAction}}{{if eq .SearchAction "https://www.google.com/search"}}G{{else if eq .SearchAction "https://search.brave.com/search"}}B{{else if eq .SearchAction "https://www.startpage.com/search"}}S{{else if eq .SearchAction "https://www.bing.com/search"}}Bing{{else}}DDG{{end}}{{else}}DDG{{end}}</span>▾
+      </button>
+    </form>
+    <!-- Suchanbieter-Dropdown -->
+    <div class="search-engine-menu hidden" id="search-engine-menu">
+      <button class="se-option" data-url="https://duckduckgo.com/?q=" data-label="DDG">DuckDuckGo</button>
+      <button class="se-option" data-url="https://www.google.com/search?q=" data-label="G">Google</button>
+      <button class="se-option" data-url="https://search.brave.com/search?q=" data-label="B">Brave</button>
+      <button class="se-option" data-url="https://www.startpage.com/search?q=" data-label="S">Startpage</button>
+      <button class="se-option" data-url="https://www.bing.com/search?q=" data-label="Bing">Bing</button>
+    </div>
+    <!-- Spotlight-Ergebnis-Dropdown -->
+    <ul class="search-spotlight" id="search-spotlight" style="display:none"></ul>
+  </div>
 </div>
 
 {{if .Pages}}
@@ -80,65 +95,167 @@
         '!sp': 'https://www.startpage.com/search?q=',
     };
 
-    const SEARCH_HISTORY_KEY = 'hp-search-history';
-    function getHistory() {
-        try { return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]'); } catch { return []; }
-    }
-    function saveToHistory(q) {
-        if (!q) return;
-        let h = getHistory().filter(x => x !== q);
-        h.unshift(q);
-        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(h.slice(0, 8)));
-    }
+    // Current search engine URL base (e.g. "https://duckduckgo.com/?q=")
+    // Derived from the form action by appending ?q= if needed
+    let currentEngineURL = (function() {
+        const action = document.getElementById('search-form')?.action || 'https://duckduckgo.com/?q=';
+        // Normalize: ensure it ends with ?q= or &q=
+        if (action.includes('?')) return action + (action.endsWith('?') ? 'q=' : '&q=');
+        return action + '?q=';
+    })();
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Bang search + history
-        const searchForm = document.getElementById("search-form");
+        const searchForm  = document.getElementById("search-form");
         const searchInput = document.getElementById("search-input");
-        const historyEl = document.getElementById("search-history");
+        const spotlight   = document.getElementById("search-spotlight");
+        const engineBtn   = document.getElementById("search-engine-btn");
+        const engineLabel = document.getElementById("search-engine-label");
+        const engineMenu  = document.getElementById("search-engine-menu");
 
-        function renderHistory(filter) {
-            if (!historyEl) return;
-            const h = getHistory().filter(x => !filter || x.toLowerCase().includes(filter.toLowerCase()));
-            if (!h.length) { historyEl.style.display = 'none'; return; }
-            historyEl.innerHTML = h.map((q, i) =>
-                `<li class="search-hist-item" data-q="${q.replace(/"/g,'&quot;')}">${q}</li>`
-            ).join('');
-            historyEl.style.display = '';
-            historyEl.querySelectorAll('li').forEach(li => {
-                li.addEventListener('mousedown', function(e) {
-                    e.preventDefault();
-                    searchInput.value = li.dataset.q;
-                    historyEl.style.display = 'none';
-                    searchForm.submit();
-                });
+        // ── Suchanbieter-Dropdown ─────────────────────────────────────────
+        engineBtn?.addEventListener('click', function(e) {
+            e.stopPropagation();
+            engineMenu.classList.toggle('hidden');
+        });
+
+        document.querySelectorAll('.se-option').forEach(btn => {
+            btn.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                const url   = btn.dataset.url;
+                const label = btn.dataset.label;
+                currentEngineURL = url;
+                if (engineLabel) engineLabel.textContent = label + '▾';
+                engineMenu.classList.add('hidden');
+                // Persist via existing HTMX-compatible route
+                const formData = new FormData();
+                formData.append('profile', document.body.dataset.profile || '');
+                formData.append('engine', url.replace('?q=','').replace('&q=',''));
+                const csrf = document.cookie.match('(^|;)\\s*hp_csrf\\s*=\\s*([^;]+)');
+                fetch('/manage/settings/search', {
+                    method: 'POST',
+                    headers: csrf ? {'X-CSRF-Token': csrf.pop()} : {},
+                    body: formData
+                }).catch(() => {});
+            });
+        });
+
+        document.addEventListener('click', function() {
+            engineMenu?.classList.add('hidden');
+        });
+
+        // ── Spotlight-Suche ───────────────────────────────────────────────
+        let spotlightIdx = -1;
+        let spotlightItems = [];
+
+        function getServices() {
+            const results = [];
+            document.querySelectorAll('.service-card').forEach(a => {
+                const name = a.querySelector('.service-name')?.textContent?.trim();
+                const desc = a.querySelector('.service-desc')?.textContent?.trim() || '';
+                const cat  = a.closest('.category')?.querySelector('.category-title')?.textContent?.trim() || '';
+                const iconEl = a.querySelector('.service-icon');
+                const imgEl  = iconEl?.querySelector('img');
+                const icon   = imgEl ? imgEl.src : (iconEl?.textContent?.trim() || '🔗');
+                const isImg  = !!imgEl;
+                if (name) results.push({ name, desc, cat, url: a.href, icon, isImg });
+            });
+            return results;
+        }
+
+        function fuzzy(str, q) {
+            str = str.toLowerCase(); q = q.toLowerCase();
+            let si = 0;
+            for (let i = 0; i < q.length; i++) {
+                si = str.indexOf(q[i], si);
+                if (si === -1) return false; si++;
+            }
+            return true;
+        }
+
+        function renderSpotlight(query) {
+            if (!spotlight) return;
+            if (!query) { spotlight.style.display = 'none'; spotlightItems = []; return; }
+            const svcs = getServices().filter(s => fuzzy(s.name, query) || fuzzy(s.cat, query));
+            spotlightItems = svcs.slice(0, 8);
+            spotlightIdx = -1;
+            if (!spotlightItems.length && query.length < 2) { spotlight.style.display = 'none'; return; }
+            spotlight.innerHTML = spotlightItems.map((s, i) => {
+                const iconHtml = s.isImg
+                    ? `<img src="${s.icon}" width="16" height="16" style="border-radius:3px;flex-shrink:0">`
+                    : `<span style="flex-shrink:0">${s.icon}</span>`;
+                return `<li class="spotlight-item" data-idx="${i}" data-url="${s.url}">
+                    ${iconHtml}
+                    <span class="spotlight-name">${s.name}</span>
+                    <span class="spotlight-cat">${s.cat}</span>
+                </li>`;
+            }).join('');
+            // "Im Web suchen" footer
+            spotlight.innerHTML += `<li class="spotlight-web" data-web="1">🔍 Im Web suchen: „${query}"</li>`;
+
+            spotlight.querySelectorAll('.spotlight-item').forEach(li => {
+                li.addEventListener('mousedown', e => { e.preventDefault(); window.location.href = li.dataset.url; });
+                li.addEventListener('mouseenter', () => setSpotlightActive(parseInt(li.dataset.idx)));
+            });
+            spotlight.querySelector('.spotlight-web')?.addEventListener('mousedown', e => {
+                e.preventDefault(); submitSearch(query);
+            });
+            spotlight.style.display = '';
+        }
+
+        function setSpotlightActive(idx) {
+            spotlightIdx = idx;
+            spotlight.querySelectorAll('.spotlight-item').forEach((li, i) => {
+                li.classList.toggle('active', i === idx);
             });
         }
 
-        if (searchInput) {
-            searchInput.addEventListener('focus', () => renderHistory(searchInput.value));
-            searchInput.addEventListener('input', () => renderHistory(searchInput.value));
-            searchInput.addEventListener('blur', () => setTimeout(() => historyEl && (historyEl.style.display='none'), 150));
+        function submitSearch(query) {
+            const parts = query.split(/\s+/);
+            let bang = null, rest = query;
+            if (BANGS[parts[0]]) { bang = parts[0]; rest = parts.slice(1).join(' '); }
+            else if (BANGS[parts[parts.length-1]]) { bang = parts[parts.length-1]; rest = parts.slice(0,-1).join(' '); }
+            if (bang) { window.open(BANGS[bang] + encodeURIComponent(rest), '_blank'); }
+            else { window.open(currentEngineURL + encodeURIComponent(query), '_blank'); }
         }
 
-        if (searchForm) {
-            searchForm.addEventListener("submit", function(e) {
-                if (!searchInput) return;
-                const query = searchInput.value.trim();
-                const parts = query.split(/\s+/);
-                let bang = null, rest = query;
-                if (parts.length > 0 && BANGS[parts[0]]) {
-                    bang = parts[0]; rest = parts.slice(1).join(' ');
-                } else if (parts.length > 1 && BANGS[parts[parts.length - 1]]) {
-                    bang = parts[parts.length - 1]; rest = parts.slice(0, -1).join(' ');
-                }
-                saveToHistory(query);
-                if (bang) {
+        searchInput?.addEventListener('input', () => renderSpotlight(searchInput.value.trim()));
+        searchInput?.addEventListener('blur', () => setTimeout(() => { spotlight.style.display = 'none'; }, 150));
+
+        searchInput?.addEventListener('keydown', function(e) {
+            const showing = spotlight.style.display !== 'none';
+            if (!showing) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSpotlightActive(Math.min(spotlightIdx + 1, spotlightItems.length - 1));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSpotlightActive(Math.max(spotlightIdx - 1, 0));
+            } else if (e.key === 'Escape') {
+                spotlight.style.display = 'none';
+                searchInput.value = '';
+            } else if (e.key === 'Enter') {
+                if (spotlightIdx >= 0 && spotlightItems[spotlightIdx]) {
                     e.preventDefault();
-                    window.open(BANGS[bang] + encodeURIComponent(rest), '_blank');
+                    window.location.href = spotlightItems[spotlightIdx].url;
+                } else {
+                    e.preventDefault();
+                    submitSearch(searchInput.value.trim());
                 }
-            });
-        }
+            }
+        });
+
+        // Prevent form submit – we handle Enter ourselves
+        searchForm?.addEventListener('submit', function(e) { e.preventDefault(); });
+
+        // Ctrl+K / '/' focus search
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault(); searchInput?.focus();
+            } else if (e.key === '/') {
+                e.preventDefault(); searchInput?.focus();
+            }
+        });
 
         // Collapsible categories – restore state
         document.querySelectorAll('.category[data-cat-id]').forEach(el => {
