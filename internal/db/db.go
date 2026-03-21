@@ -20,6 +20,14 @@ type Profile struct {
 	SortOrder int
 }
 
+type Page struct {
+	ID        int
+	Profile   string
+	Name      string
+	Icon      string
+	SortOrder int
+}
+
 type Category struct {
 	ID        int
 	Name      string
@@ -28,6 +36,7 @@ type Category struct {
 	SortOrder int
 	ColSpan   int    // 1=full, 2=half, 3=third
 	SortMode  string // 'manual' or 'usage'
+	PageID    int    // 0 = unassigned (shown on all page tabs)
 	Services  []Service
 }
 
@@ -52,6 +61,7 @@ type Widget struct {
 	Config    string // json string
 	Profile   string
 	SortOrder int
+	PageID    int // 0 = unassigned (shown on all page tabs)
 	Events    []ICalEvent   `json:"-"` // populated from cache
 	Weather   *WeatherCache `json:"-"` // populated from cache for weather widgets
 	RSSItems  []RSSItem     `json:"-"` // populated from cache for rss widgets
@@ -254,6 +264,13 @@ func InitDB(dbPath string) error {
 			content    TEXT NOT NULL DEFAULT '',
 			updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
 		);`,
+		`CREATE TABLE IF NOT EXISTS pages (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			profile    TEXT NOT NULL,
+			name       TEXT NOT NULL,
+			icon       TEXT NOT NULL DEFAULT '📄',
+			sort_order INTEGER NOT NULL DEFAULT 0
+		);`,
 	}
 
 	for _, q := range queries {
@@ -268,6 +285,8 @@ func InitDB(dbPath string) error {
 	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN col_span INTEGER NOT NULL DEFAULT 1`)
 	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN sort_mode TEXT NOT NULL DEFAULT 'manual'`)
 	_, _ = DB.Exec(`ALTER TABLE user_preferences ADD COLUMN background_mode TEXT NOT NULL DEFAULT 'aurora'`)
+	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN page_id INTEGER REFERENCES pages(id) ON DELETE SET NULL`)
+	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN page_id INTEGER REFERENCES pages(id) ON DELETE SET NULL`)
 
 	// Seed default profiles if table is empty
 	var count int
@@ -422,7 +441,7 @@ func AcceptDiscoveryItem(id int) error {
 }
 
 func GetCategoriesWithServices(profile string) ([]Category, error) {
-	rows, err := DB.Query(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1), COALESCE(sort_mode,'manual') FROM categories ORDER BY sort_order ASC`)
+	rows, err := DB.Query(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1), COALESCE(sort_mode,'manual'), COALESCE(page_id,0) FROM categories ORDER BY sort_order ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -431,7 +450,7 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 	var categories []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan, &c.SortMode); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan, &c.SortMode, &c.PageID); err != nil {
 			return nil, err
 		}
 		if c.ColSpan < 1 || c.ColSpan > 3 {
@@ -494,8 +513,76 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 	return categories, nil
 }
 
-func AddCategory(name, layout, color string) error {
-	_, err := DB.Exec(`INSERT INTO categories (name, layout, color, sort_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM categories))`, name, layout, color)
+func AddCategory(name, layout, color string) (int64, error) {
+	res, err := DB.Exec(`INSERT INTO categories (name, layout, color, sort_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM categories))`, name, layout, color)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+// GetPages returns all pages for a profile ordered by sort_order.
+func GetPages(profile string) ([]Page, error) {
+	rows, err := DB.Query(`SELECT id, profile, name, icon, sort_order FROM pages WHERE profile = ? ORDER BY sort_order ASC`, profile)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var pages []Page
+	for rows.Next() {
+		var p Page
+		if err := rows.Scan(&p.ID, &p.Profile, &p.Name, &p.Icon, &p.SortOrder); err != nil {
+			return nil, err
+		}
+		pages = append(pages, p)
+	}
+	return pages, nil
+}
+
+// AddPage inserts a new page and returns its ID.
+func AddPage(profile, name, icon string) (int64, error) {
+	res, err := DB.Exec(`INSERT INTO pages (profile, name, icon, sort_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM pages WHERE profile = ?))`, profile, name, icon, profile)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+// DeletePage removes a page; categories/widgets with this page_id get page_id=NULL (ON DELETE SET NULL).
+func DeletePage(id int) error {
+	_, err := DB.Exec(`DELETE FROM pages WHERE id = ?`, id)
+	return err
+}
+
+// UpdatePage renames a page and/or changes its icon.
+func UpdatePage(id int, name, icon string) error {
+	_, err := DB.Exec(`UPDATE pages SET name=?, icon=? WHERE id=?`, name, icon, id)
+	return err
+}
+
+// UpdatePageSort sets sort_order for a page.
+func UpdatePageSort(id, sortOrder int) error {
+	_, err := DB.Exec(`UPDATE pages SET sort_order = ? WHERE id = ?`, sortOrder, id)
+	return err
+}
+
+// SetCategoryPage assigns a category to a page (0 = unassigned).
+func SetCategoryPage(categoryID, pageID int) error {
+	if pageID == 0 {
+		_, err := DB.Exec(`UPDATE categories SET page_id = NULL WHERE id = ?`, categoryID)
+		return err
+	}
+	_, err := DB.Exec(`UPDATE categories SET page_id = ? WHERE id = ?`, pageID, categoryID)
+	return err
+}
+
+// SetWidgetPage assigns a widget to a page (0 = unassigned).
+func SetWidgetPage(widgetID, pageID int) error {
+	if pageID == 0 {
+		_, err := DB.Exec(`UPDATE widgets SET page_id = NULL WHERE id = ?`, widgetID)
+		return err
+	}
+	_, err := DB.Exec(`UPDATE widgets SET page_id = ? WHERE id = ?`, pageID, widgetID)
 	return err
 }
 
@@ -688,7 +775,7 @@ func populateWidgetFields(w *Widget) {
 }
 
 func GetWidgets(profile string) ([]Widget, error) {
-	rows, err := DB.Query(`SELECT id, type, name, config, profile, sort_order FROM widgets WHERE profile = ? OR profile = 'all' ORDER BY sort_order ASC`, profile)
+	rows, err := DB.Query(`SELECT id, type, name, config, profile, sort_order, COALESCE(page_id,0) FROM widgets WHERE profile = ? OR profile = 'all' ORDER BY sort_order ASC`, profile)
 	if err != nil {
 		return nil, err
 	}
@@ -697,7 +784,7 @@ func GetWidgets(profile string) ([]Widget, error) {
 	var widgets []Widget
 	for rows.Next() {
 		var w Widget
-		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
+		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder, &w.PageID); err != nil {
 			return nil, err
 		}
 		populateWidgetFields(&w)
@@ -741,7 +828,7 @@ func UpdateWidgetSort(id, sortOrder int) error {
 }
 
 func GetAllWidgets() ([]Widget, error) {
-	rows, err := DB.Query(`SELECT id, type, name, config, profile, sort_order FROM widgets ORDER BY sort_order ASC`)
+	rows, err := DB.Query(`SELECT id, type, name, config, profile, sort_order, COALESCE(page_id,0) FROM widgets ORDER BY sort_order ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -750,7 +837,7 @@ func GetAllWidgets() ([]Widget, error) {
 	var widgets []Widget
 	for rows.Next() {
 		var w Widget
-		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
+		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder, &w.PageID); err != nil {
 			return nil, err
 		}
 		populateWidgetFields(&w)
@@ -1232,8 +1319,8 @@ func GetTodoWidgetID(todoID int) (int, error) {
 // GetWidgetByID returns a single widget by ID with fields populated.
 func GetWidgetByID(id int) (Widget, error) {
 	var w Widget
-	row := DB.QueryRow(`SELECT id, type, name, config, profile, sort_order FROM widgets WHERE id = ?`, id)
-	if err := row.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
+	row := DB.QueryRow(`SELECT id, type, name, config, profile, sort_order, COALESCE(page_id,0) FROM widgets WHERE id = ?`, id)
+	if err := row.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder, &w.PageID); err != nil {
 		return w, err
 	}
 	populateWidgetFields(&w)

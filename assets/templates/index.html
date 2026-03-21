@@ -6,9 +6,20 @@
   </form>
   <ul class="search-history" id="search-history" style="display:none"></ul>
 </div>
+
+{{if .Pages}}
+<nav class="page-tabs" id="page-tabs" aria-label="Pages">
+  <button class="page-tab" data-page="0" onclick="switchPage(0)">Alle</button>
+  {{range .Pages}}
+  <button class="page-tab" data-page="{{.ID}}" onclick="switchPage({{.ID}})">{{.Icon}} {{.Name}}</button>
+  {{end}}
+</nav>
+{{end}}
+
 {{if .Widgets}}
-<div class="widgets-row">
+<div class="widgets-row" id="widgets-row">
     {{range .Widgets}}
+    <div data-widget-page="{{.PageID}}" class="widget-page-item">
       {{if eq .Type "weather"}}{{template "widget_weather" .}}
       {{else if eq .Type "clock"}}{{template "widget_clock" .}}
       {{else if eq .Type "rss"}}{{template "widget_rss" .}}
@@ -17,13 +28,14 @@
       {{else if eq .Type "notes"}}{{template "widget_notes" .}}
       {{else}}{{template "widget_ical" .}}
       {{end}}
+    </div>
     {{end}}
 </div>
 {{end}}
-<div class="dashboard">
+<div class="dashboard" id="dashboard">
     {{range .Categories}}
     {{if .Services}}
-    <div class="category" data-cat-id="{{.ID}}" data-span="{{.ColSpan}}">
+    <div class="category" data-cat-id="{{.ID}}" data-span="{{.ColSpan}}" data-page="{{.PageID}}">
         <div class="category-header" onclick="toggleCategory({{.ID}})" style="cursor:pointer">
             <span class="cat-arrow" id="cat-arrow-{{.ID}}">▼</span>
             <span class="category-title" style="color: var(--{{.Color}})">{{.Name}}</span>
@@ -193,5 +205,57 @@
             localStorage.setItem('hp-cat-' + id, '1');
         }
     }
+
+    // ── Page Tab Switching ─────────────────────────────────────────────────
+    const PAGE_KEY = 'hp-active-page-{{.Profile}}';
+
+    function switchPage(pageID) {
+        localStorage.setItem(PAGE_KEY, pageID);
+        applyPage(pageID);
+    }
+
+    function applyPage(pageID) {
+        pageID = parseInt(pageID, 10);
+
+        // Update tab buttons
+        document.querySelectorAll('.page-tab').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.page, 10) === pageID);
+        });
+
+        // Show/hide categories: page 0 (unassigned) appears on ALL pages
+        document.querySelectorAll('.dashboard .category[data-page]').forEach(el => {
+            const elPage = parseInt(el.dataset.page, 10);
+            const show = (pageID === 0) || (elPage === 0) || (elPage === pageID);
+            el.style.display = show ? '' : 'none';
+        });
+
+        // Show/hide widgets
+        document.querySelectorAll('.widget-page-item[data-widget-page]').forEach(el => {
+            const elPage = parseInt(el.dataset.widgetPage, 10);
+            const show = (pageID === 0) || (elPage === 0) || (elPage === pageID);
+            el.style.display = show ? '' : 'none';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabs = document.getElementById('page-tabs');
+        if (!tabs) return; // no pages configured
+
+        // Restore last active page
+        const saved = parseInt(localStorage.getItem(PAGE_KEY) || '0', 10);
+        applyPage(saved);
+
+        // Keyboard shortcuts: digit keys 1-9 map to page tabs in order
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+            if (e.key === '0' || e.key === '`') { switchPage(0); return; }
+            const n = parseInt(e.key, 10);
+            if (n >= 1 && n <= 9) {
+                const btns = Array.from(tabs.querySelectorAll('.page-tab[data-page]'))
+                    .filter(b => parseInt(b.dataset.page, 10) !== 0);
+                if (btns[n - 1]) switchPage(parseInt(btns[n-1].dataset.page, 10));
+            }
+        });
+    });
 </script>
 {{end}}

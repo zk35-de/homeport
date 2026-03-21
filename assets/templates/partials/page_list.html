@@ -1,0 +1,15 @@
+{{define "page_list"}}
+<div id="page-list">
+  {{range .Pages}}
+  <div class="page-item" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">
+    <span>{{.Icon}} {{.Name}}</span>
+    <span style="font-size:0.75rem;color:var(--text-muted)">#{{.ID}}</span>
+    <button class="btn-sm btn-danger" hx-delete="/manage/page/{{.ID}}?profile={{$.Profile}}" hx-target="#page-list" hx-swap="outerHTML" hx-confirm="Page '{{.Name}}' löschen?">×</button>
+    <button class="btn-sm" hx-post="/manage/sort/page/{{.ID}}/up?profile={{$.Profile}}" hx-target="#page-list" hx-swap="outerHTML">↑</button>
+    <button class="btn-sm" hx-post="/manage/sort/page/{{.ID}}/down?profile={{$.Profile}}" hx-target="#page-list" hx-swap="outerHTML">↓</button>
+  </div>
+  {{else}}
+  <p style="color:var(--text-muted);font-size:0.85rem">Keine Pages – alle Kategorien und Widgets sind global sichtbar.</p>
+  {{end}}
+</div>
+{{end}}

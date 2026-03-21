@@ -16,6 +16,7 @@ type ManageData struct {
 	ShortURLs     []db.ShortURL
 	Prefs         *db.UserPreferences
 	Profiles      []db.Profile
+	Pages         []db.Page
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -30,8 +31,10 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	shortURLs, _ := db.GetAllShortURLs()
 
 	var prefs *db.UserPreferences
+	var pages []db.Page
 	if def, _ := db.GetDefaultProfile(); def != nil {
 		prefs, _ = db.GetUserPreferences(def.Slug)
+		pages, _ = db.GetPages(def.Slug)
 	}
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
@@ -42,6 +45,7 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		ShortURLs:     shortURLs,
 		Prefs:         prefs,
 		Profiles:      profiles,
+		Pages:         pages,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -83,7 +87,7 @@ func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 	layout := r.FormValue("layout")
 	color := r.FormValue("color")
 
-	if err := db.AddCategory(name, layout, color); err != nil {
+	if _, err := db.AddCategory(name, layout, color); err != nil {
 		log.Printf("Error adding category: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

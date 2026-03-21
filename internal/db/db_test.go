@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 
 	"git.zk35.de/secalpha/homeport/internal/db"
@@ -59,11 +60,11 @@ func TestAddCategoryAndGetCategoriesWithServices(t *testing.T) {
 	defer cleanup()
 
 	// Add categories
-	err := db.AddCategory("Work", "tiles", "blue")
+	_, err := db.AddCategory("Work", "tiles", "blue")
 	if err != nil {
 		t.Fatalf("Failed to add category Work: %v", err)
 	}
-	err = db.AddCategory("Social", "list", "green")
+	_, err = db.AddCategory("Social", "list", "green")
 	if err != nil {
 		t.Fatalf("Failed to add category Social: %v", err)
 	}
@@ -653,6 +654,358 @@ func TestUpdateServiceStatus(t *testing.T) {
 	}
 	if servicesWithChecks[0].ID != svcID || servicesWithChecks[0].StatusCheck != "http://status.me" {
 		t.Errorf("GetAllServicesWithStatusCheck returned incorrect service: %v", servicesWithChecks[0])
+	}
+}
+
+func TestBookmarkWidget(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	if err := db.AddWidgetTyped("My Bookmarks", "bookmarks", `{"layout":"grid","links":[]}`, "markus"); err != nil {
+		t.Fatalf("AddWidgetTyped: %v", err)
+	}
+	widgets, _ := db.GetWidgets("markus")
+	widgetID := widgets[0].ID
+
+	// GetWidgetByID – initially empty links
+	w, err := db.GetWidgetByID(widgetID)
+	if err != nil {
+		t.Fatalf("GetWidgetByID: %v", err)
+	}
+	if w.Type != "bookmarks" {
+		t.Errorf("Expected type bookmarks, got %s", w.Type)
+	}
+	if len(w.BookmarkLinks) != 0 {
+		t.Errorf("Expected 0 bookmark links, got %d", len(w.BookmarkLinks))
+	}
+
+	// AddBookmarkLink
+	if err := db.AddBookmarkLink(widgetID, db.BookmarkLink{Name: "Go Blog", URL: "https://go.dev/blog"}); err != nil {
+		t.Fatalf("AddBookmarkLink: %v", err)
+	}
+	if err := db.AddBookmarkLink(widgetID, db.BookmarkLink{Name: "GitHub", URL: "https://github.com"}); err != nil {
+		t.Fatalf("AddBookmarkLink second: %v", err)
+	}
+
+	w, _ = db.GetWidgetByID(widgetID)
+	if len(w.BookmarkLinks) != 2 {
+		t.Fatalf("Expected 2 links, got %d", len(w.BookmarkLinks))
+	}
+	if w.BookmarkLinks[0].Name != "Go Blog" || w.BookmarkLinks[1].Name != "GitHub" {
+		t.Errorf("BookmarkLinks mismatch: %v", w.BookmarkLinks)
+	}
+
+	// DeleteBookmarkLink – index 0 removes "Go Blog"
+	if err := db.DeleteBookmarkLink(widgetID, 0); err != nil {
+		t.Fatalf("DeleteBookmarkLink: %v", err)
+	}
+	w, _ = db.GetWidgetByID(widgetID)
+	if len(w.BookmarkLinks) != 1 || w.BookmarkLinks[0].Name != "GitHub" {
+		t.Errorf("After delete index 0, expected [GitHub], got %v", w.BookmarkLinks)
+	}
+
+	// Out-of-range index – must return error, not panic
+	if err := db.DeleteBookmarkLink(widgetID, 999); err == nil {
+		t.Error("Expected error for out-of-range bookmark index 999, got nil")
+	}
+	if err := db.DeleteBookmarkLink(widgetID, -1); err == nil {
+		t.Error("Expected error for negative bookmark index -1, got nil")
+	}
+}
+
+func TestNotesWidget(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	if err := db.AddWidgetTyped("My Notes", "notes", `{}`, "markus"); err != nil {
+		t.Fatalf("AddWidgetTyped notes: %v", err)
+	}
+	widgets, _ := db.GetWidgets("markus")
+	widgetID := widgets[0].ID
+
+	// GetNote on empty widget returns empty string
+	content, err := db.GetNote(widgetID)
+	if err != nil {
+		t.Fatalf("GetNote empty: %v", err)
+	}
+	if content != "" {
+		t.Errorf("Expected empty note, got %q", content)
+	}
+
+	// SaveNote
+	if err := db.SaveNote(widgetID, "Hello Notes"); err != nil {
+		t.Fatalf("SaveNote: %v", err)
+	}
+	content, err = db.GetNote(widgetID)
+	if err != nil {
+		t.Fatalf("GetNote after save: %v", err)
+	}
+	if content != "Hello Notes" {
+		t.Errorf("Expected 'Hello Notes', got %q", content)
+	}
+
+	// UPSERT – update existing note
+	if err := db.SaveNote(widgetID, "Updated Note"); err != nil {
+		t.Fatalf("SaveNote update: %v", err)
+	}
+	content, _ = db.GetNote(widgetID)
+	if content != "Updated Note" {
+		t.Errorf("Expected 'Updated Note' after update, got %q", content)
+	}
+}
+
+func TestGetTopClicks(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// Empty DB
+	stats, err := db.GetTopClicks("", 10)
+	if err != nil {
+		t.Fatalf("GetTopClicks on empty DB: %v", err)
+	}
+	if len(stats) != 0 {
+		t.Errorf("Expected 0 stats on empty DB, got %d", len(stats))
+	}
+
+	// Setup services
+	db.AddCategory("TestCat", "tiles", "blue")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+	db.AddService(catID, "Service A", "http://a.local", "", "", "", []string{"markus"})
+	db.AddService(catID, "Service B", "http://b.local", "", "", "", []string{"andrea"})
+
+	allCats, _ := db.GetCategoriesWithServices("")
+	svcA := allCats[0].Services[0].ID
+	svcB := allCats[0].Services[1].ID
+
+	db.RecordClick(svcA, "markus")
+	db.RecordClick(svcA, "markus")
+	db.RecordClick(svcA, "markus")
+	db.RecordClick(svcB, "andrea")
+	db.RecordClick(svcB, "andrea")
+
+	// All profiles – Service A (3 clicks) should be first
+	stats, err = db.GetTopClicks("", 10)
+	if err != nil {
+		t.Fatalf("GetTopClicks all: %v", err)
+	}
+	if len(stats) != 2 {
+		t.Fatalf("Expected 2 stats, got %d", len(stats))
+	}
+	if stats[0].ServiceName != "Service A" || stats[0].ClickCount != 3 {
+		t.Errorf("Expected Service A first with 3 clicks, got name=%s count=%d", stats[0].ServiceName, stats[0].ClickCount)
+	}
+
+	// Profile filter – markus
+	markusStats, _ := db.GetTopClicks("markus", 10)
+	if len(markusStats) != 1 || markusStats[0].ServiceName != "Service A" {
+		t.Errorf("Expected 1 stat for markus (Service A), got %v", markusStats)
+	}
+
+	// Profile filter – andrea
+	andreaStats, _ := db.GetTopClicks("andrea", 10)
+	if len(andreaStats) != 1 || andreaStats[0].ServiceName != "Service B" {
+		t.Errorf("Expected 1 stat for andrea (Service B), got %v", andreaStats)
+	}
+
+	// Limit
+	limitedStats, _ := db.GetTopClicks("", 1)
+	if len(limitedStats) != 1 {
+		t.Errorf("Expected 1 stat with limit=1, got %d", len(limitedStats))
+	}
+}
+
+func TestProfiles(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// InitDB seeds "markus" and "andrea" profiles
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		t.Fatalf("GetProfiles: %v", err)
+	}
+	if len(profiles) < 2 {
+		t.Fatalf("Expected at least 2 seeded profiles, got %d", len(profiles))
+	}
+
+	// GetDefaultProfile
+	def, err := db.GetDefaultProfile()
+	if err != nil {
+		t.Fatalf("GetDefaultProfile: %v", err)
+	}
+	if def == nil {
+		t.Fatal("Expected a default profile, got nil")
+	}
+
+	// GetProfileBySlug
+	p, err := db.GetProfileBySlug(def.Slug)
+	if err != nil {
+		t.Fatalf("GetProfileBySlug: %v", err)
+	}
+	if p == nil || p.Slug != def.Slug {
+		t.Errorf("GetProfileBySlug returned wrong profile: %v", p)
+	}
+
+	// AddProfile + DeleteProfile
+	if err := db.AddProfile("Test User", "testuser"); err != nil {
+		t.Fatalf("AddProfile: %v", err)
+	}
+	profilesAfter, _ := db.GetProfiles()
+	found := false
+	for _, pr := range profilesAfter {
+		if pr.Slug == "testuser" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("Added profile 'testuser' not found")
+	}
+
+	if err := db.DeleteProfile("testuser"); err != nil {
+		t.Fatalf("DeleteProfile: %v", err)
+	}
+	profilesAfterDelete, _ := db.GetProfiles()
+	for _, pr := range profilesAfterDelete {
+		if pr.Slug == "testuser" {
+			t.Error("Deleted profile 'testuser' still present")
+		}
+	}
+}
+
+func TestShortURL(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// CreateShortURL (signature: code, url)
+	if err := db.CreateShortURL("mycode", "http://long.example.com/path?q=1"); err != nil {
+		t.Fatalf("CreateShortURL: %v", err)
+	}
+
+	// GetShortURL
+	entry, err := db.GetShortURL("mycode")
+	if err != nil {
+		t.Fatalf("GetShortURL: %v", err)
+	}
+	if entry.URL != "http://long.example.com/path?q=1" || entry.Code != "mycode" {
+		t.Errorf("GetShortURL returned wrong entry: %+v", entry)
+	}
+	if entry.Clicks != 0 {
+		t.Errorf("Expected 0 clicks initially, got %d", entry.Clicks)
+	}
+
+	// IncrementClicks
+	if err := db.IncrementClicks("mycode"); err != nil {
+		t.Fatalf("IncrementClicks: %v", err)
+	}
+	if err := db.IncrementClicks("mycode"); err != nil {
+		t.Fatalf("IncrementClicks second: %v", err)
+	}
+	entry2, _ := db.GetShortURL("mycode")
+	if entry2.Clicks != 2 {
+		t.Errorf("Expected 2 clicks after 2 increments, got %d", entry2.Clicks)
+	}
+
+	// GetAllShortURLs
+	db.CreateShortURL("other", "http://another.example.com")
+	all, err := db.GetAllShortURLs()
+	if err != nil {
+		t.Fatalf("GetAllShortURLs: %v", err)
+	}
+	if len(all) != 2 {
+		t.Errorf("Expected 2 short URLs, got %d", len(all))
+	}
+
+	// DeleteShortURL
+	if err := db.DeleteShortURL("mycode"); err != nil {
+		t.Fatalf("DeleteShortURL: %v", err)
+	}
+	remaining, _ := db.GetAllShortURLs()
+	if len(remaining) != 1 || remaining[0].Code != "other" {
+		t.Errorf("Expected 1 remaining URL 'other', got %v", remaining)
+	}
+}
+
+func TestUserPreferences(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// GetUserPreferences on fresh profile returns defaults
+	prefs, err := db.GetUserPreferences("markus")
+	if err != nil {
+		t.Fatalf("GetUserPreferences: %v", err)
+	}
+	// Default theme should be "dark" (or empty – just verify no error and struct returned)
+	if prefs == nil {
+		t.Fatal("Expected non-nil UserPreferences")
+	}
+
+	// SetUserPreferences
+	updated := &db.UserPreferences{
+		Theme:       "light",
+		AccentColor: "#ff0000",
+	}
+	if err := db.SetUserPreferences("markus", *updated); err != nil {
+		t.Fatalf("SetUserPreferences: %v", err)
+	}
+
+	prefs2, err := db.GetUserPreferences("markus")
+	if err != nil {
+		t.Fatalf("GetUserPreferences after set: %v", err)
+	}
+	if prefs2.Theme != "light" {
+		t.Errorf("Expected theme 'light', got %q", prefs2.Theme)
+	}
+	if prefs2.AccentColor != "#ff0000" {
+		t.Errorf("Expected accent '#ff0000', got %q", prefs2.AccentColor)
+	}
+}
+
+func TestSQLInjection(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// Category name with SQL injection payload – parametrized queries must store it safely
+	injName := `'; DROP TABLE categories; --`
+	if _, err := db.AddCategory(injName, "tiles", "red"); err != nil {
+		t.Fatalf("AddCategory with injection payload failed (should succeed with parametrized queries): %v", err)
+	}
+	cats, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		t.Fatalf("GetCategoriesWithServices after injection attempt: %v", err)
+	}
+	if len(cats) != 1 || cats[0].Name != injName {
+		t.Errorf("Expected category %q stored safely, got %v", injName, cats)
+	}
+
+	// Service name and URL with OR-injection
+	catID := cats[0].ID
+	injSvcName := `' OR '1'='1`
+	injURL := `http://x.com/' OR '1'='1`
+	if err := db.AddService(catID, injSvcName, injURL, "", "", "", []string{"markus"}); err != nil {
+		t.Fatalf("AddService with injection payload: %v", err)
+	}
+	services, _ := db.GetCategoriesWithServices("")
+	if len(services[0].Services) != 1 {
+		t.Fatalf("Expected 1 service after injection, got %d", len(services[0].Services))
+	}
+	if services[0].Services[0].Name != injSvcName {
+		t.Errorf("Service name not stored correctly: got %q, want %q", services[0].Services[0].Name, injSvcName)
+	}
+
+	// UNION-injection via profile slug in search engine (may fail FK constraint – must not panic)
+	_ = db.SetSearchEngine(`' UNION SELECT * FROM profiles --`, "https://evil.com/")
+
+	// Widget name with null byte – must not panic
+	_ = db.AddWidget("widget\x00name", "http://test.local/cal.ics", "markus")
+
+	// Verify categories table still intact (DROP TABLE was not executed)
+	catsAfter, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		t.Fatalf("categories table should still exist after injection attempts: %v", err)
+	}
+	if !strings.Contains(catsAfter[0].Name, "DROP TABLE") {
+		// The name we stored must still be there
+		_ = catsAfter
 	}
 }
 

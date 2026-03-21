@@ -80,6 +80,7 @@ func InitTemplates(fs embed.FS) {
 type IndexData struct {
 	Categories   []db.Category
 	Widgets      []db.Widget
+	Pages        []db.Page
 	Profile      string
 	ProfileName  string        // NEU: Anzeigename für <title> etc.
 	SearchAction string
@@ -153,10 +154,12 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	allProfiles, _ := db.GetProfiles()
+	pages, _ := db.GetPages(profileObj.Slug)
 
 	data := IndexData{
 		Categories:   categories,
 		Widgets:      widgets,
+		Pages:        pages,
 		Profile:      profileObj.Slug,
 		ProfileName:  profileObj.Name,
 		SearchAction: db.GetSearchEngine(profileObj.Slug),

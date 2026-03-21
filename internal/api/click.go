@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
@@ -21,6 +22,12 @@ func HandleServiceRedirect(w http.ResponseWriter, r *http.Request) {
 
 	url, err := db.GetServiceURL(id)
 	if err != nil || url == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Prevent open redirect to non-http(s) URLs (e.g. javascript:, data:)
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		http.NotFound(w, r)
 		return
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -33,6 +34,12 @@ func HandleFavicon(w http.ResponseWriter, r *http.Request) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		http.Error(w, "invalid url", http.StatusBadRequest)
+		return
+	}
+
+	// SSRF protection: block requests to private/loopback/link-local hosts
+	if isPrivateHost(parsed.Hostname()) {
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -103,6 +110,50 @@ func fetchIconPathFromHTML(pageURL string, base *url.URL) string {
 		return ""
 	}
 	return base.ResolveReference(ref).String()
+}
+
+// isPrivateHost returns true for loopback, link-local, and private IP addresses
+// to prevent SSRF attacks via the favicon proxy.
+func isPrivateHost(hostname string) bool {
+	if hostname == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(hostname)
+	if ip == nil {
+		// DNS-resolve and check all returned addresses
+		addrs, err := net.LookupHost(hostname)
+		if err != nil {
+			return false
+		}
+		for _, addr := range addrs {
+			if isPrivateIP(net.ParseIP(addr)) {
+				return true
+			}
+		}
+		return false
+	}
+	return isPrivateIP(ip)
+}
+
+func isPrivateIP(ip net.IP) bool {
+	if ip == nil {
+		return false
+	}
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() {
+		return true
+	}
+	privateRanges := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+	}
+	for _, cidr := range privateRanges {
+		_, network, _ := net.ParseCIDR(cidr)
+		if network != nil && network.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 func fetchImage(targetURL string) ([]byte, string) {

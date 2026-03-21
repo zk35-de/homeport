@@ -359,6 +359,33 @@
   </form>
 </section>
 
+<section class="manage-section" id="pages">
+  <h2>Pages (Multi-Tab Layout)</h2>
+  <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
+    Pages erlauben es, Kategorien und Widgets auf verschiedene Tabs aufzuteilen (Work / Personal / Hobby).
+    Nicht zugewiesene Inhalte (Page 0) erscheinen auf allen Tabs.
+  </p>
+  {{if .Profiles}}
+  {{range .Profiles}}
+  <h4 style="margin:0.75rem 0 0.4rem">{{.Name}} ({{.Slug}})</h4>
+  <div id="page-list-{{.Slug}}"
+       hx-get="/manage/page-list?profile={{.Slug}}" hx-trigger="load"
+       hx-swap="innerHTML">Lade…</div>
+  <form hx-post="/manage/page" hx-target="#page-list-{{.Slug}}" hx-swap="innerHTML"
+        hx-on::after-request="this.reset()"
+        style="display:flex;gap:0.5rem;margin-top:0.4rem;flex-wrap:wrap">
+    <input type="hidden" name="profile" value="{{.Slug}}">
+    <input type="text" name="icon" placeholder="📄" style="width:3rem">
+    <input type="text" name="name" placeholder="Page Name (z.B. Work)" required style="flex:1">
+    <button class="btn-sm" type="submit">+ Page</button>
+  </form>
+  {{end}}
+  {{end}}
+  <div style="margin-top:1rem;font-size:0.85rem;color:var(--text-muted)">
+    Kategorien einer Page zuordnen: Im Kategorie-Bereich oben → "Page" Dropdown pro Kategorie.
+  </div>
+</section>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const btn = document.getElementById("fetch-favicon-btn");

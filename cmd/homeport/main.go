@@ -122,6 +122,14 @@ func main() {
 		r.Delete("/profile/{slug}", api.HandleDeleteProfile)
 		r.Post("/profile/{slug}/default", api.HandleSetDefaultProfile)
 		r.Post("/category/{id}/sortmode/{mode}", api.HandleSetCategorySortMode)
+
+		// Page management
+		r.Get("/page-list", api.HandleGetPageList)
+		r.Post("/page", api.HandleAddPage)
+		r.Delete("/page/{id}", api.HandleDeletePage)
+		r.Patch("/page/{id}", api.HandleUpdatePage)
+		r.Post("/sort/page/{id}/{direction}", api.HandleSortPage)
+		r.Post("/category/{id}/page/{pageID}", api.HandleSetCategoryPage)
 	})
 
 	// Todo routes (no auth – HTMX from index page)
