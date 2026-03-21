@@ -4,21 +4,21 @@ Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
 
 **Why homeport?**
 - No config file editing – everything via management Web-UI
-- Per-category layout: tiles | list | icons
-- Multi-profile: `/` for Markus, `/andrea` for Andrea (no login needed)
+- Multi-profile: `/` default, `/{slug}` per user (no login needed)
+- Per-category layout: tiles | list | icons + collapsible + grid span
 - Written in Go – single binary, no runtime, minimal attack surface
-- Live status indicators via SSE (no polling)
-- Bearer token auth on all API routes
+- Live status indicators via SSE
+- Click-tracking per profile → optional smart sort by usage
 
 ## Stack
 
 | Component | Choice |
 |-----------|--------|
-| Language | Go 1.23+ |
-| Router | chi |
-| DB | SQLite (modernc, pure Go, no CGO) |
-| Frontend | html/template + prism-ui CSS |
-| Port | 8855 |
+| Language  | Go 1.23+ |
+| Router    | chi v5 |
+| DB        | SQLite (modernc, pure Go, no CGO) |
+| Frontend  | html/template + HTMX + prism-ui CSS |
+| Port      | 8855 |
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ go build -o homeport ./cmd/homeport
 ./homeport
 ```
 
-Open http://localhost:8855
+Open http://localhost:8855, configure at http://localhost:8855/manage
 
 ## Environment Variables
 
@@ -37,83 +37,131 @@ Open http://localhost:8855
 |-----|---------|-------------|
 | `HOMEPORT_PORT` | `8855` | Listen port |
 | `HOMEPORT_DB` | `./data/homeport.db` | SQLite DB path |
-| `HOMEPORT_TOKEN` | auto-generated | Bearer token for API auth (logged to stderr on first start) |
+| `HOMEPORT_TOKEN` | auto-generated | Bearer token for API auth (logged on first start) |
 | `HOMEPORT_CORS` | `*` | Comma-separated allowed CORS origins |
+| `HOMEPORT_BACKUP_DIR` | `./backups` | Directory for scheduled backups |
+| `HOMEPORT_BACKUP_INTERVAL` | `` | Go duration, e.g. `24h` (empty = disabled) |
+| `HOMEPORT_BACKUP_MAX_KEEP` | `7` | Number of backup files to keep |
 
 ## Routes
 
 ### UI
 | Route | Description |
 |-------|-------------|
-| `GET /` | Markus dashboard |
-| `GET /andrea` | Andrea dashboard (filtered view) |
+| `GET /` | Default profile dashboard |
+| `GET /{slug}` | Profile dashboard by slug |
 | `GET /manage` | Management UI |
+| `GET /r/{id}?p={profile}` | Click-tracking redirect to service URL |
 | `GET /s/{code}` | URL shortener redirect (public) |
 
-### API (Bearer token required, except `/api/health`)
+### Management (HTMX, no auth)
 | Route | Description |
 |-------|-------------|
-| `GET /api/health` | `{"status":"ok","version":"dev"}` |
-| `GET /api/updates` | SSE stream: service_status + widget_refresh events |
-| `GET /api/widgets` | List widgets (`?profile=markus`) |
+| `POST /manage/service` | Add service |
+| `POST /manage/category` | Add category |
+| `POST /manage/widget` | Add widget |
+| `POST /manage/category/{id}/sortmode/{mode}` | Toggle sort mode (manual\|usage) |
+| `POST /manage/category/{id}/span/{span}` | Set grid column span (1\|2\|3) |
+| `POST /manage/profile` | Add profile |
+| `DELETE /manage/profile/{slug}` | Delete profile |
+| `POST /manage/profile/{slug}/default` | Set default profile |
+| `GET /manage/backup` | Download SQLite snapshot |
+| `POST /manage/restore` | Upload & restore backup |
+
+### API (Bearer token required, except `/api/health` and `/api/search`)
+| Route | Description |
+|-------|-------------|
+| `GET /api/health` | `{"status":"ok"}` |
+| `GET /api/search?q=&profile=` | Full-text search across services |
+| `GET /api/updates` | SSE: service_status events |
+| `GET /api/widgets` | List widgets |
 | `POST /api/widgets` | Create widget |
-| `GET /api/widgets/{id}` | Get widget |
 | `PATCH /api/widgets/{id}` | Update widget |
 | `DELETE /api/widgets/{id}` | Delete widget |
 | `PATCH /api/widgets/reorder` | Reorder widgets |
-| `GET /api/user/preferences` | Get user preferences (`?profile=markus`) |
+| `GET /api/user/preferences` | Get preferences |
 | `PATCH /api/user/preferences` | Partial update preferences |
+| `POST /api/todos` | Add todo item |
+| `POST /api/todos/{id}/toggle` | Toggle todo done/undone |
+| `DELETE /api/todos/{id}` | Delete todo |
 | `POST /api/shorten` | Shorten a URL |
-| `GET /api/links` | List all short URLs |
+| `GET /api/links` | List short URLs |
 | `DELETE /api/links/{code}` | Delete short URL |
+| `GET /api/favicon?url=` | Proxy favicon fetch |
 
 ## Features
 
 ### Service Dashboard
-- Categories with configurable layout (tiles / list / icons) and color
-- Per-service visibility: `markus` | `andrea` | `all`
+- Categories with layout (tiles / list / icons), color, collapsible, grid span (full / half / third)
+- Per-service visibility per profile
 - Live status dots via SSE (30s checks)
+- Click-tracking per profile; 📊 toggle per category = sort by usage
 - Podman container auto-discovery inbox
 
-### Widgets
-- **iCal** – Calendar feed (e.g. Abfallkalender), 6h cache, today/tomorrow markers
-- **Weather** – Open-Meteo (no API key), 5-day forecast, config: `{"lat":48.13,"lon":11.58,"city_name":"München"}`
+### Widgets (all cached server-side)
+| Type | Config | Cache |
+|------|--------|-------|
+| **iCal** | `{"url":"..."}` | 6h |
+| **Weather** | `{"lat":48.13,"lon":11.58,"city_name":"München"}` | 6h |
+| **RSS** | `{"url":"...","max":10}` | 30min |
+| **Clock** | `{"mode":"digital\|analog\|countdown","timezone":"Europe/Berlin"}` | live |
+| **Todo** | none | DB (live) |
 
 ### Search Bar
 - Configurable search engine per profile
-- Bang syntax: `!g` Google, `!d` DuckDuckGo, `!b` Brave, `!gh` GitHub, `!yt` YouTube, `!w` Wikipedia
+- Bang syntax: `!g` Google · `!d` DuckDuckGo · `!b` Brave · `!gh` GitHub · `!yt` YouTube · `!w` Wikipedia
+- Search history (last 8 queries, localStorage), dropdown on focus
+
+### Command Palette (Ctrl+K or /)
+- Fuzzy search over all service cards in DOM
+- Server-side search via `/api/search` for cross-profile results
+- Favicons in results
+
+### Appearance
+- Themes: dark / light / system
+- Accent color picker
+- Custom CSS override
+- Background modes: Aurora (animated) / Tageszeit (morning/day/evening/night gradient) / None
+
+### Backup & Restore
+- Manual download: `GET /manage/backup` (SQLite VACUUM INTO snapshot)
+- Scheduled: set `HOMEPORT_BACKUP_INTERVAL=24h`
+- Restore via file upload (validated before swap)
 
 ### URL Shortener
 - `/s/{code}` redirects with click counting
-- Optional custom codes, managed via `/manage` or API
-
-### Live Updates (`/api/updates` SSE)
-Message envelope:
-```json
-{"type": "service_status", "payload": {"id": 1, "alive": true}}
-{"type": "widget_refresh", "payload": {"widget_id": "uuid"}}
-```
+- Custom codes supported
 
 ## Data Model
 
 ```
-categories       → name, layout (tiles|list|icons), color, sort_order
+profiles         → slug, name, is_default, sort_order
+categories       → name, layout, color, sort_order, col_span, sort_mode
 services         → category_id, name, url, icon, description, status_check, sort_order
 visibility       → service_id, profile
 service_status   → service_id, alive, last_check
-widgets          → type (ical|weather), name, config (json), profile, sort_order
+service_clicks   → service_id, profile, click_count, last_clicked
+widgets          → type, name, config (json), profile, sort_order
 widget_cache     → widget_id, data (json), fetched_at
-user_preferences → profile, theme, accent_color, search_engine, background, language, layout
+todos            → widget_id, text, done, due_date, sort_order
+user_preferences → profile, theme, accent_color, search_engine, background_mode, custom_css
+user_settings    → profile, search_engine
 short_urls       → code, url, clicks, created_at
 discovery_inbox  → container_id, suggested (json), seen_at, ignored
 ```
 
+## CI/CD
+
+Gitea Actions workflows in `.gitea/workflows/`:
+- `ci.yml` – build + test + vet on every push to `main`
+- `release.yml` – linux/amd64 + linux/arm64 binaries + checksums on `v*` tags
+
 ## Deploy
 
-### Docker Compose
+### Build from source
 ```bash
-cp deploy/docker-compose.yml .
-HOMEPORT_TOKEN=your-secret docker compose up -d
+go build -o homeport ./cmd/homeport
+HOMEPORT_TOKEN=your-secret ./homeport
 ```
 
 ### Podman Quadlet (systemd)
@@ -123,17 +171,17 @@ systemctl --user daemon-reload
 systemctl --user start homeport
 ```
 
-### Build from source
+### Docker Compose
 ```bash
-go build -o homeport ./cmd/homeport
-HOMEPORT_TOKEN=your-secret ./homeport
+cp deploy/docker-compose.yml .
+HOMEPORT_TOKEN=your-secret docker compose up -d
 ```
 
-## Dev Setup
+## Dev
 
 ```bash
-go test ./...     # run tests
-go build ./...    # compile all packages
+go test ./...   # run tests
+go build ./...  # compile all packages
 ```
 
-No Node.js required. Frontend is Go templates + embedded CSS.
+No Node.js required. Frontend is Go templates + HTMX + embedded CSS.
