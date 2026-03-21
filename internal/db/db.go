@@ -12,6 +12,14 @@ import (
 
 var DB *sql.DB
 
+type Profile struct {
+	ID        int
+	Slug      string // URL-Pfad z.B. "markus"
+	Name      string // Anzeigename z.B. "Markus"
+	IsDefault bool
+	SortOrder int
+}
+
 type Category struct {
 	ID        int
 	Name      string
@@ -178,6 +186,13 @@ func InitDB(dbPath string) error {
 			clicks     INTEGER NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL DEFAULT (datetime('now'))
 		);`,
+		`CREATE TABLE IF NOT EXISTS profiles (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			slug       TEXT NOT NULL UNIQUE,
+			name       TEXT NOT NULL,
+			is_default INTEGER NOT NULL DEFAULT 0,
+			sort_order INTEGER NOT NULL DEFAULT 0
+		);`,
 	}
 
 	for _, q := range queries {
@@ -190,6 +205,14 @@ func InitDB(dbPath string) error {
 	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN visible INTEGER NOT NULL DEFAULT 1`)
 	_, _ = DB.Exec(`ALTER TABLE user_preferences ADD COLUMN custom_css TEXT NOT NULL DEFAULT ''`)
 	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN col_span INTEGER NOT NULL DEFAULT 1`)
+
+	// Seed default profiles if table is empty
+	var count int
+	DB.QueryRow(`SELECT COUNT(*) FROM profiles`).Scan(&count)
+	if count == 0 {
+		DB.Exec(`INSERT INTO profiles (slug, name, is_default, sort_order) VALUES ('markus', 'Markus', 1, 0)`)
+		DB.Exec(`INSERT INTO profiles (slug, name, is_default, sort_order) VALUES ('andrea', 'Andrea', 0, 1)`)
+	}
 
 	return nil
 }
@@ -282,12 +305,11 @@ func AcceptDiscoveryItem(id int) error {
 		return fmt.Errorf("failed to unmarshal suggested service for item %d: %w", id, err)
 	}
 
-	// For now, add to category ID 1 and profiles markus, andrea.
-	// In a real application, this might be configurable or selected by the user.
-	// We need to ensure a category with ID 1 exists. If not, the AddService will fail or we need to create one.
-	// For simplicity, assuming category 1 exists or handling the error.
+	// For now, add to category ID 1 and profiles from the database.
 	categoryID := 1 // Default category
-	profiles := []string{"markus", "andrea"} // Default profiles
+    profs, _ := GetProfiles()
+    profiles := make([]string, len(profs))
+    for i, p := range profs { profiles[i] = p.Slug }
 
 	// Check if the suggested category exists, if not, create it.
 	var catID int
@@ -774,22 +796,12 @@ func SetSearchEngine(profile, engineURL string) error {
 
 // GetAllSearchEngines returns search engine settings for all known profiles.
 func GetAllSearchEngines() map[string]string {
-	result := map[string]string{
-		"markus": "https://duckduckgo.com/",
-		"andrea": "https://duckduckgo.com/",
-	}
-	rows, err := DB.Query(`SELECT profile, search_engine FROM user_settings`)
-	if err != nil {
-		return result
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var p, u string
-		if rows.Scan(&p, &u) == nil {
-			result[p] = u
-		}
-	}
-	return result
+    profiles, _ := GetProfiles()
+    result := make(map[string]string)
+    for _, p := range profiles {
+        result[p.Slug] = GetSearchEngine(p.Slug)
+    }
+    return result
 }
 
 // UserPreferences holds per-profile UI preferences.
@@ -917,3 +929,134 @@ func DeleteShortURL(code string) error {
 	_, err := DB.Exec(`DELETE FROM short_urls WHERE code = ?`, code)
 	return err
 }
+
+// GetProfiles returns all profiles ordered by sort_order.
+func GetProfiles() ([]Profile, error) {
+	rows, err := DB.Query(`SELECT id, slug, name, is_default, sort_order FROM profiles ORDER BY sort_order ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var profiles []Profile
+	for rows.Next() {
+		var p Profile
+		var isDefault int
+		if err := rows.Scan(&p.ID, &p.Slug, &p.Name, &isDefault, &p.SortOrder); err != nil {
+			return nil, err
+		}
+		p.IsDefault = (isDefault == 1)
+		profiles = append(profiles, p)
+	}
+	return profiles, nil
+}
+
+// GetDefaultProfile returns the profile with is_default=1.
+func GetDefaultProfile() (*Profile, error) {
+	row := DB.QueryRow(`SELECT id, slug, name, is_default, sort_order FROM profiles WHERE is_default = 1`)
+	var p Profile
+	var isDefault int
+	if err := row.Scan(&p.ID, &p.Slug, &p.Name, &isDefault, &p.SortOrder); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No default profile found
+		}
+		return nil, err
+	}
+	p.IsDefault = (isDefault == 1)
+	return &p, nil
+}
+
+// GetProfileBySlug returns a profile by its slug.
+func GetProfileBySlug(slug string) (*Profile, error) {
+	row := DB.QueryRow(`SELECT id, slug, name, is_default, sort_order FROM profiles WHERE slug = ?`, slug)
+	var p Profile
+	var isDefault int
+	if err := row.Scan(&p.ID, &p.Slug, &p.Name, &isDefault, &p.SortOrder); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Profile not found
+		}
+		return nil, err
+	}
+	p.IsDefault = (isDefault == 1)
+	return &p, nil
+}
+
+// AddProfile adds a new profile.
+func AddProfile(name, slug string) error {
+	_, err := DB.Exec(`INSERT INTO profiles (slug, name, sort_order) VALUES (?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM profiles))`, slug, name)
+	return err
+}
+
+// DeleteProfile deletes a profile and all associated visibility entries.
+// Does not delete if the profile is the default.
+func DeleteProfile(slug string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Check if it's the default profile
+	var isDefault int
+	err = tx.QueryRow(`SELECT is_default FROM profiles WHERE slug = ?`, slug).Scan(&isDefault)
+	if err != nil {
+		return err
+	}
+	if isDefault == 1 {
+		return fmt.Errorf("cannot delete default profile")
+	}
+
+	// Delete associated visibility entries
+	if _, err := tx.Exec(`DELETE FROM visibility WHERE profile = ?`, slug); err != nil {
+		return err
+	}
+	// Delete associated user preferences
+	if _, err := tx.Exec(`DELETE FROM user_preferences WHERE profile = ?`, slug); err != nil {
+		return err
+	}
+	// Delete associated user settings (search engines)
+	if _, err := tx.Exec(`DELETE FROM user_settings WHERE profile = ?`, slug); err != nil {
+		return err
+	}
+	// Delete associated widgets
+	if _, err := tx.Exec(`DELETE FROM widgets WHERE profile = ?`, slug); err != nil {
+		return err
+	}
+
+	// Delete the profile
+	if _, err := tx.Exec(`DELETE FROM profiles WHERE slug = ?`, slug); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// SetDefaultProfile sets a profile as default, unsetting all others.
+func SetDefaultProfile(slug string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Unset all other defaults
+	if _, err := tx.Exec(`UPDATE profiles SET is_default = 0 WHERE is_default = 1`); err != nil {
+		return err
+	}
+
+	// Set the chosen profile as default
+	res, err := tx.Exec(`UPDATE profiles SET is_default = 1 WHERE slug = ?`, slug)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("profile with slug %s not found", slug)
+	}
+
+	return tx.Commit()
+}
+

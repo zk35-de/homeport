@@ -1,0 +1,24 @@
+{{define "profile_list"}}
+<div class="profile-list">
+  {{range .Profiles}}
+  <div class="manage-service-item">
+    <div class="service-info">
+      <strong>{{.Name}}</strong>
+      <span class="text-muted">/{{.Slug}}</span>
+      {{if .IsDefault}}<span class="tag">Default</span>{{end}}
+    </div>
+    <div class="actions">
+      {{if not .IsDefault}}
+      <button class="btn-icon" title="Als Default setzen"
+        hx-post="/manage/profile/{{.Slug}}/default"
+        hx-target="#profile-list" hx-swap="innerHTML">⭐</button>
+      <button class="btn-icon delete" title="Löschen"
+        hx-delete="/manage/profile/{{.Slug}}"
+        hx-confirm="Profil '{{.Name}}' löschen?"
+        hx-target="#profile-list" hx-swap="innerHTML">🗑️</button>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

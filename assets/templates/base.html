@@ -168,8 +168,9 @@
     <nav>
         <a href="/" class="brand">homeport</a>
         <span class="brand-sep">·</span>
-        <a href="/">Markus</a>
-        <a href="/andrea">Andrea</a>
+        {{range .Profiles}}
+        <a href="{{if .IsDefault}}/{{else}}/{{.Slug}}{{end}}">{{.Name}}</a>
+        {{end}}
         <a href="/manage" class="nav-action">Manage</a>
         <button class="btn-icon" onclick="openPalette()" title="Command Palette (Ctrl+K)">⌘</button>
         <button class="btn-icon nav-theme-toggle" onclick="cycleTheme()" title="Theme wechseln">🌙</button>

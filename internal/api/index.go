@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
@@ -69,24 +70,42 @@ type IndexData struct {
 	Categories   []db.Category
 	Widgets      []db.Widget
 	Profile      string
+	ProfileName  string        // NEU: Anzeigename für <title> etc.
 	SearchAction string
 	Prefs        *db.UserPreferences
+	Profiles     []db.Profile  // NEU: für Nav-Links
 }
 
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
-	profile := "markus"
-	if r.URL.Path == "/andrea" {
-		profile = "andrea"
+	// Slug aus URL-Param (chi) oder URL-Pfad als Fallback (Tests ohne chi-Kontext)
+	slug := chi.URLParam(r, "slug")
+	if slug == "" {
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path != "" {
+			slug = path
+		}
 	}
 
-	categories, err := db.GetCategoriesWithServices(profile)
+	var profileObj *db.Profile
+	var err error
+	if slug == "" {
+		profileObj, err = db.GetDefaultProfile()
+	} else {
+		profileObj, err = db.GetProfileBySlug(slug)
+	}
+	if err != nil || profileObj == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	categories, err := db.GetCategoriesWithServices(profileObj.Slug)
 	if err != nil {
 		log.Printf("Error fetching categories: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	widgets, err := db.GetWidgets(profile)
+	widgets, err := db.GetWidgets(profileObj.Slug)
 	if err != nil {
 		log.Printf("Error fetching widgets: %v", err)
 		widgets = nil
@@ -105,17 +124,21 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	prefs, _ := db.GetUserPreferences(profile)
+	prefs, _ := db.GetUserPreferences(profileObj.Slug)
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
 
+	allProfiles, _ := db.GetProfiles()
+
 	data := IndexData{
 		Categories:   categories,
 		Widgets:      widgets,
-		Profile:      profile,
-		SearchAction: db.GetSearchEngine(profile),
+		Profile:      profileObj.Slug,
+		ProfileName:  profileObj.Name,
+		SearchAction: db.GetSearchEngine(profileObj.Slug),
 		Prefs:        prefs,
+		Profiles:     allProfiles,
 	}
 
 	if err := IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {

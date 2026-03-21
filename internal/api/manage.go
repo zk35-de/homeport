@@ -15,6 +15,7 @@ type ManageData struct {
 	SearchEngines map[string]string
 	ShortURLs     []db.ShortURL
 	Prefs         *db.UserPreferences
+	Profiles      []db.Profile
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -25,8 +26,13 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profiles, _ := db.GetProfiles()
 	shortURLs, _ := db.GetAllShortURLs()
-	prefs, _ := db.GetUserPreferences("markus")
+
+	var prefs *db.UserPreferences
+	if def, _ := db.GetDefaultProfile(); def != nil {
+		prefs, _ = db.GetUserPreferences(def.Slug)
+	}
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
@@ -35,6 +41,7 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		SearchEngines: db.GetAllSearchEngines(),
 		ShortURLs:     shortURLs,
 		Prefs:         prefs,
+		Profiles:      profiles,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -50,7 +57,7 @@ func HandleSetSearchEngine(w http.ResponseWriter, r *http.Request) {
 	}
 	profile := r.FormValue("profile")
 	engine := r.FormValue("engine")
-	if profile != "markus" && profile != "andrea" {
+	if prof, _ := db.GetProfileBySlug(profile); prof == nil {
 		http.Error(w, "Invalid profile", http.StatusBadRequest)
 		return
 	}
@@ -142,12 +149,15 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profiles, _ := db.GetProfiles()
 	data := struct {
 		Service    *db.Service
 		Categories []db.Category
+		Profiles   []db.Profile
 	}{
 		Service:    svc,
 		Categories: categories,
+		Profiles:   profiles,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "service_edit_form", data); err != nil {
@@ -499,3 +509,55 @@ func renderDiscoveryInbox(w http.ResponseWriter) {
 	}
 }
 
+
+func renderProfileList(w http.ResponseWriter) {
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	data := struct{ Profiles []db.Profile }{Profiles: profiles}
+	if err := ManageTmpl.ExecuteTemplate(w, "profile_list", data); err != nil {
+		log.Printf("Error executing profile_list: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func HandleAddProfile(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	name := r.FormValue("name")
+	slug := r.FormValue("slug")
+	if name == "" || slug == "" {
+		http.Error(w, "name and slug required", http.StatusBadRequest)
+		return
+	}
+	if err := db.AddProfile(name, slug); err != nil {
+		log.Printf("Error adding profile: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	renderProfileList(w)
+}
+
+func HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	if err := db.DeleteProfile(slug); err != nil {
+		log.Printf("Error deleting profile %s: %v", slug, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderProfileList(w)
+}
+
+func HandleSetDefaultProfile(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	if err := db.SetDefaultProfile(slug); err != nil {
+		log.Printf("Error setting default profile %s: %v", slug, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	renderProfileList(w)
+}

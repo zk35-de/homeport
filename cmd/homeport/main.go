@@ -71,9 +71,9 @@ func main() {
 		http.ServeFileFS(w, r, assets.FS, "static/sw.js")
 	}))
 
-	// Existing HTML Routes
+	// HTML Routes – / = default profile, /{slug} = profile by slug
+	// /{slug} muss NACH allen statischen Routen stehen (chi priorisiert statische)
 	r.Get("/", api.HandleIndex)
-	r.Get("/andrea", api.HandleIndex)
 
 	r.Get("/status/stream", api.HandleStatusStream)
 
@@ -111,6 +111,11 @@ func main() {
 
 		r.Post("/shorten", api.HandleManageShorten)
 		r.Post("/unshorten/{code}", api.HandleManageUnshorten)
+
+		// Profile management
+		r.Post("/profile", api.HandleAddProfile)
+		r.Delete("/profile/{slug}", api.HandleDeleteProfile)
+		r.Post("/profile/{slug}/default", api.HandleSetDefaultProfile)
 	})
 
 	// REST API Routes
@@ -142,6 +147,9 @@ func main() {
 			api.RegisterShortenerAPIRoutes(r)
 		})
 	})
+
+	// /{slug} nach allen statischen Routen – chi priorisiert diese automatisch
+	r.Get("/{slug}", api.HandleIndex)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

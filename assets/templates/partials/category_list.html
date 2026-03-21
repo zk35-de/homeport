@@ -90,9 +90,10 @@
         </div>
         <div class="form-group">
             <label>Visibility</label>
-            <select name="visibility" multiple size="2">
-                <option value="markus" {{range $.Service.VisibleTo}}{{if eq . "markus"}}selected{{end}}{{end}}>Markus</option>
-                <option value="andrea" {{range $.Service.VisibleTo}}{{if eq . "andrea"}}selected{{end}}{{end}}>Andrea</option>
+            <select name="visibility" multiple size="{{len .Profiles}}">
+                {{range .Profiles}}{{$slug := .Slug}}
+                <option value="{{.Slug}}" {{range $.Service.VisibleTo}}{{if eq . $slug}}selected{{end}}{{end}}>{{.Name}}</option>
+                {{end}}
             </select>
         </div>
     </div>

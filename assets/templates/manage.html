@@ -69,9 +69,9 @@
                 </div>
                 <div class="form-group">
                     <label>Visibility</label>
-                    <select name="visibility" multiple size="2">
-                        <option value="markus" selected>Markus</option>
-                        <option value="andrea" selected>Andrea</option>
+                    <select name="visibility" multiple size="{{len .Profiles}}">
+                        {{range .Profiles}}<option value="{{.Slug}}" selected>{{.Name}}</option>
+                        {{end}}
                     </select>
                 </div>
                 <button type="submit">Add Service</button>
@@ -120,8 +120,8 @@
                     <label>Profil</label>
                     <select name="profile">
                         <option value="all">Alle</option>
-                        <option value="markus">Nur Markus</option>
-                        <option value="andrea">Nur Andrea</option>
+                        {{range .Profiles}}<option value="{{.Slug}}">Nur {{.Name}}</option>
+                        {{end}}
                     </select>
                 </div>
                 <button type="submit">Widget hinzufügen</button>
@@ -287,6 +287,18 @@
       <button class="btn-sm" onclick="resetCustomCSS()">Zurücksetzen</button>
     </div>
   </div>
+</section>
+
+<section class="manage-section" id="profiles">
+  <h2>Profile</h2>
+  <div id="profile-list">
+    {{template "profile_list" .}}
+  </div>
+  <form hx-post="/manage/profile" hx-target="#profile-list" hx-swap="innerHTML" style="display:flex;gap:0.5rem;margin-top:0.75rem">
+    <input type="text" name="name" placeholder="Profilname" required style="flex:1">
+    <input type="text" name="slug" placeholder="slug (URL)" required pattern="[a-z0-9-]+" style="flex:1">
+    <button class="btn-sm" type="submit">+ Profil</button>
+  </form>
 </section>
 
 <script>
