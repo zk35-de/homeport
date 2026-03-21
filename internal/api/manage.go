@@ -14,6 +14,7 @@ type ManageData struct {
 	Categories    []db.Category
 	SearchEngines map[string]string
 	ShortURLs     []db.ShortURL
+	Prefs         *db.UserPreferences
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -25,10 +26,15 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURLs, _ := db.GetAllShortURLs()
+	prefs, _ := db.GetUserPreferences("markus")
+	if prefs == nil {
+		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
+	}
 	data := ManageData{
 		Categories:    categories,
 		SearchEngines: db.GetAllSearchEngines(),
 		ShortURLs:     shortURLs,
+		Prefs:         prefs,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {

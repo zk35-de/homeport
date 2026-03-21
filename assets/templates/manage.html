@@ -222,6 +222,51 @@
 }
 </style>
 
+<section class="manage-section" id="appearance">
+  <h2>Erscheinungsbild</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
+
+    <div class="form-group" style="flex:0 0 auto">
+      <label>Theme</label>
+      <div style="display:flex;gap:0.4rem;margin-top:0.25rem">
+        <button class="btn-sm theme-btn" data-theme="dark"
+          onclick="setTheme('dark')"
+          style="{{if eq .Prefs.Theme "dark"}}outline:2px solid var(--accent);{{end}}">🌙 Dark</button>
+        <button class="btn-sm theme-btn" data-theme="light"
+          onclick="setTheme('light')"
+          style="{{if eq .Prefs.Theme "light"}}outline:2px solid var(--accent);{{end}}">☀️ Light</button>
+        <button class="btn-sm theme-btn" data-theme="system"
+          onclick="setTheme('system')"
+          style="{{if eq .Prefs.Theme "system"}}outline:2px solid var(--accent);{{end}}">💻 System</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="flex:0 0 auto">
+      <label>Accent Color</label>
+      <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.25rem">
+        <input type="color" id="accent-picker" value="{{.Prefs.AccentColor}}"
+               oninput="previewAccent(this.value)"
+               onchange="saveAccent(this.value)"
+               style="width:40px;height:32px;padding:2px;border:1px solid var(--glass-border);border-radius:6px;background:transparent;cursor:pointer">
+        <span id="accent-hex" style="font-size:0.8rem;color:var(--sub)">{{.Prefs.AccentColor}}</span>
+        <button class="btn-sm" onclick="resetAccent()">Reset</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="form-group" style="margin-top:1rem">
+    <label>Custom CSS (Override)</label>
+    <textarea id="custom-css-input" rows="6"
+              style="width:100%;font-family:monospace;font-size:0.8rem;resize:vertical"
+              placeholder="/* z.B. .widget { border-radius: 0; } */">{{.Prefs.CustomCSS}}</textarea>
+    <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+      <button class="btn-sm" onclick="saveCustomCSS()">Speichern</button>
+      <button class="btn-sm" onclick="resetCustomCSS()">Zurücksetzen</button>
+    </div>
+  </div>
+</section>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const btn = document.getElementById("fetch-favicon-btn");
@@ -283,6 +328,73 @@ async function fetchFaviconEdit(svcId) {
         btn.textContent = "❌";
     }
     setTimeout(() => btn.textContent = "🌐", 2000);
+}
+
+// Theme Engine
+async function savePrefs(patch) {
+    try {
+        await fetch('/api/user/preferences', {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(patch)
+        });
+    } catch(e) { console.warn('prefs save failed', e); }
+}
+
+function setTheme(theme) {
+    if (theme === 'system') {
+        delete document.documentElement.dataset.theme;
+    } else {
+        document.documentElement.dataset.theme = theme;
+    }
+    localStorage.setItem('hp-theme', theme);
+    document.querySelectorAll('.theme-btn').forEach(b => {
+        b.style.outline = b.dataset.theme === theme ? '2px solid var(--accent)' : '';
+    });
+    savePrefs({theme});
+}
+
+function previewAccent(hex) {
+    document.getElementById('accent-hex').textContent = hex;
+    const rgb = hexToRGBjs(hex);
+    document.documentElement.style.setProperty('--accent', hex);
+    document.documentElement.style.setProperty('--accent-hover', hex);
+    document.documentElement.style.setProperty('--accent-rgb', rgb);
+    const style = document.getElementById('user-theme');
+    if (style) style.textContent = `:root{--accent:${hex};--accent-rgb:${rgb};--accent-hover:${hex};}`;
+}
+
+function saveAccent(hex) {
+    previewAccent(hex);
+    savePrefs({accent_color: hex});
+}
+
+function resetAccent() {
+    const hex = '#6366f1';
+    document.getElementById('accent-picker').value = hex;
+    saveAccent(hex);
+}
+
+function saveCustomCSS() {
+    const css = document.getElementById('custom-css-input').value;
+    let style = document.getElementById('user-theme');
+    if (!style) { style = document.createElement('style'); style.id = 'user-theme'; document.head.appendChild(style); }
+    const accent = document.getElementById('accent-picker').value || '#6366f1';
+    const rgb = hexToRGBjs(accent);
+    style.textContent = `:root{--accent:${accent};--accent-rgb:${rgb};--accent-hover:${accent};}` + css;
+    savePrefs({custom_css: css});
+}
+
+function resetCustomCSS() {
+    document.getElementById('custom-css-input').value = '';
+    saveCustomCSS();
+}
+
+function hexToRGBjs(hex) {
+    hex = hex.replace('#','');
+    if (hex.length !== 6) return '99,102,241';
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    return `${r},${g},${b}`;
 }
 </script>
 {{end}}

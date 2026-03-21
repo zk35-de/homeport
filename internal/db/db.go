@@ -187,6 +187,7 @@ func InitDB(dbPath string) error {
 
 	// Idempotent migrations: ignore errors (column may already exist)
 	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN visible INTEGER NOT NULL DEFAULT 1`)
+	_, _ = DB.Exec(`ALTER TABLE user_preferences ADD COLUMN custom_css TEXT NOT NULL DEFAULT ''`)
 
 	return nil
 }
@@ -780,6 +781,7 @@ type UserPreferences struct {
 	Background   string `json:"background"`
 	Language     string `json:"language"`
 	Layout       string `json:"layout"`
+	CustomCSS    string `json:"custom_css"`
 }
 
 // GetUserPreferences returns preferences for a profile (defaults if not found).
@@ -793,9 +795,9 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 		Language:     "de",
 		Layout:       "grid",
 	}
-	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, background, language, layout
+	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, background, language, layout, COALESCE(custom_css,'')
 		FROM user_preferences WHERE profile = ?`, profile)
-	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Background, &p.Language, &p.Layout)
+	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Background, &p.Language, &p.Layout, &p.CustomCSS)
 	if err == sql.ErrNoRows {
 		return p, nil
 	}
@@ -807,17 +809,18 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 
 // SetUserPreferences upserts preferences for a profile.
 func SetUserPreferences(profile string, prefs UserPreferences) error {
-	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, background, language, layout)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, background, language, layout, custom_css)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(profile) DO UPDATE SET
 			theme = excluded.theme,
 			accent_color = excluded.accent_color,
 			search_engine = excluded.search_engine,
 			background = excluded.background,
 			language = excluded.language,
-			layout = excluded.layout`,
+			layout = excluded.layout,
+			custom_css = excluded.custom_css`,
 		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
-		prefs.Background, prefs.Language, prefs.Layout)
+		prefs.Background, prefs.Language, prefs.Layout, prefs.CustomCSS)
 	return err
 }
 
