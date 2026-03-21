@@ -20,6 +20,7 @@ import (
 	"git.zk35.de/secalpha/homeport/internal/api"
 	"git.zk35.de/secalpha/homeport/internal/backup"
 	"git.zk35.de/secalpha/homeport/internal/config"
+	"git.zk35.de/secalpha/homeport/internal/discovery"
 
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
@@ -90,6 +91,9 @@ func main() {
 	go runPodmanScanner()
 	go runSessionPurger()
 
+	// Discovery Scheduler
+	discovery.Global.Reload()
+
 	// Router
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
@@ -149,6 +153,13 @@ func main() {
 		r.Get("/discovery", api.HandleDiscoveryInbox)
 		r.Post("/discovery/{id}/accept", api.HandleAcceptDiscovery)
 		r.Post("/discovery/{id}/ignore", api.HandleIgnoreDiscovery)
+
+		// Discovery Sources
+		r.Get("/discovery/sources", api.HandleGetDiscoverySources)
+		r.Post("/discovery/sources", api.HandleAddDiscoverySource)
+		r.Delete("/discovery/sources/{id}", api.HandleDeleteDiscoverySource)
+		r.Post("/discovery/sources/{id}/toggle", api.HandleToggleDiscoverySource)
+		r.Post("/discovery/sources/{id}/scan", api.HandleScanDiscoverySource)
 
 		r.Post("/settings/search", api.HandleSetSearchEngine)
 

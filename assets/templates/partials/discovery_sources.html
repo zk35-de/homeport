@@ -1,0 +1,50 @@
+{{define "discovery_sources"}}
+<div id="discovery-sources-list">
+  {{if not .Sources}}
+    <p style="color:var(--text-muted);font-size:0.875rem">Keine Quellen konfiguriert.</p>
+  {{else}}
+  <table style="width:100%;border-collapse:collapse;font-size:0.875rem">
+    <thead>
+      <tr style="border-bottom:1px solid var(--glass-border);color:var(--text-muted)">
+        <th style="text-align:left;padding:0.4rem 0.5rem">Name</th>
+        <th style="text-align:left;padding:0.4rem 0.5rem">Typ</th>
+        <th style="text-align:left;padding:0.4rem 0.5rem">URL</th>
+        <th style="text-align:left;padding:0.4rem 0.5rem">Intervall</th>
+        <th style="text-align:left;padding:0.4rem 0.5rem">Status</th>
+        <th style="padding:0.4rem 0.5rem"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Sources}}
+      <tr style="border-bottom:1px solid var(--glass-border)">
+        <td style="padding:0.5rem">{{.Name}}</td>
+        <td style="padding:0.5rem;text-transform:uppercase;font-size:0.75rem;color:var(--text-muted)">{{.Type}}</td>
+        <td style="padding:0.5rem;color:var(--text-muted);font-size:0.8rem">{{.URL}}</td>
+        <td style="padding:0.5rem;color:var(--text-muted)">{{.Interval}}s</td>
+        <td style="padding:0.5rem">
+          {{if .Enabled}}
+            <span style="color:var(--green);font-size:0.75rem">● aktiv</span>
+          {{else}}
+            <span style="color:var(--text-muted);font-size:0.75rem">● pausiert</span>
+          {{end}}
+        </td>
+        <td style="padding:0.5rem;display:flex;gap:0.4rem">
+          <form hx-post="/manage/discovery/sources/{{.ID}}/toggle"
+                hx-target="#discovery-sources-list" hx-swap="outerHTML">
+            <button class="btn-sm" type="submit">
+              {{if .Enabled}}Pause{{else}}Start{{end}}
+            </button>
+          </form>
+          <form hx-delete="/manage/discovery/sources/{{.ID}}"
+                hx-target="#discovery-sources-list" hx-swap="outerHTML"
+                hx-confirm="Quelle '{{.Name}}' löschen?">
+            <button class="btn-sm btn-danger" type="submit">Löschen</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</div>
+{{end}}

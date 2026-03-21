@@ -197,6 +197,47 @@
     </div>
 </div>
 
+<section class="manage-section" id="discovery-sources">
+  <h2>Auto-Discovery Quellen</h2>
+  <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem">
+    Nginx Proxy Manager und Docker-Hosts werden automatisch auf neue Dienste gescannt.
+  </p>
+
+  <form hx-post="/manage/discovery/sources" hx-target="#discovery-sources-list" hx-swap="outerHTML"
+        style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1.5rem">
+    <div class="form-group" style="margin-bottom:0">
+      <label>Typ</label>
+      <select name="type">
+        <option value="npm">Nginx Proxy Manager</option>
+        <option value="docker">Docker TCP</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="Mein NPM" required>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>URL</label>
+      <input type="url" name="url" placeholder="http://192.168.2.1:81" required>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Token / identity:secret</label>
+      <input type="text" name="token" placeholder="admin@example.com:passwort">
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Intervall (Sekunden)</label>
+      <input type="number" name="interval" value="300" min="10">
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button type="submit" class="btn-primary" style="width:100%">Quelle hinzufügen</button>
+    </div>
+  </form>
+
+  <div id="discovery-sources-list"
+       hx-get="/manage/discovery/sources" hx-trigger="load" hx-swap="outerHTML">
+  </div>
+</section>
+
 <section class="manage-section" id="shortener">
   <h2>URL Kürzer</h2>
   <form method="post" action="/manage/shorten" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">

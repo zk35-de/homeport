@@ -284,6 +284,16 @@ func InitDB(dbPath string) error {
 			expires_at DATETIME NOT NULL,
 			created_at DATETIME NOT NULL DEFAULT (datetime('now'))
 		);`,
+		`CREATE TABLE IF NOT EXISTS discovery_sources (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			type       TEXT NOT NULL,
+			name       TEXT NOT NULL,
+			url        TEXT NOT NULL,
+			token      TEXT NOT NULL DEFAULT '',
+			enabled    INTEGER NOT NULL DEFAULT 1,
+			interval   INTEGER NOT NULL DEFAULT 60,
+			created_at DATETIME NOT NULL DEFAULT (datetime('now'))
+		);`,
 	}
 
 	for _, q := range queries {
@@ -301,6 +311,8 @@ func InitDB(dbPath string) error {
 	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN page_id INTEGER REFERENCES pages(id) ON DELETE SET NULL`)
 	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN page_id INTEGER REFERENCES pages(id) ON DELETE SET NULL`)
 	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN public INTEGER NOT NULL DEFAULT 0`)
+	_, _ = DB.Exec(`ALTER TABLE discovery_inbox ADD COLUMN source_id INTEGER REFERENCES discovery_sources(id) ON DELETE SET NULL`)
+	_, _ = DB.Exec(`ALTER TABLE discovery_inbox ADD COLUMN external_id TEXT NOT NULL DEFAULT ''`)
 
 	// Seed default profiles if table is empty
 	var count int
