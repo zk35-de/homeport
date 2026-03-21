@@ -5,9 +5,19 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
+
+// isImgURL returns true if the icon value is a URL (should be rendered as <img>).
+func isImgURL(s string) bool {
+	return strings.HasPrefix(s, "http") || strings.HasPrefix(s, "/api/favicon")
+}
+
+var tmplFuncs = template.FuncMap{
+	"isImgURL": isImgURL,
+}
 
 // Separate template sets per page to avoid {{define "content"}} conflicts.
 var IndexTmpl *template.Template
@@ -17,7 +27,7 @@ func InitTemplates(fs embed.FS) {
 	var err error
 
 	// Index templates: base + index.html + partials
-	IndexTmpl, err = template.ParseFS(fs,
+	IndexTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs,
 		"templates/base.html",
 		"templates/index.html",
 		"templates/partials/*.html",
@@ -27,7 +37,7 @@ func InitTemplates(fs embed.FS) {
 	}
 
 	// Manage templates: base + manage.html + partials
-	ManageTmpl, err = template.ParseFS(fs,
+	ManageTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs,
 		"templates/base.html",
 		"templates/manage.html",
 		"templates/partials/*.html",

@@ -88,8 +88,9 @@ func main() {
 
 	// REST API Routes
 	r.Route("/api", func(r chi.Router) {
-		// Health: no auth
+		// Health + Favicon: no auth
 		r.Get("/health", api.HandleHealth)
+		r.Get("/favicon", api.HandleFavicon)
 
 		// Protected API routes
 		r.Group(func(r chi.Router) {

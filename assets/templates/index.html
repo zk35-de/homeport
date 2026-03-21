@@ -23,7 +23,7 @@
             {{range .Services}}
             <a href="{{.URL}}" target="_blank" class="service-card" id="service-{{.ID}}">
                 {{if .Icon}}
-                <div class="service-icon">{{.Icon}}</div>
+                <div class="service-icon">{{if isImgURL .Icon}}<img src="{{.Icon}}" alt="" loading="lazy">{{else}}{{.Icon}}{{end}}</div>
                 {{else}}
                 <div class="service-icon">?</div>
                 {{end}}

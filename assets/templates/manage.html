@@ -52,8 +52,12 @@
                     <input type="url" name="url" required>
                 </div>
                 <div class="form-group">
-                    <label>Icon (emoji or text)</label>
-                    <input type="text" name="icon">
+                    <label>Icon (Emoji, Text oder Favicon)</label>
+                    <div style="display:flex;gap:0.4rem;align-items:center">
+                        <input type="text" name="icon" id="svc-icon-input" placeholder="🏠 oder leer lassen">
+                        <button type="button" class="btn-sm" id="fetch-favicon-btn" title="Favicon von der URL laden">🌐</button>
+                        <img id="favicon-preview" src="" alt="" style="width:20px;height:20px;display:none;border-radius:3px">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
@@ -172,4 +176,43 @@
   <p style="color:var(--sub);font-size:0.85rem">Noch keine Short-URLs angelegt.</p>
   {{end}}
 </section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const btn = document.getElementById("fetch-favicon-btn");
+    const iconInput = document.getElementById("svc-icon-input");
+    const preview = document.getElementById("favicon-preview");
+    const urlInput = document.querySelector("input[name='url']");
+
+    if (!btn || !iconInput || !urlInput) return;
+
+    btn.addEventListener("click", async function() {
+        const url = urlInput.value.trim();
+        if (!url) { btn.textContent = "❌"; setTimeout(() => btn.textContent = "🌐", 1500); return; }
+
+        btn.textContent = "⏳";
+        const faviconURL = "/api/favicon?url=" + encodeURIComponent(url);
+        try {
+            const resp = await fetch(faviconURL);
+            if (resp.ok) {
+                iconInput.value = faviconURL;
+                preview.src = faviconURL;
+                preview.style.display = "inline";
+                btn.textContent = "✅";
+            } else {
+                btn.textContent = "❌";
+            }
+        } catch {
+            btn.textContent = "❌";
+        }
+        setTimeout(() => btn.textContent = "🌐", 2000);
+    });
+
+    // Show preview if icon field already contains an img URL
+    if (iconInput.value.startsWith("/api/favicon") || iconInput.value.startsWith("http")) {
+        preview.src = iconInput.value;
+        preview.style.display = "inline";
+    }
+});
+</script>
 {{end}}
