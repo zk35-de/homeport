@@ -43,6 +43,9 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `HOMEPORT_BACKUP_DIR` | `./backups` | Directory for scheduled backups |
 | `HOMEPORT_BACKUP_INTERVAL` | `` | Go duration, e.g. `24h` (empty = disabled) |
 | `HOMEPORT_BACKUP_MAX_KEEP` | `7` | Number of backup files to keep |
+| `HOMEPORT_AUTH` | `false` | Enable session-based login (`true`/`false`) |
+| `HOMEPORT_PUBLIC_PROFILE` | `` | Profile slug accessible without login (e.g. `public`) |
+| `HOMEPORT_SESSION_DAYS` | `30` | Cookie lifetime in days |
 
 ## Routes
 
@@ -54,6 +57,16 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `GET /manage` | Management UI |
 | `GET /r/{id}?p={profile}` | Click-tracking redirect to service URL |
 | `GET /s/{code}` | URL shortener redirect (public) |
+
+### Auth
+| Route | Description |
+|-------|-------------|
+| `GET /login` | Login page |
+| `POST /login` | Submit credentials (form: `profile`, `password`) |
+| `POST /logout` | Invalidate session cookie |
+| `GET /manage/auth` | Password management (admin only) |
+| `POST /manage/auth/password` | Set password for a profile (form: `profile`, `password`) |
+| `POST /manage/auth/password/delete` | Remove password for a profile |
 
 ### Management (HTMX, no auth)
 | Route | Description |
@@ -108,6 +121,22 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 - Live status dots via SSE (30s checks)
 - Click-tracking per profile; 📊 toggle per category = sort by usage
 - Podman container auto-discovery inbox
+- **Auto-Discovery Sources:** NPM and Docker TCP backends, configurable per source
+
+### Login System
+- Opt-in via `HOMEPORT_AUTH=true` (default off – backward compatible)
+- bcrypt password hashing; first profile to get a password becomes admin
+- Session cookie: HttpOnly, SameSite=Lax, configurable lifetime
+- CLI password reset: `homeport passwd <profile>` (reads from stdin)
+- Admin-only: `/manage/auth` to manage all profile passwords
+- `HOMEPORT_PUBLIC_PROFILE=<slug>` – one profile accessible without login
+
+### Auto-Discovery
+- Configured sources in `/manage` → "Auto-Discovery Quellen"
+- **Nginx Proxy Manager:** REST API, `identity:secret` auth, auto token-refresh
+- **Docker TCP:** `GET /containers/json`, labels `homeport.name` / `homeport.url` / `homeport.icon` / `homeport.description`
+- Per-source scan interval (seconds), enable/disable toggle
+- Found services appear in Discovery Inbox for manual review (accept/ignore)
 
 ### Widgets (all cached server-side)
 | Type | Config | Cache |
@@ -176,7 +205,10 @@ notes            → widget_id, content, updated_at
 user_preferences → profile, theme, accent_color, search_engine, background_mode, custom_css
 user_settings    → profile, search_engine
 short_urls       → code, url, clicks, created_at
-discovery_inbox  → container_id, suggested (json), seen_at, ignored
+discovery_inbox   → container_id, external_id, suggested (json), seen_at, ignored, source_id→discovery_sources
+discovery_sources → type, name, url, token, enabled, interval, created_at
+user_auth         → profile, password (bcrypt), is_admin, created_at, updated_at
+sessions          → token, profile, expires_at, created_at
 ```
 
 ## CI/CD
@@ -212,6 +244,8 @@ HOMEPORT_TOKEN=your-secret docker compose up -d
 - **SSRF** protection on `/api/favicon`: private/loopback IPs (RFC1918, 127.x, 169.254.x) blocked via DNS resolution → 403
 - **XSS**: Go `html/template` auto-escaping enforced; `javascript:` href sanitized to `#ZgotmplZ`
 - API routes under `/api/*` require Bearer token auth (except `/api/health`, `/api/search`, `/api/favicon`)
+- **Session auth** (`HOMEPORT_AUTH=true`): bcrypt + secure cookie; no session → redirect to `/login`
+- **SSRF** protection on `/api/favicon`: scheme validation (http/https only); no private-IP blocking to support homelab use
 
 ## Dev
 
