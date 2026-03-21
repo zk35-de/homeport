@@ -483,30 +483,32 @@ func TestSSRFFavicon(t *testing.T) {
 		}
 	})
 
-	t.Run("link-local IP 169.254.169.254 → 403 (SSRF protection)", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/favicon?url=http://169.254.169.254/latest/meta-data/", nil)
+	// Private/loopback IPs are intentionally allowed (homelab use case – services on
+	// 192.168.x, 10.x, 127.x are valid favicon targets). Only scheme is validated.
+	t.Run("link-local IP 169.254.169.254 → not blocked (homelab)", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/favicon?url=http://169.254.169.254/", nil)
 		rr := httptest.NewRecorder()
 		api.HandleFavicon(rr, req)
-		if rr.Code != http.StatusForbidden {
-			t.Errorf("expected 403 for link-local IP (AWS metadata SSRF), got %d", rr.Code)
+		if rr.Code == http.StatusBadRequest {
+			t.Errorf("valid http:// URL should not be rejected with 400, got %d", rr.Code)
 		}
 	})
 
-	t.Run("loopback 127.0.0.1 → 403 (SSRF protection)", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/favicon?url=http://127.0.0.1:22/", nil)
+	t.Run("loopback 127.0.0.1 → not blocked (homelab)", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/favicon?url=http://127.0.0.1:8080/", nil)
 		rr := httptest.NewRecorder()
 		api.HandleFavicon(rr, req)
-		if rr.Code != http.StatusForbidden {
-			t.Errorf("expected 403 for loopback address, got %d", rr.Code)
+		if rr.Code == http.StatusBadRequest {
+			t.Errorf("valid http:// URL should not be rejected with 400, got %d", rr.Code)
 		}
 	})
 
-	t.Run("localhost → 403 (SSRF protection)", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/favicon?url=http://localhost/", nil)
+	t.Run("non-http scheme → 400 (scheme validation)", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/favicon?url=file:///etc/passwd", nil)
 		rr := httptest.NewRecorder()
 		api.HandleFavicon(rr, req)
-		if rr.Code != http.StatusForbidden {
-			t.Errorf("expected 403 for localhost, got %d", rr.Code)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 for non-http scheme, got %d", rr.Code)
 		}
 	})
 

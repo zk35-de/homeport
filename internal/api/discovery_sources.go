@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
@@ -32,6 +33,14 @@ func HandleAddDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	}
 	if typ == "" || name == "" || url == "" {
 		http.Error(w, "type, name, url required", http.StatusBadRequest)
+		return
+	}
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		http.Error(w, "URL must start with http:// or https://", http.StatusBadRequest)
+		return
+	}
+	if len(token) > 512 {
+		http.Error(w, "token too long", http.StatusBadRequest)
 		return
 	}
 	if _, err := db.AddDiscoverySource(typ, name, url, token, interval); err != nil {

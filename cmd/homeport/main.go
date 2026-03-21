@@ -98,6 +98,8 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
+	r.Use(api.SecurityHeaders)
+	r.Use(api.CSRFMiddleware)
 	r.Use(api.RequireAuth(cfg))
 
 	// Static Files from embedded FS

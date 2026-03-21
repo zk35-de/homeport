@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"git.zk35.de/secalpha/homeport/internal/config"
 	"git.zk35.de/secalpha/homeport/internal/db"
@@ -76,10 +77,17 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	profile := r.FormValue("profile")
 	password := r.FormValue("password")
 
+	if !LoginRateLimit(r) {
+		time.Sleep(loginDelay)
+		renderLogin(w, "Zu viele Versuche. Bitte warte einen Moment.")
+		return
+	}
+
 	if !db.CheckPassword(profile, password) {
 		renderLogin(w, "Falsches Profil oder Passwort.")
 		return
 	}
+	LoginReset(r)
 
 	sessionDays := 30
 	if appConfig != nil {

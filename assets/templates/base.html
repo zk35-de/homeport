@@ -37,6 +37,19 @@
       }
     </script>
     <script>
+      // CSRF: inject cookie value as X-CSRF-Token header on every HTMX request
+      (function() {
+        function getCookie(name) {
+          var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+          return v ? v.pop() : '';
+        }
+        document.addEventListener('htmx:configRequest', function(e) {
+          var token = getCookie('hp_csrf');
+          if (token) e.detail.headers['X-CSRF-Token'] = token;
+        });
+      })();
+    </script>
+    <script>
     // Clock widget runtime
     (function() {
       function pad(n) { return String(n).padStart(2, '0'); }
