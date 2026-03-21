@@ -75,6 +75,12 @@ func InitTemplates(fs embed.FS) {
 	if err != nil {
 		log.Fatalf("Error parsing analytics templates: %v", err)
 	}
+
+	// Login template (standalone, no base.html)
+	LoginTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs, "templates/login.html")
+	if err != nil {
+		log.Fatalf("Error parsing login template: %v", err)
+	}
 }
 
 type IndexData struct {

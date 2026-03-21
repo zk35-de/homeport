@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -24,6 +25,36 @@ import (
 )
 
 func main() {
+	// CLI subcommand: homeport passwd <profile>
+	if len(os.Args) >= 2 && os.Args[1] == "passwd" {
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Usage: homeport passwd <profile>\n")
+			os.Exit(1)
+		}
+		profile := os.Args[2]
+		dbPath := os.Getenv("HOMEPORT_DB")
+		if dbPath == "" {
+			dbPath = "./data/homeport.db"
+		}
+		if err := db.InitDB(dbPath); err != nil {
+			fmt.Fprintf(os.Stderr, "DB error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Neues Passwort für '%s': ", profile)
+		var pw string
+		fmt.Scanln(&pw)
+		if pw == "" {
+			fmt.Fprintln(os.Stderr, "Leeres Passwort nicht erlaubt.")
+			os.Exit(1)
+		}
+		if err := db.SetPassword(profile, pw); err != nil {
+			fmt.Fprintf(os.Stderr, "Fehler: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Passwort für '%s' gesetzt.\n", profile)
+		return
+	}
+
 	cfg := config.Load()
 
 	slog.Info("homeport starting", "port", cfg.Port, "db", cfg.DBPath)
@@ -57,11 +88,13 @@ func main() {
 	go runWeatherFetcher()
 	go runRSSFetcher()
 	go runPodmanScanner()
+	go runSessionPurger()
 
 	// Router
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
+	r.Use(api.RequireAuth(cfg))
 
 	// Static Files from embedded FS
 	staticFS, _ := fs.Sub(assets.FS, "static")
@@ -71,6 +104,11 @@ func main() {
 		w.Header().Set("Content-Type", "application/javascript")
 		http.ServeFileFS(w, r, assets.FS, "static/sw.js")
 	}))
+
+	// Auth routes
+	r.Get("/login", api.HandleLogin)
+	r.Post("/login", api.HandleLogin)
+	r.Post("/logout", api.HandleLogout)
 
 	// HTML Routes – / = default profile, /{slug} = profile by slug
 	// /{slug} muss NACH allen statischen Routen stehen (chi priorisiert statische)
@@ -116,6 +154,11 @@ func main() {
 
 		r.Post("/shorten", api.HandleManageShorten)
 		r.Post("/unshorten/{code}", api.HandleManageUnshorten)
+
+		// Auth management
+		r.Get("/auth", api.HandleManageAuth)
+		r.Post("/auth/password", api.HandleSetPassword)
+		r.Post("/auth/password/delete", api.HandleDeletePassword)
 
 		// Profile management
 		r.Post("/profile", api.HandleAddProfile)
@@ -368,5 +411,13 @@ func runRSSFetcher() {
 	fetchAll()
 	for range time.Tick(30 * time.Minute) {
 		fetchAll()
+	}
+}
+
+func runSessionPurger() {
+	for range time.Tick(24 * time.Hour) {
+		if err := db.PurgeExpiredSessions(); err != nil {
+			slog.Error("session purger error", "err", err)
+		}
 	}
 }

@@ -17,6 +17,9 @@ type Config struct {
 	BackupDir      string
 	BackupInterval string
 	BackupMaxKeep  int
+	AuthEnabled    bool
+	PublicProfile  string
+	SessionDays    int
 }
 
 // Load reads configuration from environment variables and applies defaults.
@@ -67,6 +70,16 @@ func Load() *Config {
 		}
 	}
 
+	authEnabled := os.Getenv("HOMEPORT_AUTH") == "true"
+	publicProfile := os.Getenv("HOMEPORT_PUBLIC_PROFILE")
+
+	sessionDays := 30
+	if s := os.Getenv("HOMEPORT_SESSION_DAYS"); s != "" {
+		if fmt.Sscanf(s, "%d", &sessionDays); sessionDays <= 0 {
+			sessionDays = 30
+		}
+	}
+
 	return &Config{
 		Port:           port,
 		DBPath:         dbPath,
@@ -75,6 +88,9 @@ func Load() *Config {
 		BackupDir:      backupDir,
 		BackupInterval: backupInterval,
 		BackupMaxKeep:  backupMaxKeep,
+		AuthEnabled:    authEnabled,
+		PublicProfile:  publicProfile,
+		SessionDays:    sessionDays,
 	}
 }
 

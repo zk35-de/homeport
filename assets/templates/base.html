@@ -196,6 +196,7 @@
         <a href="/manage" class="nav-action">Manage</a>
         <button class="btn-icon" onclick="openPalette()" title="Command Palette (Ctrl+K)">⌘</button>
         <button class="btn-icon nav-theme-toggle" onclick="cycleTheme()" title="Theme wechseln">🌙</button>
+        {{if .Profile}}<form method="post" action="/logout" style="display:inline"><button class="btn-icon" title="Ausloggen">⎋</button></form>{{end}}
     </nav>
     <main>
         {{block "content" .}}{{end}}

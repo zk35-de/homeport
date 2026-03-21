@@ -349,6 +349,24 @@
   </div>
 </section>
 
+<section class="manage-section" id="auth">
+  <h2>Zugänge &amp; Passwörter</h2>
+  <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
+    Auth aktiv wenn <code>HOMEPORT_AUTH=true</code> gesetzt ist.
+    Erster User mit Passwort wird automatisch Admin.
+  </p>
+  <div hx-get="/manage/auth" hx-trigger="load" hx-swap="innerHTML" id="auth-list-wrap">Lade…</div>
+  <form hx-post="/manage/auth/password" hx-target="#auth-list-wrap" hx-swap="innerHTML"
+        hx-on::after-request="this.reset()"
+        style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap">
+    <select name="profile" style="flex:1;min-width:120px">
+      {{range .Profiles}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
+    </select>
+    <input type="password" name="password" placeholder="Neues Passwort" required style="flex:2;min-width:150px">
+    <button class="btn-sm" type="submit">Passwort setzen</button>
+  </form>
+</section>
+
 <section class="manage-section" id="profiles">
   <h2>Profile</h2>
   <div id="profile-list">

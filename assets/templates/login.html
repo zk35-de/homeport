@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homeport – Login</title>
+    <link rel="stylesheet" href="/static/css/prism-tokens.css">
+    <link rel="stylesheet" href="/static/css/prism-base.css">
+    <link rel="stylesheet" href="/static/css/prism-aurora.css">
+    <link rel="stylesheet" href="/static/css/prism-components.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+      (function(){
+        var t = localStorage.getItem('hp-theme');
+        if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+      })();
+    </script>
+</head>
+<body data-bg="aurora">
+    <div class="aurora" id="bg-aurora">
+        <div class="ab ab-1"></div><div class="ab ab-2"></div><div class="ab ab-3"></div>
+    </div>
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem">
+        <div style="width:100%;max-width:360px">
+            <div style="text-align:center;margin-bottom:2rem">
+                <div style="font-size:2.5rem;margin-bottom:0.5rem">⚓</div>
+                <h1 style="margin:0;font-size:1.5rem;font-weight:700">Homeport</h1>
+            </div>
+            <div class="glass-card" style="padding:2rem">
+                {{if .Error}}
+                <div style="background:rgba(248,113,113,0.15);border:1px solid var(--red);border-radius:8px;padding:0.75rem;margin-bottom:1rem;color:var(--red);font-size:0.9rem">
+                    {{.Error}}
+                </div>
+                {{end}}
+                <form method="post" action="/login">
+                    <div class="form-group">
+                        <label>Profil</label>
+                        <select name="profile" required style="width:100%">
+                            {{range .Profiles}}
+                            <option value="{{.Slug}}">{{.Name}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Passwort</label>
+                        <input type="password" name="password" required autofocus style="width:100%">
+                    </div>
+                    <button type="submit" style="width:100%;margin-top:0.5rem">Einloggen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -271,6 +271,19 @@ func InitDB(dbPath string) error {
 			icon       TEXT NOT NULL DEFAULT '📄',
 			sort_order INTEGER NOT NULL DEFAULT 0
 		);`,
+		`CREATE TABLE IF NOT EXISTS user_auth (
+			profile    TEXT PRIMARY KEY REFERENCES profiles(slug) ON DELETE CASCADE,
+			password   TEXT NOT NULL,
+			is_admin   INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT (datetime('now')),
+			updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
+		);`,
+		`CREATE TABLE IF NOT EXISTS sessions (
+			token      TEXT PRIMARY KEY,
+			profile    TEXT NOT NULL REFERENCES profiles(slug) ON DELETE CASCADE,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT (datetime('now'))
+		);`,
 	}
 
 	for _, q := range queries {
@@ -287,6 +300,7 @@ func InitDB(dbPath string) error {
 	_, _ = DB.Exec(`ALTER TABLE user_preferences ADD COLUMN background_mode TEXT NOT NULL DEFAULT 'aurora'`)
 	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN page_id INTEGER REFERENCES pages(id) ON DELETE SET NULL`)
 	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN page_id INTEGER REFERENCES pages(id) ON DELETE SET NULL`)
+	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN public INTEGER NOT NULL DEFAULT 0`)
 
 	// Seed default profiles if table is empty
 	var count int
