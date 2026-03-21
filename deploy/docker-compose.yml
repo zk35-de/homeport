@@ -1,14 +1,27 @@
 services:
   homeport:
     image: homeport:latest
+    build:
+      context: ..
+      dockerfile: Containerfile
     ports:
       - "8855:8855"
     volumes:
       - homeport-data:/app/data
     environment:
+      - HOMEPORT_PORT=8855
       - HOMEPORT_DB=/app/data/homeport.db
       - HOMEPORT_TOKEN=${HOMEPORT_TOKEN}
+      # Optional: HOMEPORT_CORS=https://homeport.example.com
     restart: unless-stopped
+
+    # Traefik labels (optional – remove if not using Traefik)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homeport.rule=Host(`homeport.example.com`)"
+      - "traefik.http.routers.homeport.entrypoints=websecure"
+      - "traefik.http.routers.homeport.tls.certresolver=letsencrypt"
+      - "traefik.http.services.homeport.loadbalancer.server.port=8855"
 
 volumes:
   homeport-data:

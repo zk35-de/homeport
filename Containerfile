@@ -1,48 +1,35 @@
 # syntax=docker/dockerfile:1
+# Rootless Podman / Docker – alle Assets sind go:embed eingebettet, nur Binary nötig
 
 # --- Build Stage ---
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /src
 
-# Copy go.mod and go.sum files
 COPY go.mod go.sum ./
-# Download dependencies
 RUN go mod download
 
-# Copy the source code
 COPY . .
 
-# Build the static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -v -o /out/homeport .
+# cmd/homeport ist der Entry Point; CGO_ENABLED=0 für statisches Binary
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/homeport ./cmd/homeport
 
 # --- Final Stage ---
 FROM alpine:3.21
 
-# Create a non-root user
+# Non-root user
 RUN addgroup -S homeport && adduser -S -G homeport -u 1000 homeport
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the binary from the builder stage
 COPY --from=builder /out/homeport /app/homeport
 
-# Copy static assets and templates
-COPY static ./static
-COPY templates ./templates
+# Persistent data directory
+RUN mkdir -p /app/data && chown homeport:homeport /app/data
 
-# Create a directory for the database and set permissions
-RUN mkdir -p /app/data && chown -R homeport:homeport /app/data
-
-# Expose the application port
-EXPOSE 8854
-
-# Define the volume for persistent data
+EXPOSE 8855
 VOLUME /app/data
 
-# Switch to the non-root user
 USER homeport
 
-# Run the application
 ENTRYPOINT ["/app/homeport"]
