@@ -67,6 +67,7 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `POST /manage/profile/{slug}/default` | Set default profile |
 | `GET /manage/backup` | Download SQLite snapshot |
 | `POST /manage/restore` | Upload & restore backup |
+| `GET /manage/analytics` | Click analytics (top-25 per profile) |
 
 ### API (Bearer token required, except `/api/health` and `/api/search`)
 | Route | Description |
@@ -84,6 +85,9 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `POST /api/todos` | Add todo item |
 | `POST /api/todos/{id}/toggle` | Toggle todo done/undone |
 | `DELETE /api/todos/{id}` | Delete todo |
+| `POST /api/widgets/{id}/bookmark` | Add bookmark link (form: name, url) |
+| `DELETE /api/widgets/{id}/bookmark/{idx}` | Remove bookmark link by index |
+| `PUT /api/notes/{id}` | Save note content `{"content":"..."}` |
 | `POST /api/shorten` | Shorten a URL |
 | `GET /api/links` | List short URLs |
 | `DELETE /api/links/{code}` | Delete short URL |
@@ -106,6 +110,8 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | **RSS** | `{"url":"...","max":10}` | 30min |
 | **Clock** | `{"mode":"digital\|analog\|countdown","timezone":"Europe/Berlin"}` | live |
 | **Todo** | none | DB (live) |
+| **Bookmarks** | `{"layout":"grid","links":[{"name":"...","url":"..."}]}` | DB (live) |
+| **Notes** | none | DB (live) |
 
 ### Search Bar
 - Configurable search engine per profile
@@ -122,6 +128,11 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 - Accent color picker
 - Custom CSS override
 - Background modes: Aurora (animated) / Tageszeit (morning/day/evening/night gradient) / None
+
+### Analytics
+- `GET /manage/analytics` – Top-25 meist geklickte Dienste pro Profil
+- Profil-Filter per Dropdown
+- Klicks werden automatisch via `/r/{id}?p={profile}` erfasst
 
 ### Backup & Restore
 - Manual download: `GET /manage/backup` (SQLite VACUUM INTO snapshot)
@@ -144,6 +155,7 @@ service_clicks   → service_id, profile, click_count, last_clicked
 widgets          → type, name, config (json), profile, sort_order
 widget_cache     → widget_id, data (json), fetched_at
 todos            → widget_id, text, done, due_date, sort_order
+notes            → widget_id, content, updated_at
 user_preferences → profile, theme, accent_color, search_engine, background_mode, custom_css
 user_settings    → profile, search_engine
 short_urls       → code, url, clicks, created_at
