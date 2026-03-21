@@ -146,7 +146,7 @@
     function updateWidgetForm() {
       const sel = document.getElementById('widget-type-select');
       if (!sel) return;
-      const types = ['ical', 'clock', 'weather', 'rss', 'todo'];
+      const types = ['ical', 'clock', 'weather', 'rss', 'todo', 'bookmarks', 'notes'];
       types.forEach(t => {
         const el = document.getElementById('widget-' + t + '-fields');
         if (el) el.style.display = sel.value === t ? '' : 'none';

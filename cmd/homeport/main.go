@@ -89,6 +89,7 @@ func main() {
 	        r.Post("/widget", api.HandleAddWidget)
 	        r.Delete("/widget/{id}", api.HandleDeleteWidget)
 	        r.Get("/", api.HandleManage)
+		r.Get("/analytics", api.HandleAnalytics)
 
 	        // Backup & Restore
 	        r.Get("/backup", api.HandleBackupDownload)
@@ -127,6 +128,13 @@ func main() {
 	r.Post("/api/todos", api.HandleAddTodo)
 	r.Post("/api/todos/{id}/toggle", api.HandleToggleTodo)
 	r.Delete("/api/todos/{id}", api.HandleDeleteTodo)
+
+	// Bookmark routes (HTMX from index page)
+	r.Post("/api/widgets/{id}/bookmark", api.HandleAddBookmark)
+	r.Delete("/api/widgets/{id}/bookmark/{idx}", api.HandleDeleteBookmark)
+
+	// Notes route
+	r.Put("/api/notes/{id}", api.HandleSaveNote)
 
 	// REST API Routes
 	r.Route("/api", func(r chi.Router) {

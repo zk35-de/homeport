@@ -13,6 +13,8 @@
       {{else if eq .Type "clock"}}{{template "widget_clock" .}}
       {{else if eq .Type "rss"}}{{template "widget_rss" .}}
       {{else if eq .Type "todo"}}{{template "widget_todo" .}}
+      {{else if eq .Type "bookmarks"}}{{template "widget_bookmarks" .}}
+      {{else if eq .Type "notes"}}{{template "widget_notes" .}}
       {{else}}{{template "widget_ical" .}}
       {{end}}
     {{end}}

@@ -36,6 +36,7 @@ func hexToRGB(hex string) string {
 var tmplFuncs = template.FuncMap{
 	"isImgURL": isImgURL,
 	"hexToRGB": hexToRGB,
+	"inc":      func(i int) int { return i + 1 },
 }
 
 // Separate template sets per page to avoid {{define "content"}} conflicts.
@@ -63,6 +64,16 @@ func InitTemplates(fs embed.FS) {
 	)
 	if err != nil {
 		log.Fatalf("Error parsing manage templates: %v", err)
+	}
+
+	// Analytics template
+	AnalyticsTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs,
+		"templates/base.html",
+		"templates/analytics.html",
+		"templates/partials/*.html",
+	)
+	if err != nil {
+		log.Fatalf("Error parsing analytics templates: %v", err)
 	}
 }
 
@@ -124,6 +135,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		case "todo":
 			if todos, err := db.GetTodos(widgets[i].ID); err == nil {
 				widgets[i].Todos = todos
+			}
+		case "notes":
+			if content, err := db.GetNote(widgets[i].ID); err == nil {
+				widgets[i].NoteContent = content
 			}
 		default:
 			if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {

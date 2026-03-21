@@ -352,6 +352,10 @@ func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
 		err = db.AddWidgetTyped(name, "rss", string(config), profile)
 	case "todo":
 		err = db.AddWidgetTyped(name, "todo", `{}`, profile)
+	case "bookmarks":
+		err = db.AddWidgetTyped(name, "bookmarks", `{"layout":"grid","links":[]}`, profile)
+	case "notes":
+		err = db.AddWidgetTyped(name, "notes", `{}`, profile)
 	default:
 		// ical (legacy default)
 		url := r.FormValue("url")

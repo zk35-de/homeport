@@ -612,3 +612,22 @@
   background-position: center;
   opacity: 0.18;
 }
+
+/* ─── Bookmarks Widget ─────────────────────────────── */
+.bookmarks-list { display: flex; flex-direction: column; gap: 0.35rem; }
+.bookmark-item { display: flex; align-items: center; gap: 0.4rem; }
+.bookmark-link { display: flex; align-items: center; gap: 0.5rem; flex: 1; text-decoration: none; color: var(--fg); padding: 0.25rem 0.4rem; border-radius: 6px; transition: background 0.15s; overflow: hidden; }
+.bookmark-link:hover { background: var(--glass); }
+.bookmark-favicon { border-radius: 3px; flex-shrink: 0; }
+.bookmark-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
+.bookmark-empty { color: var(--sub); font-size: 0.85rem; margin: 0.25rem 0; }
+.bookmark-add-form { display: flex; gap: 0.4rem; margin-top: 0.6rem; flex-wrap: wrap; }
+.bookmark-input-name { flex: 1; min-width: 80px; }
+.bookmark-input-url { flex: 2; min-width: 120px; }
+
+/* ─── Notes Widget ──────────────────────────────────── */
+.widget-title-row { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.5rem; }
+.widget-title-row .widget-title { margin-bottom: 0; }
+.notes-textarea { width: 100%; min-height: 120px; resize: vertical; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.6rem; color: var(--fg); font-family: inherit; font-size: 0.9rem; box-sizing: border-box; line-height: 1.5; }
+.notes-textarea:focus { outline: none; border-color: var(--accent); }
+.notes-status { font-size: 0.75rem; color: var(--sub); flex-shrink: 0; }

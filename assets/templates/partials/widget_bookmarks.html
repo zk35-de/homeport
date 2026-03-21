@@ -1,0 +1,34 @@
+{{define "widget_bookmarks"}}
+<div class="widget widget-bookmarks" id="widget-bookmarks-{{.ID}}">
+  <h3 class="widget-title">{{.Name}}</h3>
+  <div class="bookmarks-list">
+    {{range $idx, $link := .BookmarkLinks}}
+    <div class="bookmark-item">
+      <a href="{{$link.URL}}" target="_blank" rel="noopener" class="bookmark-link">
+        {{if $link.Icon}}
+          <img src="{{$link.Icon}}" width="16" height="16" alt="" class="bookmark-favicon" onerror="this.style.display='none'">
+        {{else}}
+          <img src="/api/favicon?url={{$link.URL}}" width="16" height="16" alt="" class="bookmark-favicon" onerror="this.style.display='none'">
+        {{end}}
+        <span class="bookmark-name">{{$link.Name}}</span>
+      </a>
+      <button class="btn-icon bookmark-del" title="Löschen"
+        hx-delete="/api/widgets/{{$.ID}}/bookmark/{{$idx}}"
+        hx-target="#widget-bookmarks-{{$.ID}}"
+        hx-swap="outerHTML">🗑️</button>
+    </div>
+    {{else}}
+    <p class="bookmark-empty">Noch keine Lesezeichen.</p>
+    {{end}}
+  </div>
+  <form class="bookmark-add-form"
+    hx-post="/api/widgets/{{.ID}}/bookmark"
+    hx-target="#widget-bookmarks-{{.ID}}"
+    hx-swap="outerHTML"
+    hx-on::after-request="this.reset()">
+    <input type="text" name="name" placeholder="Name" class="bookmark-input-name" autocomplete="off">
+    <input type="url" name="url" placeholder="https://…" class="bookmark-input-url" autocomplete="off" required>
+    <button type="submit" class="btn-sm">+</button>
+  </form>
+</div>
+{{end}}

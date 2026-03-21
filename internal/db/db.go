@@ -55,7 +55,9 @@ type Widget struct {
 	Events    []ICalEvent   `json:"-"` // populated from cache
 	Weather   *WeatherCache `json:"-"` // populated from cache for weather widgets
 	RSSItems  []RSSItem     `json:"-"` // populated from cache for rss widgets
-	Todos     []TodoItem    `json:"-"` // populated from DB for todo widgets
+	Todos         []TodoItem     `json:"-"` // populated from DB for todo widgets
+	BookmarkLinks []BookmarkLink `json:"-"` // populated for type=bookmarks
+	NoteContent   string         `json:"-"` // populated for type=notes
 	// Clock widget fields (populated for type=clock)
 	ClockMode        string `json:"-"`
 	ClockTimezone    string `json:"-"`
@@ -69,6 +71,24 @@ type RSSItem struct {
 	Title   string `json:"title"`
 	URL     string `json:"url"`
 	PubDate string `json:"pub_date"`
+}
+
+// BookmarkLink is a single link stored in a bookmarks widget config.
+type BookmarkLink struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+	Icon string `json:"icon"`
+}
+
+// ClickStat holds analytics data for a service.
+type ClickStat struct {
+	ServiceID   int
+	ServiceName string
+	ServiceURL  string
+	ServiceIcon string
+	ClickCount  int
+	LastClicked string
+	Profile     string
 }
 
 // TodoItem is a single to-do entry linked to a widget.
@@ -228,6 +248,11 @@ func InitDB(dbPath string) error {
 			click_count INTEGER NOT NULL DEFAULT 1,
 			last_clicked DATETIME NOT NULL DEFAULT (datetime('now')),
 			PRIMARY KEY (service_id, profile)
+		);`,
+		`CREATE TABLE IF NOT EXISTS notes (
+			widget_id  INTEGER PRIMARY KEY REFERENCES widgets(id) ON DELETE CASCADE,
+			content    TEXT NOT NULL DEFAULT '',
+			updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
 		);`,
 	}
 
@@ -627,6 +652,17 @@ func DeleteWidget(id int) error {
 }
 
 func populateWidgetFields(w *Widget) {
+	if w.Type == "bookmarks" {
+		var cfg struct {
+			Links []BookmarkLink `json:"links"`
+		}
+		if err := json.Unmarshal([]byte(w.Config), &cfg); err == nil {
+			w.BookmarkLinks = cfg.Links
+		}
+		if w.BookmarkLinks == nil {
+			w.BookmarkLinks = []BookmarkLink{}
+		}
+	}
 	if w.Type == "clock" {
 		var cfg struct {
 			Mode        string `json:"mode"`
@@ -1191,5 +1227,115 @@ func GetTodoWidgetID(todoID int) (int, error) {
 	var wid int
 	err := DB.QueryRow(`SELECT widget_id FROM todos WHERE id = ?`, todoID).Scan(&wid)
 	return wid, err
+}
+
+// GetWidgetByID returns a single widget by ID with fields populated.
+func GetWidgetByID(id int) (Widget, error) {
+	var w Widget
+	row := DB.QueryRow(`SELECT id, type, name, config, profile, sort_order FROM widgets WHERE id = ?`, id)
+	if err := row.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
+		return w, err
+	}
+	populateWidgetFields(&w)
+	return w, nil
+}
+
+// AddBookmarkLink appends a link to a bookmarks widget config.
+func AddBookmarkLink(widgetID int, link BookmarkLink) error {
+	var configStr string
+	if err := DB.QueryRow(`SELECT config FROM widgets WHERE id = ?`, widgetID).Scan(&configStr); err != nil {
+		return err
+	}
+	var cfg struct {
+		Layout string         `json:"layout"`
+		Links  []BookmarkLink `json:"links"`
+	}
+	_ = json.Unmarshal([]byte(configStr), &cfg)
+	if cfg.Layout == "" {
+		cfg.Layout = "grid"
+	}
+	cfg.Links = append(cfg.Links, link)
+	newConfig, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	s := string(newConfig)
+	return UpdateWidget(widgetID, nil, &s, nil)
+}
+
+// DeleteBookmarkLink removes a link by index from a bookmarks widget config.
+func DeleteBookmarkLink(widgetID, idx int) error {
+	var configStr string
+	if err := DB.QueryRow(`SELECT config FROM widgets WHERE id = ?`, widgetID).Scan(&configStr); err != nil {
+		return err
+	}
+	var cfg struct {
+		Layout string         `json:"layout"`
+		Links  []BookmarkLink `json:"links"`
+	}
+	_ = json.Unmarshal([]byte(configStr), &cfg)
+	if idx < 0 || idx >= len(cfg.Links) {
+		return fmt.Errorf("bookmark index out of range")
+	}
+	cfg.Links = append(cfg.Links[:idx], cfg.Links[idx+1:]...)
+	newConfig, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	s := string(newConfig)
+	return UpdateWidget(widgetID, nil, &s, nil)
+}
+
+// GetNote returns the note content for a widget (empty string if none).
+func GetNote(widgetID int) (string, error) {
+	var content string
+	err := DB.QueryRow(`SELECT content FROM notes WHERE widget_id = ?`, widgetID).Scan(&content)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return content, err
+}
+
+// SaveNote inserts or updates the note content for a widget.
+func SaveNote(widgetID int, content string) error {
+	_, err := DB.Exec(`
+		INSERT INTO notes (widget_id, content, updated_at) VALUES (?, ?, datetime('now'))
+		ON CONFLICT(widget_id) DO UPDATE SET content=excluded.content, updated_at=excluded.updated_at`,
+		widgetID, content)
+	return err
+}
+
+// GetTopClicks returns the top clicked services ordered by click count.
+func GetTopClicks(profile string, limit int) ([]ClickStat, error) {
+	var rows *sql.Rows
+	var err error
+	if profile != "" {
+		rows, err = DB.Query(`
+			SELECT sc.service_id, s.name, s.url, COALESCE(s.icon,''),
+			       sc.click_count, COALESCE(sc.last_clicked,''), sc.profile
+			FROM service_clicks sc JOIN services s ON s.id = sc.service_id
+			WHERE sc.profile = ?
+			ORDER BY sc.click_count DESC LIMIT ?`, profile, limit)
+	} else {
+		rows, err = DB.Query(`
+			SELECT sc.service_id, s.name, s.url, COALESCE(s.icon,''),
+			       sc.click_count, COALESCE(sc.last_clicked,''), sc.profile
+			FROM service_clicks sc JOIN services s ON s.id = sc.service_id
+			ORDER BY sc.click_count DESC LIMIT ?`, limit)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var stats []ClickStat
+	for rows.Next() {
+		var s ClickStat
+		if err := rows.Scan(&s.ServiceID, &s.ServiceName, &s.ServiceURL, &s.ServiceIcon,
+			&s.ClickCount, &s.LastClicked, &s.Profile); err != nil {
+			return nil, err
+		}
+		stats = append(stats, s)
+	}
+	return stats, nil
 }
 
