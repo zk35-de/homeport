@@ -1,11 +1,17 @@
 /* homeport – app-specific styles (extends prism-ui) */
 
 /* Search Bar */
+.search-wrap {
+    display: flex;
+    justify-content: center;
+}
+
 .search-bar {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 2rem;
-    max-width: 600px;
+    width: 100%;
+    max-width: 640px;
 }
 
 .search-bar input[type="search"] {
@@ -508,7 +514,7 @@
 }
 
 /* Search history dropdown */
-.search-wrap { position: relative; }
+.search-wrap { position: relative; justify-content: center; }
 .search-history {
     position: absolute;
     top: 100%;
