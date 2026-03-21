@@ -7,6 +7,7 @@
 <div class="widgets-row">
     {{range .Widgets}}
       {{if eq .Type "weather"}}{{template "widget_weather" .}}
+      {{else if eq .Type "clock"}}{{template "widget_clock" .}}
       {{else}}{{template "widget_ical" .}}
       {{end}}
     {{end}}

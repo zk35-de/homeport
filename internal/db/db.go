@@ -44,6 +44,12 @@ type Widget struct {
 	SortOrder int
 	Events    []ICalEvent   `json:"-"` // populated from cache
 	Weather   *WeatherCache `json:"-"` // populated from cache for weather widgets
+	// Clock widget fields (populated for type=clock)
+	ClockMode       string `json:"-"`
+	ClockTimezone   string `json:"-"`
+	ClockShowSeconds bool  `json:"-"`
+	ClockShowDate   bool   `json:"-"`
+	ClockCountdown  string `json:"-"`
 }
 
 type ICalEvent struct {
@@ -524,13 +530,43 @@ func GetCategory(id int) (*Category, error) {
 
 func AddWidget(name, icalURL, profile string) error {
 	config := fmt.Sprintf(`{"url": "%s"}`, icalURL)
-	_, err := DB.Exec(`INSERT INTO widgets (name, config, profile, sort_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM widgets))`, name, config, profile)
+	_, err := DB.Exec(`INSERT INTO widgets (name, type, config, profile, sort_order) VALUES (?, 'ical', ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM widgets))`, name, config, profile)
+	return err
+}
+
+func AddWidgetTyped(name, widgetType, config, profile string) error {
+	_, err := DB.Exec(`INSERT INTO widgets (name, type, config, profile, sort_order) VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM widgets))`, name, widgetType, config, profile)
 	return err
 }
 
 func DeleteWidget(id int) error {
 	_, err := DB.Exec(`DELETE FROM widgets WHERE id = ?`, id)
 	return err
+}
+
+func populateWidgetFields(w *Widget) {
+	if w.Type == "clock" {
+		var cfg struct {
+			Mode        string `json:"mode"`
+			Timezone    string `json:"timezone"`
+			ShowSeconds bool   `json:"show_seconds"`
+			ShowDate    bool   `json:"show_date"`
+			Countdown   string `json:"countdown"`
+		}
+		if err := json.Unmarshal([]byte(w.Config), &cfg); err == nil {
+			w.ClockMode = cfg.Mode
+			if w.ClockMode == "" {
+				w.ClockMode = "digital"
+			}
+			w.ClockTimezone = cfg.Timezone
+			if w.ClockTimezone == "" {
+				w.ClockTimezone = "Europe/Berlin"
+			}
+			w.ClockShowSeconds = cfg.ShowSeconds
+			w.ClockShowDate = cfg.ShowDate
+			w.ClockCountdown = cfg.Countdown
+		}
+	}
 }
 
 func GetWidgets(profile string) ([]Widget, error) {
@@ -546,6 +582,7 @@ func GetWidgets(profile string) ([]Widget, error) {
 		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
 			return nil, err
 		}
+		populateWidgetFields(&w)
 		widgets = append(widgets, w)
 	}
 	return widgets, nil
@@ -598,6 +635,7 @@ func GetAllWidgets() ([]Widget, error) {
 		if err := rows.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
 			return nil, err
 		}
+		populateWidgetFields(&w)
 		widgets = append(widgets, w)
 	}
 	return widgets, nil

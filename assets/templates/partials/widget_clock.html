@@ -1,0 +1,24 @@
+{{define "widget_clock"}}
+<div class="widget widget-clock" id="clock-widget-{{.ID}}"
+     data-mode="{{.ClockMode}}"
+     data-timezone="{{.ClockTimezone}}"
+     data-show-seconds="{{.ClockShowSeconds}}"
+     data-show-date="{{.ClockShowDate}}"
+     data-countdown="{{.ClockCountdown}}">
+  {{if eq .ClockMode "analog"}}
+  <svg class="analog-clock" viewBox="0 0 100 100" width="120" height="120">
+    <circle cx="50" cy="50" r="48" class="clock-face"/>
+    <line class="clock-hour" x1="50" y1="50" x2="50" y2="22"/>
+    <line class="clock-minute" x1="50" y1="50" x2="50" y2="15"/>
+    <line class="clock-second" x1="50" y1="50" x2="50" y2="12"/>
+    <circle cx="50" cy="50" r="2" class="clock-center"/>
+  </svg>
+  {{else if eq .ClockMode "countdown"}}
+  <div class="clock-digital" id="clock-digital-{{.ID}}">--:--:--</div>
+  <div class="clock-label" id="clock-label-{{.ID}}">Countdown</div>
+  {{else}}
+  <div class="clock-digital" id="clock-digital-{{.ID}}">--:--:--</div>
+  {{end}}
+  <div class="clock-date" id="clock-date-{{.ID}}"></div>
+</div>
+{{end}}

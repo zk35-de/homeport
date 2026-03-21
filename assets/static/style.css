@@ -318,3 +318,43 @@
 .inbox-info { flex: 1; font-size: 0.82rem; }
 .inbox-actions { display: flex; gap: 0.4rem; }
 .inbox-empty { color: var(--sub); font-size: 0.82rem; }
+
+/* Clock Widget */
+.widget-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 160px;
+}
+.clock-digital {
+    font-size: 2.2rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--fg);
+}
+.clock-date {
+    font-size: 0.78rem;
+    color: var(--sub);
+    text-align: center;
+}
+.clock-label {
+    font-size: 0.72rem;
+    color: var(--accent);
+    text-align: center;
+}
+/* Analog clock SVG */
+.analog-clock {
+    overflow: visible;
+}
+.clock-face {
+    fill: var(--surface-2, rgba(255,255,255,0.05));
+    stroke: var(--glass-border, rgba(255,255,255,0.15));
+    stroke-width: 2;
+}
+.clock-hour   { stroke: var(--fg); stroke-width: 4; stroke-linecap: round; }
+.clock-minute { stroke: var(--fg); stroke-width: 2.5; stroke-linecap: round; }
+.clock-second { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
+.clock-center { fill: var(--accent); }

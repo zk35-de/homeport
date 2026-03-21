@@ -79,15 +79,42 @@
         </div>
 
         <div class="manage-category">
-            <h3>Add iCal Widget</h3>
-            <form hx-post="/manage/widget" hx-swap="none" hx-on::after-request="this.reset()">
+            <h3>Add Widget</h3>
+            <form hx-post="/manage/widget" hx-swap="none" hx-on::after-request="this.reset()" id="add-widget-form">
                 <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" name="name" placeholder="Abfallkalender" required>
+                    <label>Typ</label>
+                    <select name="widget_type" id="widget-type-select" onchange="updateWidgetForm()">
+                        <option value="ical">iCal Kalender</option>
+                        <option value="clock">Uhr / Countdown</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>iCal URL</label>
-                    <input type="url" name="url" required>
+                    <label>Name</label>
+                    <input type="text" name="name" placeholder="Meine Uhr" required>
+                </div>
+                <div id="widget-ical-fields">
+                    <div class="form-group">
+                        <label>iCal URL</label>
+                        <input type="url" name="url">
+                    </div>
+                </div>
+                <div id="widget-clock-fields" style="display:none">
+                    <div class="form-group">
+                        <label>Modus</label>
+                        <select name="clock_mode" onchange="updateClockMode(this)">
+                            <option value="digital">Digital</option>
+                            <option value="analog">Analog</option>
+                            <option value="countdown">Countdown</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Zeitzone</label>
+                        <input type="text" name="clock_timezone" value="Europe/Berlin" placeholder="Europe/Berlin">
+                    </div>
+                    <div class="form-group" id="clock-countdown-group" style="display:none">
+                        <label>Zieldatum (Countdown)</label>
+                        <input type="date" name="clock_countdown">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Profil</label>

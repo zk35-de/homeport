@@ -289,12 +289,33 @@ func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := r.FormValue("name")
-	url := r.FormValue("url")
+	widgetType := r.FormValue("widget_type")
 	profile := r.FormValue("profile")
 	if profile == "" {
 		profile = "all"
 	}
-	if err := db.AddWidget(name, url, profile); err != nil {
+
+	var err error
+	switch widgetType {
+	case "clock":
+		mode := r.FormValue("clock_mode")
+		if mode == "" {
+			mode = "digital"
+		}
+		timezone := r.FormValue("clock_timezone")
+		if timezone == "" {
+			timezone = "Europe/Berlin"
+		}
+		countdown := r.FormValue("clock_countdown")
+		config := `{"mode":"` + mode + `","timezone":"` + timezone + `","show_date":true,"show_seconds":true,"countdown":"` + countdown + `"}`
+		err = db.AddWidgetTyped(name, "clock", config, profile)
+	default:
+		// ical (legacy default)
+		url := r.FormValue("url")
+		err = db.AddWidget(name, url, profile)
+	}
+
+	if err != nil {
 		log.Printf("Error adding widget: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

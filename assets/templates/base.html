@@ -18,6 +18,102 @@
         navigator.serviceWorker.register('/sw.js');
       }
     </script>
+    <script>
+    // Clock widget runtime
+    (function() {
+      function pad(n) { return String(n).padStart(2, '0'); }
+
+      function formatDate(d, tz) {
+        return d.toLocaleDateString('de-DE', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz
+        });
+      }
+
+      function tickClock(el) {
+        const mode = el.dataset.mode || 'digital';
+        const tz   = el.dataset.timezone || 'Europe/Berlin';
+        const showDate = el.dataset.showDate !== 'false';
+        const showSec  = el.dataset.showSeconds !== 'false';
+        const now = new Date();
+
+        const dateEl = el.querySelector('[id^="clock-date-"]');
+
+        if (mode === 'analog') {
+          const h = now.getHours() % 12, m = now.getMinutes(), s = now.getSeconds();
+          const ha = (h * 30) + (m * 0.5), ma = m * 6, sa = s * 6;
+          const hourLine   = el.querySelector('.clock-hour');
+          const minuteLine = el.querySelector('.clock-minute');
+          const secondLine = el.querySelector('.clock-second');
+          if (hourLine)   setHand(hourLine, ha, 28);
+          if (minuteLine) setHand(minuteLine, ma, 35);
+          if (secondLine) setHand(secondLine, sa, 38);
+          if (dateEl && showDate) dateEl.textContent = formatDate(now, tz);
+          return;
+        }
+
+        if (mode === 'countdown') {
+          const target = el.dataset.countdown;
+          const digitalEl = el.querySelector('[id^="clock-digital-"]');
+          const labelEl   = el.querySelector('[id^="clock-label-"]');
+          if (target && digitalEl) {
+            const diff = new Date(target + 'T00:00:00') - now;
+            if (diff > 0) {
+              const days = Math.floor(diff / 86400000);
+              const hrs  = Math.floor((diff % 86400000) / 3600000);
+              const mins = Math.floor((diff % 3600000) / 60000);
+              const secs = Math.floor((diff % 60000) / 1000);
+              digitalEl.textContent = days + 'd ' + pad(hrs) + ':' + pad(mins) + ':' + pad(secs);
+            } else {
+              digitalEl.textContent = '00d 00:00:00';
+            }
+          }
+          if (labelEl && target) labelEl.textContent = 'bis ' + new Date(target).toLocaleDateString('de-DE');
+          return;
+        }
+
+        // digital
+        const digitalEl = el.querySelector('[id^="clock-digital-"]');
+        if (digitalEl) {
+          const h = pad(now.getHours()), m = pad(now.getMinutes()), s = pad(now.getSeconds());
+          digitalEl.textContent = showSec ? h + ':' + m + ':' + s : h + ':' + m;
+        }
+        if (dateEl && showDate) dateEl.textContent = formatDate(now, tz);
+      }
+
+      function setHand(line, angle, length) {
+        const rad = (angle - 90) * Math.PI / 180;
+        const x2 = 50 + length * Math.cos(rad);
+        const y2 = 50 + length * Math.sin(rad);
+        line.setAttribute('x2', x2.toFixed(2));
+        line.setAttribute('y2', y2.toFixed(2));
+      }
+
+      function initClocks() {
+        document.querySelectorAll('.widget-clock').forEach(el => {
+          tickClock(el);
+          setInterval(() => tickClock(el), 1000);
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', initClocks);
+    })();
+
+    // manage.html widget form toggle
+    function updateWidgetForm() {
+      const sel = document.getElementById('widget-type-select');
+      if (!sel) return;
+      const ical  = document.getElementById('widget-ical-fields');
+      const clock = document.getElementById('widget-clock-fields');
+      if (ical)  ical.style.display  = sel.value === 'ical'  ? '' : 'none';
+      if (clock) clock.style.display = sel.value === 'clock' ? '' : 'none';
+      const modeEl = document.querySelector('select[name="clock_mode"]');
+      if (modeEl) updateClockMode(modeEl);
+    }
+    function updateClockMode(sel) {
+      const cg = document.getElementById('clock-countdown-group');
+      if (cg) cg.style.display = sel && sel.value === 'countdown' ? '' : 'none';
+    }
+    </script>
 </head>
 <body>
     <div class="aurora">
