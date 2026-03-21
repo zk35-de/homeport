@@ -194,6 +194,13 @@ func InitDB(dbPath string) error {
 	return nil
 }
 
+func ReinitDB(dbPath string) error {
+	if DB != nil {
+		DB.Close()
+	}
+	return InitDB(dbPath)
+}
+
 type DiscoveryItem struct {
 	ID          int
 	ContainerID string

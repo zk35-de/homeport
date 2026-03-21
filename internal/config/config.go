@@ -10,10 +10,13 @@ import (
 
 // Config holds all runtime configuration for homeport.
 type Config struct {
-	Port   string
-	DBPath string
-	Token  string
-	CORS   []string
+	Port           string
+	DBPath         string
+	Token          string
+	CORS           []string
+	BackupDir      string
+	BackupInterval string
+	BackupMaxKeep  int
 }
 
 // Load reads configuration from environment variables and applies defaults.
@@ -49,11 +52,29 @@ func Load() *Config {
 		}
 	}
 
+	backupDir := os.Getenv("HOMEPORT_BACKUP_DIR")
+	if backupDir == "" {
+		backupDir = "./data/backups"
+	}
+
+	backupInterval := os.Getenv("HOMEPORT_BACKUP_INTERVAL")
+
+	backupMaxKeepStr := os.Getenv("HOMEPORT_BACKUP_MAX_KEEP")
+	backupMaxKeep := 7
+	if backupMaxKeepStr != "" {
+		if fmt.Sscanf(backupMaxKeepStr, "%d", &backupMaxKeep); backupMaxKeep <= 0 {
+			backupMaxKeep = 7
+		}
+	}
+
 	return &Config{
-		Port:   port,
-		DBPath: dbPath,
-		Token:  token,
-		CORS:   cors,
+		Port:           port,
+		DBPath:         dbPath,
+		Token:          token,
+		CORS:           cors,
+		BackupDir:      backupDir,
+		BackupInterval: backupInterval,
+		BackupMaxKeep:  backupMaxKeep,
 	}
 }
 

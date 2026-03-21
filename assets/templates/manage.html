@@ -204,6 +204,28 @@
   {{end}}
 </section>
 
+<section class="manage-section" id="backup">
+  <h2>Backup & Restore</h2>
+
+  <!-- Manueller Backup-Download -->
+  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem">
+    <a href="/manage/backup" class="btn-sm" download>💾 Backup herunterladen</a>
+    <span style="font-size:0.8rem;color:var(--sub)">Lädt homeport.db als Snapshot</span>
+  </div>
+
+  <!-- Restore-Upload -->
+  <form method="post" action="/manage/restore" enctype="multipart/form-data"
+        onsubmit="return confirm('⚠️ Restore überschreibt ALLE Daten. Fortfahren?')">
+    <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="margin-bottom:0">
+        <label>DB-Datei wiederherstellen</label>
+        <input type="file" name="file" accept=".db" required>
+      </div>
+      <button type="submit" class="btn-sm" style="background:var(--fehler)">⚠️ Restore</button>
+    </div>
+  </form>
+</section>
+
 <style>
 .edit-form {
     background: var(--surface-2, rgba(255,255,255,0.05));

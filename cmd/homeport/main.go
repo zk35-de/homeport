@@ -17,7 +17,9 @@ import (
 	"git.zk35.de/secalpha/homeport/assets"
 	"git.zk35.de/secalpha/homeport/core"
 	"git.zk35.de/secalpha/homeport/internal/api"
+	"git.zk35.de/secalpha/homeport/internal/backup"
 	"git.zk35.de/secalpha/homeport/internal/config"
+
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
@@ -26,13 +28,27 @@ func main() {
 
 	slog.Info("homeport starting", "port", cfg.Port, "db", cfg.DBPath)
 
+	// Pass config to API handlers
+	api.SetConfig(cfg)
+
 	// Init DB
 	if err := db.InitDB(cfg.DBPath); err != nil {
-		slog.Error("failed to init db", "err", err)
-		os.Exit(1)
+	        slog.Error("failed to init db", "err", err)
+	        os.Exit(1)
+	}
+
+	// Scheduled Backups
+	if cfg.BackupInterval != "" {
+	        if d, err := time.ParseDuration(cfg.BackupInterval); err == nil && d > 0 {
+	                slog.Info("scheduled backups enabled", "interval", d, "dir", cfg.BackupDir, "max_keep", cfg.BackupMaxKeep)
+	                backup.ScheduledBackup(cfg.DBPath, cfg.BackupDir, d, cfg.BackupMaxKeep)
+	        } else if err != nil {
+	                slog.Error("failed to parse backup interval", "val", cfg.BackupInterval, "err", err)
+	        }
 	}
 
 	// Init Templates (uses embedded FS from assets package)
+
 	api.InitTemplates(assets.FS)
 
 	// Start Background Tasks
@@ -65,11 +81,17 @@ func main() {
 	api.RegisterShortenerPublicRoutes(r)
 
 	r.Route("/manage", func(r chi.Router) {
-		r.Post("/clone-andrea", api.HandleCloneToAndrea)
-		r.Post("/widget", api.HandleAddWidget)
-		r.Delete("/widget/{id}", api.HandleDeleteWidget)
-		r.Get("/", api.HandleManage)
-		r.Post("/category", api.HandleAddCategory)
+	        r.Post("/clone-andrea", api.HandleCloneToAndrea)
+	        r.Post("/widget", api.HandleAddWidget)
+	        r.Delete("/widget/{id}", api.HandleDeleteWidget)
+	        r.Get("/", api.HandleManage)
+
+	        // Backup & Restore
+	        r.Get("/backup", api.HandleBackupDownload)
+	        r.Post("/restore", api.HandleRestore)
+
+	        r.Post("/category", api.HandleAddCategory)
+
 		r.Post("/service", api.HandleAddService)
 		r.Delete("/category/{id}", api.HandleDeleteCategory)
 		r.Delete("/service/{id}", api.HandleDeleteService)
