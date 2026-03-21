@@ -136,8 +136,17 @@
 
 /* Layout-specific overrides */
 .grid-list .service-card {
-    padding: 0.6rem 1rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-md);
+    gap: 0.5rem;
 }
+.grid-list .service-icon {
+    width: 20px; height: 20px;
+    font-size: 0.9rem;
+}
+.grid-list .service-icon img { width: 16px; height: 16px; }
+.grid-list .service-name { font-size: 0.82rem; }
+.grid-list .service-desc { display: none; }
 
 .grid-icons .service-card {
     flex-direction: column;
@@ -571,3 +580,35 @@
 .todo-item:hover .todo-del { opacity: 1; }
 .todo-add-form { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
 .todo-input { flex: 1; font-size: 0.82rem; }
+
+/* Dynamic backgrounds – time-of-day */
+.bg-time {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+  transition: background 2s ease;
+}
+.bg-time[data-slot="morning"] {
+  background: radial-gradient(ellipse at 20% 80%, rgba(251,146,60,0.22) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(253,186,116,0.15) 0%, transparent 60%);
+}
+.bg-time[data-slot="day"] {
+  background: radial-gradient(ellipse at 30% 70%, rgba(56,189,248,0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 30%, rgba(99,102,241,0.12) 0%, transparent 60%);
+}
+.bg-time[data-slot="evening"] {
+  background: radial-gradient(ellipse at 20% 80%, rgba(139,92,246,0.22) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(236,72,153,0.14) 0%, transparent 60%);
+}
+.bg-time[data-slot="night"] {
+  background: radial-gradient(ellipse at 30% 60%, rgba(30,27,75,0.35) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 40%, rgba(15,23,42,0.25) 0%, transparent 60%);
+}
+
+/* Custom image background */
+.bg-image {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.18;
+}

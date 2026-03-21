@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Test before release
+        run: go test ./...
+
+      - name: Build linux/amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
+            -o dist/homeport-linux-amd64 ./cmd/homeport
+
+      - name: Build linux/arm64
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
+            -o dist/homeport-linux-arm64 ./cmd/homeport
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum homeport-linux-amd64 homeport-linux-arm64 > checksums.txt
+
+      - name: Create Release
+        uses: forgejo/release-action@v1
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          files: |
+            dist/homeport-linux-amd64
+            dist/homeport-linux-arm64
+            dist/checksums.txt

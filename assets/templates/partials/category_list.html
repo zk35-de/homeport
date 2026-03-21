@@ -13,6 +13,9 @@
                     hx-post="/manage/category/{{.ID}}/span/2" hx-target="#category-list" hx-swap="innerHTML">▥</button>
                 <button class="btn-icon {{if eq .ColSpan 3}}span-active{{end}}" title="Drittel"
                     hx-post="/manage/category/{{.ID}}/span/3" hx-target="#category-list" hx-swap="innerHTML">▤</button>
+                <button class="btn-icon {{if eq .SortMode "usage"}}span-active{{end}}" title="Nach Nutzung sortieren"
+                    hx-post="/manage/category/{{.ID}}/sortmode/{{if eq .SortMode "usage"}}manual{{else}}usage{{end}}"
+                    hx-target="#category-list" hx-swap="innerHTML">📊</button>
                 <button class="btn-icon"
                     hx-get="/manage/category/{{.ID}}/edit"
                     hx-target="#cat-edit-{{.ID}}"

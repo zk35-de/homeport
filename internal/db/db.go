@@ -27,6 +27,7 @@ type Category struct {
 	Color     string // e.g., 'indigo'
 	SortOrder int
 	ColSpan   int    // 1=full, 2=half, 3=third
+	SortMode  string // 'manual' or 'usage'
 	Services  []Service
 }
 
@@ -221,6 +222,13 @@ func InitDB(dbPath string) error {
 			due_date   TEXT NOT NULL DEFAULT '',
 			sort_order INTEGER NOT NULL DEFAULT 0
 		);`,
+		`CREATE TABLE IF NOT EXISTS service_clicks (
+			service_id  INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+			profile     TEXT NOT NULL,
+			click_count INTEGER NOT NULL DEFAULT 1,
+			last_clicked DATETIME NOT NULL DEFAULT (datetime('now')),
+			PRIMARY KEY (service_id, profile)
+		);`,
 	}
 
 	for _, q := range queries {
@@ -233,6 +241,8 @@ func InitDB(dbPath string) error {
 	_, _ = DB.Exec(`ALTER TABLE widgets ADD COLUMN visible INTEGER NOT NULL DEFAULT 1`)
 	_, _ = DB.Exec(`ALTER TABLE user_preferences ADD COLUMN custom_css TEXT NOT NULL DEFAULT ''`)
 	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN col_span INTEGER NOT NULL DEFAULT 1`)
+	_, _ = DB.Exec(`ALTER TABLE categories ADD COLUMN sort_mode TEXT NOT NULL DEFAULT 'manual'`)
+	_, _ = DB.Exec(`ALTER TABLE user_preferences ADD COLUMN background_mode TEXT NOT NULL DEFAULT 'aurora'`)
 
 	// Seed default profiles if table is empty
 	var count int
@@ -387,7 +397,7 @@ func AcceptDiscoveryItem(id int) error {
 }
 
 func GetCategoriesWithServices(profile string) ([]Category, error) {
-	rows, err := DB.Query(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1) FROM categories ORDER BY sort_order ASC`)
+	rows, err := DB.Query(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1), COALESCE(sort_mode,'manual') FROM categories ORDER BY sort_order ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +406,7 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 	var categories []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan, &c.SortMode); err != nil {
 			return nil, err
 		}
 		if c.ColSpan < 1 || c.ColSpan > 3 {
@@ -408,21 +418,22 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 		var sRows *sql.Rows
 		var sErr error
 
-		query := `
-			SELECT s.id, s.category_id, s.name, s.url, s.icon, s.description, s.status_check, s.sort_order, 
+		base := `
+			SELECT s.id, s.category_id, s.name, s.url, s.icon, s.description, s.status_check, s.sort_order,
 			       COALESCE(ss.alive, 0), COALESCE(ss.last_check, '0001-01-01 00:00:00')
 			FROM services s
 			LEFT JOIN service_status ss ON s.id = ss.service_id
 			WHERE s.category_id = ?
 		`
-
-		if profile != "" {
-			query += ` AND s.id IN (SELECT service_id FROM visibility WHERE profile = ?)`
-			query += ` ORDER BY s.sort_order ASC`
+		if profile != "" && c.SortMode == "usage" {
+			query := base + ` AND s.id IN (SELECT service_id FROM visibility WHERE profile = ?)
+				ORDER BY (SELECT COALESCE(click_count,0) FROM service_clicks WHERE service_id=s.id AND profile=?) DESC, s.sort_order ASC`
+			sRows, sErr = DB.Query(query, c.ID, profile, profile)
+		} else if profile != "" {
+			query := base + ` AND s.id IN (SELECT service_id FROM visibility WHERE profile = ?) ORDER BY s.sort_order ASC`
 			sRows, sErr = DB.Query(query, c.ID, profile)
 		} else {
-			query += ` ORDER BY s.sort_order ASC`
-			sRows, sErr = DB.Query(query, c.ID)
+			sRows, sErr = DB.Query(base+` ORDER BY s.sort_order ASC`, c.ID)
 		}
 
 		if sErr != nil {
@@ -834,30 +845,32 @@ func GetAllSearchEngines() map[string]string {
 
 // UserPreferences holds per-profile UI preferences.
 type UserPreferences struct {
-	Profile      string `json:"profile"`
-	Theme        string `json:"theme"`
-	AccentColor  string `json:"accent_color"`
-	SearchEngine string `json:"search_engine"`
-	Background   string `json:"background"`
-	Language     string `json:"language"`
-	Layout       string `json:"layout"`
-	CustomCSS    string `json:"custom_css"`
+	Profile        string `json:"profile"`
+	Theme          string `json:"theme"`
+	AccentColor    string `json:"accent_color"`
+	SearchEngine   string `json:"search_engine"`
+	Background     string `json:"background"`
+	Language       string `json:"language"`
+	Layout         string `json:"layout"`
+	CustomCSS      string `json:"custom_css"`
+	BackgroundMode string `json:"background_mode"` // aurora, time, weather, image
 }
 
 // GetUserPreferences returns preferences for a profile (defaults if not found).
 func GetUserPreferences(profile string) (*UserPreferences, error) {
 	p := &UserPreferences{
-		Profile:      profile,
-		Theme:        "dark",
-		AccentColor:  "#6366f1",
-		SearchEngine: "https://duckduckgo.com/",
-		Background:   "aurora",
-		Language:     "de",
-		Layout:       "grid",
+		Profile:        profile,
+		Theme:          "dark",
+		AccentColor:    "#6366f1",
+		SearchEngine:   "https://duckduckgo.com/",
+		Background:     "aurora",
+		Language:       "de",
+		Layout:         "grid",
+		BackgroundMode: "aurora",
 	}
-	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, background, language, layout, COALESCE(custom_css,'')
+	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, background, language, layout, COALESCE(custom_css,''), COALESCE(background_mode,'aurora')
 		FROM user_preferences WHERE profile = ?`, profile)
-	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Background, &p.Language, &p.Layout, &p.CustomCSS)
+	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Background, &p.Language, &p.Layout, &p.CustomCSS, &p.BackgroundMode)
 	if err == sql.ErrNoRows {
 		return p, nil
 	}
@@ -869,8 +882,8 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 
 // SetUserPreferences upserts preferences for a profile.
 func SetUserPreferences(profile string, prefs UserPreferences) error {
-	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, background, language, layout, custom_css)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, background, language, layout, custom_css, background_mode)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(profile) DO UPDATE SET
 			theme = excluded.theme,
 			accent_color = excluded.accent_color,
@@ -878,9 +891,10 @@ func SetUserPreferences(profile string, prefs UserPreferences) error {
 			background = excluded.background,
 			language = excluded.language,
 			layout = excluded.layout,
-			custom_css = excluded.custom_css`,
+			custom_css = excluded.custom_css,
+			background_mode = excluded.background_mode`,
 		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
-		prefs.Background, prefs.Language, prefs.Layout, prefs.CustomCSS)
+		prefs.Background, prefs.Language, prefs.Layout, prefs.CustomCSS, prefs.BackgroundMode)
 	return err
 }
 
@@ -1086,6 +1100,34 @@ func SetDefaultProfile(slug string) error {
 	}
 
 	return tx.Commit()
+}
+
+// RecordClick increments the click count for a service+profile pair.
+func RecordClick(serviceID int, profile string) error {
+	_, err := DB.Exec(`
+		INSERT INTO service_clicks (service_id, profile, click_count, last_clicked)
+		VALUES (?, ?, 1, datetime('now'))
+		ON CONFLICT(service_id, profile) DO UPDATE SET
+			click_count = click_count + 1,
+			last_clicked = datetime('now')`,
+		serviceID, profile)
+	return err
+}
+
+// GetServiceURL returns the URL of a service by ID.
+func GetServiceURL(id int) (string, error) {
+	var url string
+	err := DB.QueryRow(`SELECT url FROM services WHERE id = ?`, id).Scan(&url)
+	return url, err
+}
+
+// SetCategorySortMode sets the sort mode for a category.
+func SetCategorySortMode(categoryID int, mode string) error {
+	if mode != "manual" && mode != "usage" {
+		mode = "manual"
+	}
+	_, err := DB.Exec(`UPDATE categories SET sort_mode = ? WHERE id = ?`, mode, categoryID)
+	return err
 }
 
 // GetRSSCache returns parsed RSS items from widget cache.

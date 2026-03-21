@@ -78,6 +78,9 @@ func main() {
 
 	r.Get("/status/stream", api.HandleStatusStream)
 
+	// Service click-tracking redirect
+	r.Get("/r/{id}", api.HandleServiceRedirect)
+
 	// URL Shortener – public redirect (no auth)
 	api.RegisterShortenerPublicRoutes(r)
 
@@ -117,6 +120,7 @@ func main() {
 		r.Post("/profile", api.HandleAddProfile)
 		r.Delete("/profile/{slug}", api.HandleDeleteProfile)
 		r.Post("/profile/{slug}/default", api.HandleSetDefaultProfile)
+		r.Post("/category/{id}/sortmode/{mode}", api.HandleSetCategorySortMode)
 	})
 
 	// Todo routes (no auth – HTMX from index page)
@@ -126,9 +130,10 @@ func main() {
 
 	// REST API Routes
 	r.Route("/api", func(r chi.Router) {
-		// Health + Favicon: no auth
+		// Health + Favicon + Search: no auth
 		r.Get("/health", api.HandleHealth)
 		r.Get("/favicon", api.HandleFavicon)
+		r.Get("/search", api.HandleSearch)
 
 		// Protected API routes
 		r.Group(func(r chi.Router) {

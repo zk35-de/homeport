@@ -14,6 +14,7 @@
   --warn:  #f59e0b;
   --fehler: #ef4444;
 
+  --fg:      var(--text);
   --muted:   var(--sub);
   --primary: var(--accent);
 
@@ -37,6 +38,18 @@
   --aurora-3: rgba(139,92,246,0.08);
 
   color-scheme: dark;
+
+  /* Category color palette */
+  --indigo: #818cf8;
+  --blue:   #60a5fa;
+  --cyan:   #22d3ee;
+  --green:  #4ade80;
+  --yellow: #fbbf24;
+  --orange: #fb923c;
+  --red:    #f87171;
+  --pink:   #f472b6;
+  --purple: #c084fc;
+  --gray:   #94a3b8;
 }
 
 /* ── Light Mode ── */
@@ -66,6 +79,18 @@
   --aurora-3: rgba(139,92,246,0.05);
 
   color-scheme: light;
+
+  /* Category color palette (slightly darker for light mode) */
+  --indigo: #4f46e5;
+  --blue:   #2563eb;
+  --cyan:   #0891b2;
+  --green:  #16a34a;
+  --yellow: #d97706;
+  --orange: #ea580c;
+  --red:    #dc2626;
+  --pink:   #db2777;
+  --purple: #9333ea;
+  --gray:   #64748b;
 }
 
 @media (prefers-color-scheme: light) {

@@ -160,12 +160,33 @@
     }
     </script>
 </head>
-<body>
-    <div class="aurora">
+<body data-profile="{{if .Profile}}{{.Profile}}{{end}}" data-bg="{{if .Prefs}}{{.Prefs.BackgroundMode}}{{else}}aurora{{end}}">
+    <div class="aurora" id="bg-aurora">
         <div class="ab ab-1"></div>
         <div class="ab ab-2"></div>
         <div class="ab ab-3"></div>
     </div>
+    <div class="bg-time" id="bg-time" style="display:none"></div>
+    <div class="bg-image" id="bg-image" style="display:none"></div>
+    <script>
+    (function(){
+      var mode = document.body.dataset.bg || 'aurora';
+      function applyBg(m) {
+        document.getElementById('bg-aurora').style.display = m === 'aurora' ? '' : 'none';
+        document.getElementById('bg-time').style.display  = m === 'time'   ? '' : 'none';
+        document.getElementById('bg-image').style.display = m === 'image'  ? '' : 'none';
+        if (m === 'time') applyTimeBg();
+      }
+      function applyTimeBg() {
+        var h = new Date().getHours();
+        var slot = h >= 6 && h < 12 ? 'morning' : h >= 12 && h < 18 ? 'day' : h >= 18 && h < 22 ? 'evening' : 'night';
+        document.getElementById('bg-time').dataset.slot = slot;
+      }
+      applyBg(mode);
+      // Refresh time bg every 10 min
+      if (mode === 'time') setInterval(applyTimeBg, 600000);
+    })();
+    </script>
     <nav>
         <a href="/" class="brand">homeport</a>
         <span class="brand-sep">·</span>
@@ -198,40 +219,62 @@
     (function(){
       // Static commands (always available)
       const STATIC_CMDS = [
-        { label: '🏠 Markus Dashboard',    url: '/',        group: 'Navigation' },
-        { label: '👩 Andrea Dashboard',    url: '/andrea',  group: 'Navigation' },
-        { label: '⚙️ Manage',             url: '/manage',  group: 'Navigation' },
-        { label: '🌙 Theme wechseln',      action: 'theme', group: 'Aktionen'  },
-        { label: '💾 Backup herunterladen',url: '/manage/backup', group: 'Aktionen' },
+        { label: '🏠 Dashboard',           url: '/',              group: 'Navigation', icon: null },
+        { label: '⚙️ Manage',             url: '/manage',        group: 'Navigation', icon: null },
+        { label: '🌙 Theme wechseln',      action: 'theme',       group: 'Aktionen',   icon: null },
+        { label: '💾 Backup herunterladen',url: '/manage/backup', group: 'Aktionen',   icon: null },
       ];
 
       let allCmds = [];
       let activeIdx = -1;
+      let _searchTimer = null;
 
       function buildCommands() {
         allCmds = [...STATIC_CMDS];
-        // Collect service cards from DOM
+        // Collect service cards from DOM (with favicon URL if available)
         document.querySelectorAll('.service-card').forEach(a => {
           const name = a.querySelector('.service-name')?.textContent?.trim();
           const url  = a.href;
-          const icon = a.querySelector('.service-icon')?.textContent?.trim() || '🔗';
+          const iconEl = a.querySelector('.service-icon');
+          const imgEl  = iconEl?.querySelector('img');
+          const icon   = imgEl ? imgEl.src : (iconEl?.textContent?.trim() || '🔗');
+          const isImg  = !!imgEl;
           if (name && url) {
-            allCmds.push({ label: icon + ' ' + name, url, group: 'Services' });
+            allCmds.push({ label: name, url, group: 'Services', icon, isImg });
           }
         });
       }
 
       function fuzzy(str, query) {
-        str = str.toLowerCase();
-        query = query.toLowerCase();
+        str = str.toLowerCase(); query = query.toLowerCase();
         if (!query) return true;
         let si = 0;
         for (let qi = 0; qi < query.length; qi++) {
           si = str.indexOf(query[qi], si);
-          if (si === -1) return false;
-          si++;
+          if (si === -1) return false; si++;
         }
         return true;
+      }
+
+      function renderCmdItem(cmd, i, isActive) {
+        const li = document.createElement('li');
+        li.className = 'cmd-item' + (isActive ? ' active' : '');
+        li.dataset.idx = i;
+        if (cmd.icon && cmd.isImg) {
+          const img = document.createElement('img');
+          img.src = cmd.icon; img.width = 16; img.height = 16;
+          img.style.cssText = 'border-radius:3px;margin-right:6px;vertical-align:middle;flex-shrink:0';
+          li.appendChild(img);
+        } else if (cmd.icon && !cmd.isImg) {
+          const sp = document.createElement('span');
+          sp.textContent = cmd.icon;
+          sp.style.cssText = 'margin-right:6px;flex-shrink:0';
+          li.appendChild(sp);
+        }
+        li.appendChild(document.createTextNode(cmd.label));
+        li.addEventListener('click', () => execCmd(cmd));
+        li.addEventListener('mouseenter', () => setActive(i));
+        return li;
       }
 
       function renderResults(query) {
@@ -243,20 +286,39 @@
         filtered.slice(0, 12).forEach((cmd, i) => {
           if (cmd.group !== lastGroup) {
             const sep = document.createElement('li');
-            sep.className = 'cmd-group';
-            sep.textContent = cmd.group;
-            ul.appendChild(sep);
-            lastGroup = cmd.group;
+            sep.className = 'cmd-group'; sep.textContent = cmd.group;
+            ul.appendChild(sep); lastGroup = cmd.group;
           }
-          const li = document.createElement('li');
-          li.className = 'cmd-item' + (i === 0 ? ' active' : '');
-          li.textContent = cmd.label;
-          li.dataset.idx = i;
-          li.addEventListener('click', () => execCmd(cmd));
-          li.addEventListener('mouseenter', () => setActive(i));
-          ul.appendChild(li);
+          ul.appendChild(renderCmdItem(cmd, i, i === 0));
         });
         window._cmdFiltered = filtered.slice(0, 12);
+
+        // Server search for non-empty queries
+        if (query.length >= 2) {
+          clearTimeout(_searchTimer);
+          _searchTimer = setTimeout(() => fetchServerSearch(query), 250);
+        }
+      }
+
+      function fetchServerSearch(query) {
+        const profile = document.body.dataset.profile || '';
+        fetch('/api/search?q=' + encodeURIComponent(query) + '&profile=' + encodeURIComponent(profile))
+          .then(r => r.json()).then(results => {
+            if (!results || !results.length) return;
+            const ul = document.getElementById('cmd-results');
+            // Check if "Server" group already shown
+            const existing = new Set(Array.from(ul.querySelectorAll('.cmd-item')).map(li => li.textContent.trim()));
+            const newCmds = results.filter(r => !existing.has(r.name));
+            if (!newCmds.length) return;
+            const sep = document.createElement('li');
+            sep.className = 'cmd-group'; sep.textContent = 'Alle Profile';
+            ul.appendChild(sep);
+            newCmds.slice(0, 6).forEach((r, i) => {
+              const cmd = { label: r.name, url: r.url, icon: r.icon, isImg: r.icon && r.icon.startsWith('http') };
+              const idx = (window._cmdFiltered?.length || 0) + i;
+              ul.appendChild(renderCmdItem(cmd, idx, false));
+            });
+          }).catch(() => {});
       }
 
       function setActive(idx) {

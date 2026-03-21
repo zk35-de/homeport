@@ -34,7 +34,7 @@
 
         <div class="manage-category">
             <h3>Add Service</h3>
-            <form hx-post="/manage/service" hx-target="#category-list" hx-swap="innerHTML">
+            <form hx-post="/manage/service" hx-target="#category-list" hx-swap="innerHTML" hx-on::after-request="this.reset()">
                 <div class="form-group">
                     <label>Category</label>
                     <select name="category_id" required>
@@ -294,6 +294,18 @@
     </div>
 
     <div class="form-group" style="flex:0 0 auto">
+      <label>Hintergrund</label>
+      <div style="display:flex;gap:0.4rem;margin-top:0.25rem;flex-wrap:wrap">
+        <button class="btn-sm bg-mode-btn" data-mode="aurora"  onclick="setBgMode('aurora')"
+          style="{{if eq .Prefs.BackgroundMode "aurora"}}outline:2px solid var(--accent);{{end}}">✨ Aurora</button>
+        <button class="btn-sm bg-mode-btn" data-mode="time"    onclick="setBgMode('time')"
+          style="{{if eq .Prefs.BackgroundMode "time"}}outline:2px solid var(--accent);{{end}}">🕐 Tageszeit</button>
+        <button class="btn-sm bg-mode-btn" data-mode="none"    onclick="setBgMode('none')"
+          style="{{if eq .Prefs.BackgroundMode "none"}}outline:2px solid var(--accent);{{end}}">⬛ Keiner</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="flex:0 0 auto">
       <label>Accent Color</label>
       <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.25rem">
         <input type="color" id="accent-picker" value="{{.Prefs.AccentColor}}"
@@ -416,6 +428,19 @@ function setTheme(theme) {
         b.style.outline = b.dataset.theme === theme ? '2px solid var(--accent)' : '';
     });
     savePrefs({theme});
+}
+
+function setBgMode(mode) {
+    // Update buttons
+    document.querySelectorAll('.bg-mode-btn').forEach(b => {
+        b.style.outline = b.dataset.mode === mode ? '2px solid var(--accent)' : '';
+    });
+    // Apply live
+    const aurora = document.getElementById('bg-aurora');
+    const bgTime = document.getElementById('bg-time');
+    if (aurora) aurora.style.display = mode === 'aurora' ? '' : 'none';
+    if (bgTime) bgTime.style.display  = mode === 'time'   ? '' : 'none';
+    savePrefs({background_mode: mode});
 }
 
 function previewAccent(hex) {
