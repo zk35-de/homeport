@@ -200,7 +200,7 @@
 <section class="manage-section" id="discovery-sources">
   <h2>Auto-Discovery Quellen</h2>
   <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem">
-    Nginx Proxy Manager und Docker-Hosts werden automatisch auf neue Dienste gescannt.
+    Nginx Proxy Manager, Docker und Traefik werden automatisch auf neue Dienste gescannt.
   </p>
 
   <form hx-post="/manage/discovery/sources" hx-target="#discovery-sources-list" hx-swap="outerHTML"
@@ -209,6 +209,7 @@
       <label>Typ</label>
       <select name="type">
         <option value="npm">Nginx Proxy Manager</option>
+        <option value="traefik">Traefik</option>
         <option value="docker">Docker TCP</option>
       </select>
     </div>

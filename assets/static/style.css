@@ -612,3 +612,59 @@
 .notes-textarea { width: 100%; min-height: 120px; resize: vertical; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.6rem; color: var(--fg); font-family: inherit; font-size: 0.9rem; box-sizing: border-box; line-height: 1.5; }
 .notes-textarea:focus { outline: none; border-color: var(--accent); }
 .notes-status { font-size: 0.75rem; color: var(--sub); flex-shrink: 0; }
+
+/* ─── Onboarding Empty State ───────────────────────── */
+.onboarding-hint {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text);
+}
+
+/* ─── HTMX Loading Indicator ──────────────────────── */
+.htmx-loading-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    width: 0;
+    transition: width 0.3s ease;
+    z-index: 9999;
+    pointer-events: none;
+}
+html.htmx-loading .htmx-loading-bar { width: 70%; }
+
+/* ─── Focus Ring ───────────────────────────────────── */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ─── Mobile Responsive ────────────────────────────── */
+@media (max-width: 640px) {
+    /* Kategorien immer full-width */
+    .dashboard {
+        grid-template-columns: 1fr !important;
+    }
+    .category[data-span] {
+        grid-column: span 1 !important;
+    }
+
+    /* Page-Tab-Bar scrollbar */
+    .page-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .page-tabs::-webkit-scrollbar { display: none; }
+
+    /* Manage-Formulare */
+    .manage-section form {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Search Bar */
+    .search-bar-outer {
+        max-width: 100%;
+    }
+}

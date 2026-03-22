@@ -112,7 +112,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		profileObj, err = db.GetProfileBySlug(slug)
 	}
 	if err != nil || profileObj == nil {
-		http.NotFound(w, r)
+		Handle404(w, r)
 		return
 	}
 
@@ -177,4 +177,15 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error executing template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+func Handle404(w http.ResponseWriter, r *http.Request) {
+	body := []byte(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>404 – homeport</title>` +
+		`<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f0f13;color:#e2e8f0}` +
+		`h1{font-size:4rem;margin:0;color:#6366f1}p{color:#94a3b8}a{color:#6366f1;text-decoration:none}</style>` +
+		`</head><body><h1>404</h1><p>Seite nicht gefunden.</p><p><a href="/">← Zurück zur Startseite</a></p></body></html>`)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+	w.WriteHeader(http.StatusNotFound)
+	w.Write(body)
 }

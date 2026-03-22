@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Homeport</title>
+    <title>{{if .ProfileName}}{{.ProfileName}} – {{end}}homeport</title>
     <script>
       // No-flash: override data-theme from localStorage before first paint
       (function(){
@@ -46,6 +46,13 @@
         document.addEventListener('htmx:configRequest', function(e) {
           var token = getCookie('hp_csrf');
           if (token) e.detail.headers['X-CSRF-Token'] = token;
+        });
+        // HTMX loading indicator
+        document.addEventListener('htmx:beforeRequest', function() {
+          document.documentElement.classList.add('htmx-loading');
+        });
+        document.addEventListener('htmx:afterRequest', function() {
+          document.documentElement.classList.remove('htmx-loading');
         });
       })();
     </script>
@@ -200,6 +207,7 @@
       if (mode === 'time') setInterval(applyTimeBg, 600000);
     })();
     </script>
+    <div class="htmx-loading-bar" id="htmx-loading-bar"></div>
     <nav>
         <a href="/" class="brand">homeport</a>
         <span class="brand-sep">·</span>
@@ -207,8 +215,8 @@
         <a href="{{if .IsDefault}}/{{else}}/{{.Slug}}{{end}}">{{.Name}}</a>
         {{end}}
         <a href="/manage" class="nav-action">Manage</a>
-        <button class="btn-icon nav-theme-toggle" onclick="cycleTheme()" title="Theme wechseln">🌙</button>
-        {{if .Profile}}<form method="post" action="/logout" style="display:inline"><button class="btn-icon" title="Ausloggen">⎋</button></form>{{end}}
+        <button class="btn-icon nav-theme-toggle" onclick="cycleTheme()" title="Theme wechseln" aria-label="Theme wechseln">🌙</button>
+        {{if .Profile}}<form method="post" action="/logout" style="display:inline"><button class="btn-icon" title="Ausloggen" aria-label="Ausloggen">⎋</button></form>{{end}}
     </nav>
     <main>
         {{block "content" .}}{{end}}

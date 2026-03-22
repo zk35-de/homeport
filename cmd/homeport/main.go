@@ -234,6 +234,9 @@ func main() {
 	// /{slug} nach allen statischen Routen – chi priorisiert diese automatisch
 	r.Get("/{slug}", api.HandleIndex)
 
+	// Custom 404
+	r.NotFound(api.Handle404)
+
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: r,

@@ -101,6 +101,8 @@ func scanSource(src db.DiscoverySource) {
 		backend = NewNPMSource(src.URL, identity, secret)
 	case "docker":
 		backend = NewDockerSource(src.URL)
+	case "traefik":
+		backend = NewTraefikSource(src.URL, src.Token)
 	default:
 		slog.Warn("discovery: unknown source type", "type", src.Type)
 		return
