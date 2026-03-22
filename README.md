@@ -150,9 +150,12 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | **Notes** | none | DB (live) |
 
 ### Search Bar
-- Configurable search engine per profile
+- **Spotlight search:** results appear inline while typing (DOM-based, no server round-trip)
+- **Search engine dropdown** directly on the bar: DuckDuckGo, Google, Brave, Startpage, Bing
+- Selected engine persisted per profile (`POST /manage/settings/search`)
+- `Enter` without a selected result → external search in new tab
 - Bang syntax: `!g` Google · `!d` DuckDuckGo · `!b` Brave · `!gh` GitHub · `!yt` YouTube · `!w` Wikipedia
-- Search history (last 8 queries, localStorage), dropdown on focus
+- `Ctrl+K` / `/` focuses the search bar from anywhere; `Escape` clears and closes
 
 ### Multi-Page Layouts
 - Create named pages per profile (Work / Personal / Hobby / …)
@@ -162,11 +165,6 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 - **Keyboard shortcuts:** `0` / `` ` `` = All, `1`–`9` = page 1–9
 - Active tab persisted in `localStorage` per profile
 - No page reload – client-side show/hide
-
-### Command Palette (Ctrl+K or /)
-- Fuzzy search over all service cards in DOM
-- Server-side search via `/api/search` for cross-profile results
-- Favicons in results
 
 ### Appearance
 - Themes: dark / light / system
