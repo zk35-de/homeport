@@ -35,12 +35,6 @@ func AddDiscoveryItem(containerID, suggested string) error {
 	return err
 }
 
-// AddDiscoveryItemExt adds a discovery item with source tracking.
-func AddDiscoveryItemExt(containerID, suggested string, sourceID int, externalID string) error {
-	_, err := DB.Exec(`INSERT OR IGNORE INTO discovery_inbox (container_id, suggested, source_id, external_id) VALUES (?, ?, ?, ?)`,
-		containerID, suggested, sourceID, externalID)
-	return err
-}
 
 // IgnoreDiscoveryItem sets the ignored flag for a discovery item.
 func IgnoreDiscoveryItem(id int) error {
@@ -125,3 +119,4 @@ func AcceptDiscoveryItem(id int) error {
 
 	return nil
 }
+
