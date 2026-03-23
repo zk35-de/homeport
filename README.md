@@ -56,7 +56,6 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `GET /{slug}` | Profile dashboard by slug |
 | `GET /manage` | Management UI |
 | `GET /r/{id}?p={profile}` | Click-tracking redirect to service URL |
-| `GET /s/{code}` | URL shortener redirect (public) |
 
 ### Auth
 | Route | Description |
@@ -108,9 +107,6 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `POST /api/widgets/{id}/bookmark` | Add bookmark link (form: name, url) |
 | `DELETE /api/widgets/{id}/bookmark/{idx}` | Remove bookmark link by index |
 | `PUT /api/notes/{id}` | Save note content `{"content":"..."}` |
-| `POST /api/shorten` | Shorten a URL |
-| `GET /api/links` | List short URLs |
-| `DELETE /api/links/{code}` | Delete short URL |
 | `GET /api/favicon?url=` | Proxy favicon fetch |
 
 ## Features
@@ -182,10 +178,6 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 - Scheduled: set `HOMEPORT_BACKUP_INTERVAL=24h`
 - Restore via file upload (validated before swap)
 
-### URL Shortener
-- `/s/{code}` redirects with click counting
-- Custom codes supported
-
 ## Data Model
 
 ```
@@ -202,7 +194,6 @@ todos            → widget_id, text, done, due_date, sort_order
 notes            → widget_id, content, updated_at
 user_preferences → profile, theme, accent_color, search_engine, background_mode, custom_css
 user_settings    → profile, search_engine
-short_urls       → code, url, clicks, created_at
 discovery_inbox   → container_id, external_id, suggested (json), seen_at, ignored, source_id→discovery_sources
 discovery_sources → type, name, url, token, enabled, interval, created_at
 user_auth         → profile, password (bcrypt), is_admin, created_at, updated_at

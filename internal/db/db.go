@@ -74,6 +74,18 @@ type Widget struct {
 	ClockShowSeconds bool   `json:"-"`
 	ClockShowDate    bool   `json:"-"`
 	ClockCountdown   string `json:"-"`
+	// GitHub widget fields (populated for type=github)
+	GithubPRs    []GithubItem `json:"-"`
+	GithubIssues []GithubItem `json:"-"`
+	GithubUser   string       `json:"-"`
+}
+
+// GithubItem is a single PR or issue from GitHub.
+type GithubItem struct {
+	Title  string `json:"title"`
+	URL    string `json:"url"`
+	Number int    `json:"number"`
+	Repo   string `json:"repo"`
 }
 
 // RSSItem is one entry from an RSS/Atom feed.
@@ -230,12 +242,6 @@ func InitDB(dbPath string) error {
 			background    TEXT NOT NULL DEFAULT 'aurora',
 			language      TEXT NOT NULL DEFAULT 'de',
 			layout        TEXT NOT NULL DEFAULT 'grid'
-		);`,
-		`CREATE TABLE IF NOT EXISTS short_urls (
-			code       TEXT PRIMARY KEY,
-			url        TEXT NOT NULL,
-			clicks     INTEGER NOT NULL DEFAULT 0,
-			created_at DATETIME NOT NULL DEFAULT (datetime('now'))
 		);`,
 		`CREATE TABLE IF NOT EXISTS profiles (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -650,7 +656,8 @@ func UpdateServiceStatus(id int, alive bool) error {
 }
 
 func GetAllServicesWithStatusCheck() ([]Service, error) {
-	rows, err := DB.Query(`SELECT id, status_check FROM services WHERE status_check != ''`)
+	// Returns all services – status_check falls back to url if empty
+	rows, err := DB.Query(`SELECT id, url, status_check FROM services`)
 	if err != nil {
 		return nil, err
 	}
@@ -659,12 +666,49 @@ func GetAllServicesWithStatusCheck() ([]Service, error) {
 	var services []Service
 	for rows.Next() {
 		var s Service
-		if err := rows.Scan(&s.ID, &s.StatusCheck); err != nil {
+		if err := rows.Scan(&s.ID, &s.URL, &s.StatusCheck); err != nil {
 			return nil, err
+		}
+		if s.StatusCheck == "" {
+			s.StatusCheck = s.URL
 		}
 		services = append(services, s)
 	}
 	return services, nil
+}
+
+// ReorderItem is used for batch reorder operations.
+type ReorderItem struct {
+	ID        int `json:"id"`
+	SortOrder int `json:"sort_order"`
+}
+
+func ReorderCategories(items []ReorderItem) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, it := range items {
+		if _, err := tx.Exec(`UPDATE categories SET sort_order = ? WHERE id = ?`, it.SortOrder, it.ID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func ReorderServices(items []ReorderItem) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, it := range items {
+		if _, err := tx.Exec(`UPDATE services SET sort_order = ? WHERE id = ?`, it.SortOrder, it.ID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func UpdateCategorySort(id, newOrder int) error {
@@ -689,11 +733,11 @@ func UpdateService(id int, name, url, icon, desc, statusCheck string, profiles [
 		return err
 	}
 
-	if _, err := tx.Exec(`DELETE FROM service_profiles WHERE service_id=?`, id); err != nil {
+	if _, err := tx.Exec(`DELETE FROM visibility WHERE service_id=?`, id); err != nil {
 		return err
 	}
 	for _, p := range profiles {
-		if _, err := tx.Exec(`INSERT INTO service_profiles (service_id, profile) VALUES (?, ?)`, id, p); err != nil {
+		if _, err := tx.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?, ?)`, id, p); err != nil {
 			return err
 		}
 	}
@@ -713,7 +757,7 @@ func GetService(id int) (*Service, error) {
 	if err := row.Scan(&s.ID, &s.CategoryID, &s.Name, &s.URL, &s.Icon, &s.Description, &s.StatusCheck, &s.SortOrder); err != nil {
 		return nil, err
 	}
-	rows, err := DB.Query(`SELECT profile FROM service_profiles WHERE service_id=?`, id)
+	rows, err := DB.Query(`SELECT profile FROM visibility WHERE service_id=?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -959,6 +1003,16 @@ func GetWidgetCache(widgetID int) (*WidgetCacheEntry, error) {
 	return &entry, nil
 }
 
+// GetWidgetCacheRaw unmarshals the raw cache JSON into the provided target value.
+func GetWidgetCacheRaw(widgetID int, target interface{}) error {
+	row := DB.QueryRow(`SELECT data FROM widget_cache WHERE widget_id = ?`, widgetID)
+	var data string
+	if err := row.Scan(&data); err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(data), target)
+}
+
 func UpdateWidgetCache(widgetID int, data string) error {
 	_, err := DB.Exec(`INSERT INTO widget_cache (widget_id, data, fetched_at) VALUES (?, ?, datetime('now')) ON CONFLICT(widget_id) DO UPDATE SET data = ?, fetched_at = datetime('now')`, widgetID, data, data)
 	return err
@@ -1062,63 +1116,6 @@ func GetWeatherCache(widgetID int) (*WeatherCache, error) {
 		return nil, err
 	}
 	return &cache, nil
-}
-
-// ShortURL represents a shortened URL entry.
-type ShortURL struct {
-	Code      string
-	URL       string
-	Clicks    int
-	CreatedAt string
-}
-
-// CreateShortURL inserts a new short URL entry.
-func CreateShortURL(code, url string) error {
-	_, err := DB.Exec(`INSERT INTO short_urls (code, url) VALUES (?, ?)`, code, url)
-	return err
-}
-
-// GetShortURL returns the ShortURL for the given code, or nil if not found.
-func GetShortURL(code string) (*ShortURL, error) {
-	row := DB.QueryRow(`SELECT code, url, clicks, created_at FROM short_urls WHERE code = ?`, code)
-	var s ShortURL
-	if err := row.Scan(&s.Code, &s.URL, &s.Clicks, &s.CreatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &s, nil
-}
-
-// IncrementClicks increments the click counter for a short URL.
-func IncrementClicks(code string) error {
-	_, err := DB.Exec(`UPDATE short_urls SET clicks = clicks + 1 WHERE code = ?`, code)
-	return err
-}
-
-// GetAllShortURLs returns all short URL entries ordered by creation date desc.
-func GetAllShortURLs() ([]ShortURL, error) {
-	rows, err := DB.Query(`SELECT code, url, clicks, created_at FROM short_urls ORDER BY created_at DESC`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var urls []ShortURL
-	for rows.Next() {
-		var s ShortURL
-		if err := rows.Scan(&s.Code, &s.URL, &s.Clicks, &s.CreatedAt); err != nil {
-			return nil, err
-		}
-		urls = append(urls, s)
-	}
-	return urls, nil
-}
-
-// DeleteShortURL removes a short URL entry.
-func DeleteShortURL(code string) error {
-	_, err := DB.Exec(`DELETE FROM short_urls WHERE code = ?`, code)
-	return err
 }
 
 // GetProfiles returns all profiles ordered by sort_order.

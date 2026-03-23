@@ -87,12 +87,14 @@
                     <label>Typ</label>
                     <select name="widget_type" id="widget-type-select" onchange="updateWidgetForm()">
                         <option value="ical">iCal Kalender</option>
+                        <option value="caldav">CalDAV Kalender</option>
                         <option value="clock">Uhr / Countdown</option>
                         <option value="weather">Wetter</option>
                         <option value="rss">RSS Feed</option>
                         <option value="todo">To-Do Liste</option>
                         <option value="bookmarks">Lesezeichen</option>
                         <option value="notes">Notizen</option>
+                        <option value="github">GitHub</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -137,6 +139,30 @@
                 </div>
                 <div id="widget-notes-fields" style="display:none">
                     <p style="font-size:0.8rem;color:var(--sub);margin:0">Inhalt wird direkt im Widget bearbeitet.</p>
+                </div>
+                <div id="widget-caldav-fields" style="display:none">
+                    <div class="form-group">
+                        <label>CalDAV URL (.ics)</label>
+                        <input type="url" name="caldav_url" placeholder="https://nextcloud.example.com/remote.php/dav/calendars/user/kalender/calendar.ics">
+                    </div>
+                    <div class="form-group">
+                        <label>Benutzername</label>
+                        <input type="text" name="caldav_username" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label>Passwort</label>
+                        <input type="password" name="caldav_password" placeholder="Optional">
+                    </div>
+                </div>
+                <div id="widget-github-fields" style="display:none">
+                    <div class="form-group">
+                        <label>Personal Access Token</label>
+                        <input type="password" name="github_token" placeholder="ghp_...">
+                    </div>
+                    <div class="form-group" style="display:flex;gap:1rem">
+                        <label><input type="checkbox" name="github_show_prs" value="1" checked> Pull Requests</label>
+                        <label><input type="checkbox" name="github_show_issues" value="1" checked> Issues</label>
+                    </div>
                 </div>
                 <div id="widget-clock-fields" style="display:none">
                     <div class="form-group">
@@ -237,53 +263,6 @@
   <div id="discovery-sources-list"
        hx-get="/manage/discovery/sources" hx-trigger="load" hx-swap="outerHTML">
   </div>
-</section>
-
-<section class="manage-section" id="shortener">
-  <h2>URL Kürzer</h2>
-  <form method="post" action="/manage/shorten" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
-    <div class="form-group" style="flex:2;min-width:200px;margin-bottom:0">
-      <label>URL</label>
-      <input type="url" name="url" placeholder="https://..." required>
-    </div>
-    <div class="form-group" style="flex:1;min-width:120px;margin-bottom:0">
-      <label>Eigener Code (optional)</label>
-      <input type="text" name="code" placeholder="mein-link">
-    </div>
-    <div class="form-group" style="margin-bottom:0;align-self:flex-end">
-      <button type="submit">Kürzen</button>
-    </div>
-  </form>
-  {{if .ShortURLs}}
-  <table class="prism-table">
-    <thead>
-      <tr>
-        <th>Code</th>
-        <th>URL</th>
-        <th class="num-cell">Klicks</th>
-        <th>Erstellt</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .ShortURLs}}
-      <tr>
-        <td><a href="/s/{{.Code}}" target="_blank">/s/{{.Code}}</a></td>
-        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{.URL}}</td>
-        <td class="num-cell">{{.Clicks}}</td>
-        <td>{{.CreatedAt}}</td>
-        <td>
-          <form method="post" action="/manage/unshorten/{{.Code}}" style="margin:0">
-            <button type="submit" class="btn-sm">×</button>
-          </form>
-        </td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-  {{else}}
-  <p style="color:var(--sub);font-size:0.85rem">Noch keine Short-URLs angelegt.</p>
-  {{end}}
 </section>
 
 <section class="manage-section" id="analytics-link">

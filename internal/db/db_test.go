@@ -872,59 +872,6 @@ func TestProfiles(t *testing.T) {
 	}
 }
 
-func TestShortURL(t *testing.T) {
-	cleanup := setupTestDB(t)
-	defer cleanup()
-
-	// CreateShortURL (signature: code, url)
-	if err := db.CreateShortURL("mycode", "http://long.example.com/path?q=1"); err != nil {
-		t.Fatalf("CreateShortURL: %v", err)
-	}
-
-	// GetShortURL
-	entry, err := db.GetShortURL("mycode")
-	if err != nil {
-		t.Fatalf("GetShortURL: %v", err)
-	}
-	if entry.URL != "http://long.example.com/path?q=1" || entry.Code != "mycode" {
-		t.Errorf("GetShortURL returned wrong entry: %+v", entry)
-	}
-	if entry.Clicks != 0 {
-		t.Errorf("Expected 0 clicks initially, got %d", entry.Clicks)
-	}
-
-	// IncrementClicks
-	if err := db.IncrementClicks("mycode"); err != nil {
-		t.Fatalf("IncrementClicks: %v", err)
-	}
-	if err := db.IncrementClicks("mycode"); err != nil {
-		t.Fatalf("IncrementClicks second: %v", err)
-	}
-	entry2, _ := db.GetShortURL("mycode")
-	if entry2.Clicks != 2 {
-		t.Errorf("Expected 2 clicks after 2 increments, got %d", entry2.Clicks)
-	}
-
-	// GetAllShortURLs
-	db.CreateShortURL("other", "http://another.example.com")
-	all, err := db.GetAllShortURLs()
-	if err != nil {
-		t.Fatalf("GetAllShortURLs: %v", err)
-	}
-	if len(all) != 2 {
-		t.Errorf("Expected 2 short URLs, got %d", len(all))
-	}
-
-	// DeleteShortURL
-	if err := db.DeleteShortURL("mycode"); err != nil {
-		t.Fatalf("DeleteShortURL: %v", err)
-	}
-	remaining, _ := db.GetAllShortURLs()
-	if len(remaining) != 1 || remaining[0].Code != "other" {
-		t.Errorf("Expected 1 remaining URL 'other', got %v", remaining)
-	}
-}
-
 func TestUserPreferences(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()

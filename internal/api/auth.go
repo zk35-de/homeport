@@ -39,7 +39,6 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 			path := r.URL.Path
 			if path == "/login" || path == "/logout" ||
 				strings.HasPrefix(path, "/static/") ||
-				strings.HasPrefix(path, "/s/") ||
 				path == "/api/health" {
 				next.ServeHTTP(w, r)
 				return

@@ -88,6 +88,7 @@ func main() {
 	go runICalFetcher()
 	go runWeatherFetcher()
 	go runRSSFetcher()
+	go runGithubFetcher()
 	go runPodmanScanner()
 	go runSessionPurger()
 
@@ -125,9 +126,6 @@ func main() {
 	// Service click-tracking redirect
 	r.Get("/r/{id}", api.HandleServiceRedirect)
 
-	// URL Shortener – public redirect (no auth)
-	api.RegisterShortenerPublicRoutes(r)
-
 	r.Route("/manage", func(r chi.Router) {
 	        r.Post("/clone-andrea", api.HandleCloneToAndrea)
 	        r.Post("/widget", api.HandleAddWidget)
@@ -151,6 +149,8 @@ func main() {
 		r.Patch("/service/{id}", api.HandleUpdateService)
 		r.Post("/sort/category/{id}/{direction}", api.HandleSortCategory)
 		r.Post("/sort/service/{id}/{direction}", api.HandleSortService)
+		r.Post("/sort/category/reorder", api.HandleReorderCategories)
+		r.Post("/sort/service/reorder", api.HandleReorderServices)
 
 		r.Get("/discovery", api.HandleDiscoveryInbox)
 		r.Post("/discovery/{id}/accept", api.HandleAcceptDiscovery)
@@ -164,9 +164,6 @@ func main() {
 		r.Post("/discovery/sources/{id}/scan", api.HandleScanDiscoverySource)
 
 		r.Post("/settings/search", api.HandleSetSearchEngine)
-
-		r.Post("/shorten", api.HandleManageShorten)
-		r.Post("/unshorten/{code}", api.HandleManageUnshorten)
 
 		// Auth management
 		r.Get("/auth", api.HandleManageAuth)
@@ -225,9 +222,6 @@ func main() {
 
 			// SSE Live Updates
 			r.Get("/updates", api.DefaultHub.HandleUpdates)
-
-			// URL Shortener API
-			api.RegisterShortenerAPIRoutes(r)
 		})
 	})
 
@@ -273,26 +267,92 @@ func runICalFetcher() {
 			return
 		}
 		for _, w := range widgets {
-			if w.Type != "ical" {
-				continue
-			}
-			var cfg struct{ URL string }
-			if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil || cfg.URL == "" {
-				continue
-			}
-			events, err := core.FetchICalEvents(cfg.URL)
-			if err != nil {
-				slog.Error("iCal fetcher: widget error", "widget_id", w.ID, "err", err)
-				continue
-			}
-			data, _ := json.Marshal(struct{ Events interface{} }{Events: events})
-			if err := db.UpdateWidgetCache(w.ID, string(data)); err != nil {
-				slog.Error("iCal fetcher: cache update error", "widget_id", w.ID, "err", err)
+			switch w.Type {
+			case "ical":
+				var cfg struct{ URL string }
+				if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil || cfg.URL == "" {
+					continue
+				}
+				events, err := core.FetchICalEvents(cfg.URL)
+				if err != nil {
+					slog.Error("iCal fetcher: widget error", "widget_id", w.ID, "err", err)
+					continue
+				}
+				data, _ := json.Marshal(struct{ Events interface{} }{Events: events})
+				db.UpdateWidgetCache(w.ID, string(data))
+			case "caldav":
+				var cfg struct {
+					URL      string `json:"url"`
+					Username string `json:"username"`
+					Password string `json:"password"`
+				}
+				if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil || cfg.URL == "" {
+					continue
+				}
+				events, err := core.FetchCalDAVEvents(cfg.URL, cfg.Username, cfg.Password)
+				if err != nil {
+					slog.Error("CalDAV fetcher: widget error", "widget_id", w.ID, "err", err)
+					continue
+				}
+				data, _ := json.Marshal(struct{ Events interface{} }{Events: events})
+				db.UpdateWidgetCache(w.ID, string(data))
 			}
 		}
 	}
 	fetchAll()
 	for range time.Tick(6 * time.Hour) {
+		fetchAll()
+	}
+}
+
+func runGithubFetcher() {
+	fetchAll := func() {
+		widgets, err := db.GetAllWidgets()
+		if err != nil {
+			slog.Error("GitHub fetcher: error loading widgets", "err", err)
+			return
+		}
+		for _, w := range widgets {
+			if w.Type != "github" {
+				continue
+			}
+			var cfg struct {
+				Token      string `json:"token"`
+				ShowPRs    bool   `json:"show_prs"`
+				ShowIssues bool   `json:"show_issues"`
+			}
+			if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil || cfg.Token == "" {
+				continue
+			}
+			ghData, err := core.FetchGithubData(cfg.Token, cfg.ShowPRs, cfg.ShowIssues)
+			if err != nil {
+				slog.Error("GitHub fetcher: widget error", "widget_id", w.ID, "err", err)
+				continue
+			}
+			type ghItem struct {
+				Title  string `json:"title"`
+				URL    string `json:"url"`
+				Number int    `json:"number"`
+				Repo   string `json:"repo"`
+			}
+			prs := make([]ghItem, len(ghData.PRs))
+			for i, p := range ghData.PRs {
+				prs[i] = ghItem{Title: p.Title, URL: p.URL, Number: p.Number, Repo: p.Repo}
+			}
+			issues := make([]ghItem, len(ghData.Issues))
+			for i, p := range ghData.Issues {
+				issues[i] = ghItem{Title: p.Title, URL: p.URL, Number: p.Number, Repo: p.Repo}
+			}
+			data, _ := json.Marshal(struct {
+				GithubPRs    []ghItem `json:"GithubPRs"`
+				GithubIssues []ghItem `json:"GithubIssues"`
+				GithubUser   string   `json:"GithubUser"`
+			}{GithubPRs: prs, GithubIssues: issues, GithubUser: ghData.User})
+			db.UpdateWidgetCache(w.ID, string(data))
+		}
+	}
+	fetchAll()
+	for range time.Tick(15 * time.Minute) {
 		fetchAll()
 	}
 }
