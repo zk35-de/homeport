@@ -78,6 +78,20 @@ type Widget struct {
 	GithubPRs    []GithubItem `json:"-"`
 	GithubIssues []GithubItem `json:"-"`
 	GithubUser   string       `json:"-"`
+	// Router widget fields (populated for type=router)
+	RouterStatus *RouterStatusCache `json:"-"`
+}
+
+// RouterStatusCache holds cached router status for router widgets.
+type RouterStatusCache struct {
+	DSLDownMbit  float64 `json:"DSLDownMbit"`
+	DSLUpMbit    float64 `json:"DSLUpMbit"`
+	DSLOnline    bool    `json:"DSLOnline"`
+	LTEActive    bool    `json:"LTEActive"`
+	LTESignalDBm float64 `json:"LTESignalDBm"`
+	LTEBand      string  `json:"LTEBand"`
+	Mode         string  `json:"Mode"`
+	Online       bool    `json:"Online"`
 }
 
 // GithubItem is a single PR or issue from GitHub.
@@ -1112,6 +1126,23 @@ func GetWeatherCache(widgetID int) (*WeatherCache, error) {
 		return nil, err
 	}
 	var cache WeatherCache
+	if err := json.Unmarshal([]byte(data), &cache); err != nil {
+		return nil, err
+	}
+	return &cache, nil
+}
+
+// GetRouterCache returns the cached RouterStatusCache for a router widget (nil if none).
+func GetRouterCache(widgetID int) (*RouterStatusCache, error) {
+	row := DB.QueryRow(`SELECT data FROM widget_cache WHERE widget_id = ?`, widgetID)
+	var data string
+	if err := row.Scan(&data); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var cache RouterStatusCache
 	if err := json.Unmarshal([]byte(data), &cache); err != nil {
 		return nil, err
 	}

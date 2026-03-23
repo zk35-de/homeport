@@ -1,0 +1,32 @@
+{{define "widget_github"}}
+<div class="widget widget-github">
+  <h3 class="widget-title">{{.Name}}{{if .GithubUser}} <span class="widget-sub">@{{.GithubUser}}</span>{{end}}</h3>
+  {{if .GithubPRs}}
+  <div class="github-section">
+    <div class="github-section-title">Pull Requests</div>
+    {{range .GithubPRs}}
+    <a href="{{.URL}}" target="_blank" rel="noopener" class="github-item">
+      <span class="github-number">#{{.Number}}</span>
+      <span class="github-title">{{.Title}}</span>
+      {{if .Repo}}<span class="github-repo">{{.Repo}}</span>{{end}}
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+  {{if .GithubIssues}}
+  <div class="github-section">
+    <div class="github-section-title">Issues</div>
+    {{range .GithubIssues}}
+    <a href="{{.URL}}" target="_blank" rel="noopener" class="github-item">
+      <span class="github-number">#{{.Number}}</span>
+      <span class="github-title">{{.Title}}</span>
+      {{if .Repo}}<span class="github-repo">{{.Repo}}</span>{{end}}
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+  {{if and (eq (len .GithubPRs) 0) (eq (len .GithubIssues) 0)}}
+  <div class="event-empty">Wird geladen…</div>
+  {{end}}
+</div>
+{{end}}

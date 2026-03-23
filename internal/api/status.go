@@ -65,6 +65,11 @@ func StartStatusChecker() {
 	}()
 }
 
+type serviceResult struct {
+	id    int
+	alive bool
+}
+
 func checkAllServices() {
 	services, err := db.GetAllServicesWithStatusCheck()
 	if err != nil {
@@ -72,36 +77,37 @@ func checkAllServices() {
 		return
 	}
 
+	results := make(chan serviceResult, len(services))
 	for _, s := range services {
-		go checkService(s)
+		go func(svc db.Service) {
+			results <- serviceResult{id: svc.ID, alive: pingService(svc.StatusCheck)}
+		}(s)
+	}
+
+	for range services {
+		r := <-results
+		if err := db.UpdateServiceStatus(r.id, r.alive); err != nil {
+			log.Printf("Error updating status for service %d: %v", r.id, err)
+		}
+		update := StatusUpdate{ID: r.id, Alive: r.alive}
+		msg, _ := json.Marshal(update)
+		StatusBroker.Messages <- string(msg)
+		DefaultHub.Broadcast(Message{Type: ServiceStatusMsg, Payload: update})
 	}
 }
 
-func checkService(s db.Service) {
+func pingService(url string) bool {
 	client := http.Client{
-		Timeout: 3 * time.Second,
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
-	resp, err := client.Head(s.StatusCheck)
-	alive := err == nil && resp.StatusCode >= 200 && resp.StatusCode < 400
+	resp, err := client.Head(url)
 	if resp != nil {
 		resp.Body.Close()
 	}
-
-	if err := db.UpdateServiceStatus(s.ID, alive); err != nil {
-		log.Printf("Error updating status for service %d: %v", s.ID, err)
-	}
-
-	update := StatusUpdate{
-		ID:    s.ID,
-		Alive: alive,
-	}
-	msg, _ := json.Marshal(update)
-	StatusBroker.Messages <- string(msg)
-
-	DefaultHub.Broadcast(Message{
-		Type:    ServiceStatusMsg,
-		Payload: update,
-	})
+	return err == nil
 }
 
 func HandleStatusStream(w http.ResponseWriter, r *http.Request) {

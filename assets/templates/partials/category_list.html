@@ -1,8 +1,10 @@
 {{define "category_list"}}
-<div class="category-list">
+<div class="category-list" id="sortable-categories">
     {{range .Categories}}
-    <div class="manage-category" id="cat-{{.ID}}">
+    {{$catID := .ID}}
+    <div class="manage-category" id="cat-{{.ID}}" data-id="{{.ID}}">
         <div class="manage-header">
+            <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
             <span class="category-title" style="color: var(--{{.Color}})">{{.Name}} ({{.Layout}})</span>
             <div class="actions">
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
@@ -24,9 +26,10 @@
             </div>
         </div>
         <div id="cat-edit-{{.ID}}"></div>
-        <div class="manage-service-list">
+        <div class="manage-service-list sortable-services" data-cat="{{$catID}}">
             {{range .Services}}
-            <div class="manage-service-item" id="svc-row-{{.ID}}">
+            <div class="manage-service-item" id="svc-row-{{.ID}}" data-id="{{.ID}}">
+                <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
                 <div class="service-info">
                     <strong>{{.Name}}</strong>
                     <span class="text-muted"> - {{.URL}}</span>
@@ -50,6 +53,61 @@
     </div>
     {{end}}
 </div>
+<script>
+(function() {
+  function initSortable() {
+    var catList = document.getElementById('sortable-categories');
+    if (!catList || typeof Sortable === 'undefined') return;
+
+    Sortable.create(catList, {
+      handle: '.drag-handle',
+      animation: 150,
+      onEnd: function() {
+        var items = catList.querySelectorAll('.manage-category[data-id]');
+        var payload = Array.from(items).map(function(el, idx) {
+          return {id: parseInt(el.dataset.id), sort_order: idx};
+        });
+        fetch('/manage/sort/category/reorder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
+          body: JSON.stringify(payload)
+        });
+      }
+    });
+
+    catList.querySelectorAll('.sortable-services').forEach(function(svcList) {
+      Sortable.create(svcList, {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: function() {
+          var items = svcList.querySelectorAll('.manage-service-item[data-id]');
+          var payload = Array.from(items).map(function(el, idx) {
+            return {id: parseInt(el.dataset.id), sort_order: idx};
+          });
+          fetch('/manage/sort/service/reorder', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
+            body: JSON.stringify(payload)
+          });
+        }
+      });
+    });
+  }
+
+  function getCsrfToken() {
+    var m = document.cookie.match('(^|;)\\s*hp_csrf\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+
+  initSortable();
+  // Re-init after HTMX swaps category-list
+  document.body.addEventListener('htmx:afterSwap', function(e) {
+    if (e.detail && e.detail.target && e.detail.target.id === 'category-list') {
+      initSortable();
+    }
+  });
+})();
+</script>
 {{end}}
 
 {{define "service_edit_form"}}

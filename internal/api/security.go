@@ -19,8 +19,8 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Content-Security-Policy",
 			"default-src 'self'; "+
-				"script-src 'self'; "+
-				"style-src 'self' 'unsafe-inline'; "+ // inline styles in templates
+				"script-src 'self' 'unsafe-inline'; "+ // inline scripts in templates
+				"style-src 'self' 'unsafe-inline'; "+  // inline styles in templates
 				"img-src 'self' data:; "+             // favicons als data:
 				"connect-src 'self'; "+
 				"font-src 'self'; "+

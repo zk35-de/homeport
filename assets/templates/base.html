@@ -31,6 +31,7 @@
     {{end}}
     <script src="/static/htmx.min.js"></script>
     <script src="/static/sse.js"></script>
+    <script src="/static/sortable.min.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js');
@@ -166,7 +167,7 @@
     function updateWidgetForm() {
       const sel = document.getElementById('widget-type-select');
       if (!sel) return;
-      const types = ['ical', 'clock', 'weather', 'rss', 'todo', 'bookmarks', 'notes'];
+      const types = ['ical', 'caldav', 'clock', 'weather', 'rss', 'todo', 'bookmarks', 'notes', 'github', 'router'];
       types.forEach(t => {
         const el = document.getElementById('widget-' + t + '-fields');
         if (el) el.style.display = sel.value === t ? '' : 'none';
@@ -177,6 +178,17 @@
     function updateClockMode(sel) {
       const cg = document.getElementById('clock-countdown-group');
       if (cg) cg.style.display = sel && sel.value === 'countdown' ? '' : 'none';
+    }
+    function updateRouterURL() {
+      const sel = document.getElementById('router-type-select');
+      const urlInput = document.getElementById('router-url-input');
+      if (!sel || !urlInput) return;
+      const defaults = {
+        'fritzbox': 'http://fritz.box:49000',
+        'speedport': 'http://192.168.2.1'
+      };
+      urlInput.placeholder = defaults[sel.value] || '';
+      if (!urlInput.value) urlInput.value = '';
     }
     </script>
 </head>

@@ -95,6 +95,7 @@
                         <option value="bookmarks">Lesezeichen</option>
                         <option value="notes">Notizen</option>
                         <option value="github">GitHub</option>
+                        <option value="router">Router Status</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -162,6 +163,23 @@
                     <div class="form-group" style="display:flex;gap:1rem">
                         <label><input type="checkbox" name="github_show_prs" value="1" checked> Pull Requests</label>
                         <label><input type="checkbox" name="github_show_issues" value="1" checked> Issues</label>
+                    </div>
+                </div>
+                <div id="widget-router-fields" style="display:none">
+                    <div class="form-group">
+                        <label>Router-Typ</label>
+                        <select name="router_type" id="router-type-select" onchange="updateRouterURL()">
+                            <option value="fritzbox">FritzBox</option>
+                            <option value="speedport">Speedport Hybrid</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Router URL</label>
+                        <input type="url" name="router_url" id="router-url-input" placeholder="http://fritz.box:49000">
+                    </div>
+                    <div class="form-group">
+                        <label>Passwort (optional)</label>
+                        <input type="password" name="router_password" placeholder="Leer lassen für Speedport">
                     </div>
                 </div>
                 <div id="widget-clock-fields" style="display:none">

@@ -59,7 +59,10 @@ func HandleFavicon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.NotFound(w, r)
+	// Fallback: generic link icon as SVG
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#6366f1" opacity=".15"/><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h1A3.5 3.5 0 0 1 12 6.5v.5a3.5 3.5 0 0 1-3.5 3.5H8A1.5 1.5 0 0 1 8 7h.5A1.5 1.5 0 0 0 10 5.5v-.5A1.5 1.5 0 0 0 8.5 3.5h-1A1.5 1.5 0 0 0 6 5v.5a1.5 1.5 0 0 1-3 0V5A4.5 4.5 0 0 1 7.5 .5" fill="#6366f1" opacity=".5"/></svg>`))
 }
 
 func serveImage(w http.ResponseWriter, data []byte, ct string) {

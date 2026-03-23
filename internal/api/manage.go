@@ -403,6 +403,19 @@ func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
 		showIssues := r.FormValue("github_show_issues") != ""
 		config, _ := json.Marshal(map[string]interface{}{"token": ghToken, "show_prs": showPRs, "show_issues": showIssues})
 		err = db.AddWidgetTyped(name, "github", string(config), profile)
+	case "router":
+		routerType := r.FormValue("router_type")
+		if routerType == "" {
+			routerType = "fritzbox"
+		}
+		routerURL := r.FormValue("router_url")
+		routerPassword := r.FormValue("router_password")
+		config, _ := json.Marshal(map[string]string{
+			"router_type":     routerType,
+			"router_url":      routerURL,
+			"router_password": routerPassword,
+		})
+		err = db.AddWidgetTyped(name, "router", string(config), profile)
 	default:
 		// ical (legacy default)
 		url := r.FormValue("url")
