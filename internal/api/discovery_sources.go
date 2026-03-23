@@ -75,7 +75,12 @@ func HandleToggleDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	sources, _ := db.GetDiscoverySources()
+	sources, err := db.GetDiscoverySources()
+	if err != nil {
+		log.Printf("GetDiscoverySources: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	for _, s := range sources {
 		if s.ID == id {
 			if err := db.SetDiscoverySourceEnabled(id, !s.Enabled); err != nil {
@@ -96,7 +101,12 @@ func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	sources, _ := db.GetDiscoverySources()
+	sources, err := db.GetDiscoverySources()
+	if err != nil {
+		log.Printf("GetDiscoverySources: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	for _, s := range sources {
 		if s.ID == id {
 			// Reload triggers an immediate scan via new goroutine restart
@@ -111,7 +121,10 @@ func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 }
 
 func renderDiscoverySources(w http.ResponseWriter) {
-	sources, _ := db.GetDiscoverySources()
+	sources, err := db.GetDiscoverySources()
+	if err != nil {
+		log.Printf("GetDiscoverySources: %v", err)
+	}
 	data := struct {
 		Sources []db.DiscoverySource
 	}{Sources: sources}

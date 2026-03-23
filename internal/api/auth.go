@@ -135,10 +135,18 @@ func renderLogin(w http.ResponseWriter, errMsg string) {
 	}{
 		Error: errMsg,
 	}
-	profiles, _ := db.GetProfiles()
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		log.Printf("GetProfiles: %v", err)
+	}
 	// Only show profiles that have a password set
 	for _, p := range profiles {
-		if a, _ := db.GetUserAuth(p.Slug); a != nil {
+		a, authErr := db.GetUserAuth(p.Slug)
+		if authErr != nil {
+			log.Printf("GetUserAuth(%s): %v", p.Slug, authErr)
+			continue
+		}
+		if a != nil {
 			data.Profiles = append(data.Profiles, p)
 		}
 	}
@@ -153,14 +161,24 @@ func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 	// In auth mode: only admin can access this
 	if appConfig != nil && appConfig.AuthEnabled {
 		profile := SessionProfile(r)
-		if a, _ := db.GetUserAuth(profile); a == nil || !a.IsAdmin {
+		a, authErr := db.GetUserAuth(profile)
+		if authErr != nil {
+			log.Printf("GetUserAuth(%s): %v", profile, authErr)
+		}
+		if a == nil || !a.IsAdmin {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
 	}
 
-	profiles, _ := db.GetProfiles()
-	auths, _ := db.GetAllUserAuth()
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		log.Printf("GetProfiles: %v", err)
+	}
+	auths, err := db.GetAllUserAuth()
+	if err != nil {
+		log.Printf("GetAllUserAuth: %v", err)
+	}
 	authMap := make(map[string]db.UserAuth)
 	for _, a := range auths {
 		authMap[a.Profile] = a
@@ -181,7 +199,11 @@ func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 func HandleSetPassword(w http.ResponseWriter, r *http.Request) {
 	if appConfig != nil && appConfig.AuthEnabled {
 		profile := SessionProfile(r)
-		if a, _ := db.GetUserAuth(profile); a == nil || !a.IsAdmin {
+		a, authErr := db.GetUserAuth(profile)
+		if authErr != nil {
+			log.Printf("GetUserAuth(%s): %v", profile, authErr)
+		}
+		if a == nil || !a.IsAdmin {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
@@ -208,7 +230,11 @@ func HandleSetPassword(w http.ResponseWriter, r *http.Request) {
 func HandleDeletePassword(w http.ResponseWriter, r *http.Request) {
 	if appConfig != nil && appConfig.AuthEnabled {
 		profile := SessionProfile(r)
-		if a, _ := db.GetUserAuth(profile); a == nil || !a.IsAdmin {
+		a, authErr := db.GetUserAuth(profile)
+		if authErr != nil {
+			log.Printf("GetUserAuth(%s): %v", profile, authErr)
+		}
+		if a == nil || !a.IsAdmin {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}

@@ -173,13 +173,22 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	prefs, _ := db.GetUserPreferences(profileObj.Slug)
+	prefs, err := db.GetUserPreferences(profileObj.Slug)
+	if err != nil {
+		log.Printf("GetUserPreferences(%s): %v", profileObj.Slug, err)
+	}
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
 
-	allProfiles, _ := db.GetProfiles()
-	pages, _ := db.GetPages(profileObj.Slug)
+	allProfiles, err := db.GetProfiles()
+	if err != nil {
+		log.Printf("GetProfiles: %v", err)
+	}
+	pages, err := db.GetPages(profileObj.Slug)
+	if err != nil {
+		log.Printf("GetPages(%s): %v", profileObj.Slug, err)
+	}
 
 	data := IndexData{
 		Categories:   categories,

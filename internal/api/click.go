@@ -66,7 +66,10 @@ func HandleCategoryList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	profiles, _ := db.GetProfiles()
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		log.Printf("GetProfiles: %v", err)
+	}
 	data := struct {
 		Categories []db.Category
 		Profiles   []db.Profile

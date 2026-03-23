@@ -28,17 +28,26 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profiles, _ := db.GetProfiles()
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		log.Printf("GetProfiles: %v", err)
+	}
 
 	var prefs *db.UserPreferences
 	var pages []db.Page
 	defaultSlug := ""
 	profileName := ""
-	if def, _ := db.GetDefaultProfile(); def != nil {
+	if def, defErr := db.GetDefaultProfile(); defErr != nil {
+		log.Printf("GetDefaultProfile: %v", defErr)
+	} else if def != nil {
 		defaultSlug = def.Slug
 		profileName = def.Name
-		prefs, _ = db.GetUserPreferences(def.Slug)
-		pages, _ = db.GetPages(def.Slug)
+		if prefs, err = db.GetUserPreferences(def.Slug); err != nil {
+			log.Printf("GetUserPreferences(%s): %v", def.Slug, err)
+		}
+		if pages, err = db.GetPages(def.Slug); err != nil {
+			log.Printf("GetPages(%s): %v", def.Slug, err)
+		}
 	}
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
@@ -158,7 +167,10 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profiles, _ := db.GetProfiles()
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		log.Printf("GetProfiles: %v", err)
+	}
 	data := struct {
 		Service    *db.Service
 		Categories []db.Category

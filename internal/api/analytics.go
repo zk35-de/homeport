@@ -27,11 +27,19 @@ func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 		log.Printf("GetTopClicks error: %v", err)
 		stats = nil
 	}
-	profiles, _ := db.GetProfiles()
-	defaultProf, _ := db.GetDefaultProfile()
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		log.Printf("GetProfiles: %v", err)
+	}
+	defaultProf, err := db.GetDefaultProfile()
+	if err != nil {
+		log.Printf("GetDefaultProfile: %v", err)
+	}
 	var prefs *db.UserPreferences
 	if defaultProf != nil {
-		prefs, _ = db.GetUserPreferences(defaultProf.Slug)
+		if prefs, err = db.GetUserPreferences(defaultProf.Slug); err != nil {
+			log.Printf("GetUserPreferences(%s): %v", defaultProf.Slug, err)
+		}
 	}
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
