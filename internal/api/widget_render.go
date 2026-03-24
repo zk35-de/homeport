@@ -8,9 +8,9 @@ import (
 // WidgetRenderData wraps a Widget with a translator for standalone partial renders.
 type WidgetRenderData struct {
     db.Widget
-    T func(string) string
+    i18n.Translator
 }
 
 func newWidgetRender(w db.Widget, lang string) WidgetRenderData {
-    return WidgetRenderData{Widget: w, T: i18n.T(lang)}
+    return WidgetRenderData{Widget: w, Translator: i18n.NewTranslator(lang)}
 }

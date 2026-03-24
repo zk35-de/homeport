@@ -12,6 +12,7 @@ import (
 )
 
 type ManageData struct {
+	i18n.Translator
 	Categories    []db.Category
 	SearchEngines map[string]string
 	Prefs         *db.UserPreferences
@@ -20,7 +21,6 @@ type ManageData struct {
 	Widgets       []db.Widget
 	Profile       string // für base.html (.Profile)
 	ProfileName   string // für base.html <title>
-	T             func(string) string
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +61,7 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ManageData{
+		Translator:    i18n.NewTranslator(prefs.Language),
 		Categories:    categories,
 		SearchEngines: db.GetAllSearchEngines(),
 		Prefs:         prefs,
@@ -69,7 +70,6 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		Widgets:       widgets,
 		Profile:       defaultSlug,
 		ProfileName:   profileName,
-		T:             i18n.T(prefs.Language),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -187,15 +187,15 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 	}
 	lang := GetLang(r)
 	data := struct {
+		i18n.Translator
 		Service    *db.Service
 		Categories []db.Category
 		Profiles   []db.Profile
-		T          func(string) string
 	}{
+		Translator: i18n.NewTranslator(lang),
 		Service:    svc,
 		Categories: categories,
 		Profiles:   profiles,
-		T:          i18n.T(lang),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "service_edit_form", data); err != nil {
@@ -238,11 +238,11 @@ func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
 
 	lang := GetLang(r)
 	data := struct {
+		i18n.Translator
 		Category *db.Category
-		T        func(string) string
 	}{
-		Category: cat,
-		T:        i18n.T(lang),
+		Translator: i18n.NewTranslator(lang),
+		Category:   cat,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "category_edit_form", data); err != nil {
@@ -515,11 +515,11 @@ func renderCategoryList(w http.ResponseWriter, lang string) {
 	}
 
 	data := struct {
+		i18n.Translator
 		Categories []db.Category
-		T          func(string) string
 	}{
+		Translator: i18n.NewTranslator(lang),
 		Categories: categories,
-		T:          i18n.T(lang),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
@@ -578,11 +578,11 @@ func renderDiscoveryInbox(w http.ResponseWriter, lang string) {
 	}
 
 	data := struct {
+		i18n.Translator
 		Items []db.DiscoveryItem
-		T     func(string) string
 	}{
-		Items: items,
-		T:     i18n.T(lang),
+		Translator: i18n.NewTranslator(lang),
+		Items:      items,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "discovery_inbox", data); err != nil {
@@ -599,11 +599,11 @@ func renderProfileList(w http.ResponseWriter, lang string) {
 		return
 	}
 	data := struct {
+		i18n.Translator
 		Profiles []db.Profile
-		T        func(string) string
 	}{
-		Profiles: profiles,
-		T:        i18n.T(lang),
+		Translator: i18n.NewTranslator(lang),
+		Profiles:   profiles,
 	}
 	if err := ManageTmpl.ExecuteTemplate(w, "profile_list", data); err != nil {
 		log.Printf("Error executing profile_list: %v", err)

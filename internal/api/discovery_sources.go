@@ -128,9 +128,9 @@ func renderDiscoverySources(w http.ResponseWriter, r *http.Request) {
 	}
 	lang := GetLang(r)
 	data := struct {
+		i18n.Translator
 		Sources []db.DiscoverySource
-		T       func(string) string
-	}{Sources: sources, T: i18n.T(lang)}
+	}{Translator: i18n.NewTranslator(lang), Sources: sources}
 	if err := ManageTmpl.ExecuteTemplate(w, "discovery_sources", data); err != nil {
 		log.Printf("discovery_sources template error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

@@ -39,7 +39,7 @@ var tmplFuncs = template.FuncMap{
 	"hexToRGB": hexToRGB,
 	"inc":      func(i int) int { return i + 1 },
 	"newWidgetRender": func(w db.Widget, lang string) WidgetRenderData {
-		return WidgetRenderData{Widget: w, T: i18n.T(lang)}
+		return WidgetRenderData{Widget: w, Translator: i18n.NewTranslator(lang)}
 	},
 }
 
@@ -89,6 +89,7 @@ func InitTemplates(fs embed.FS) {
 }
 
 type IndexData struct {
+	i18n.Translator
 	Categories   []db.Category
 	Widgets      []db.Widget
 	Pages        []db.Page
@@ -97,7 +98,6 @@ type IndexData struct {
 	SearchAction string
 	Prefs        *db.UserPreferences
 	Profiles     []db.Profile  // NEU: für Nav-Links
-	T            func(string) string
 }
 
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +197,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := IndexData{
+		Translator:   i18n.NewTranslator(prefs.Language),
 		Categories:   categories,
 		Widgets:      widgets,
 		Pages:        pages,
@@ -205,7 +206,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		SearchAction: db.GetSearchEngine(profileObj.Slug),
 		Prefs:        prefs,
 		Profiles:     allProfiles,
-		T:            i18n.T(prefs.Language),
 	}
 
 	if err := IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {

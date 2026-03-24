@@ -120,10 +120,10 @@ func renderPageList(w http.ResponseWriter, r *http.Request, profile string) {
 	}
 	lang := GetLang(r)
 	data := struct {
+		i18n.Translator
 		Pages   []db.Page
 		Profile string
-		T       func(string) string
-	}{Pages: pages, Profile: profile, T: i18n.T(lang)}
+	}{Translator: i18n.NewTranslator(lang), Pages: pages, Profile: profile}
 	if err := ManageTmpl.ExecuteTemplate(w, "page_list", data); err != nil {
 		log.Printf("Error executing page_list template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

@@ -132,12 +132,12 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 
 func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 	data := struct {
+		i18n.Translator
 		Error    string
 		Profiles []db.Profile
-		T        func(string) string
 	}{
-		Error: errMsg,
-		T:     i18n.T(lang),
+		Translator: i18n.NewTranslator(lang),
+		Error:      errMsg,
 	}
 	profiles, err := db.GetProfiles()
 	if err != nil {
@@ -196,10 +196,10 @@ func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
+		i18n.Translator
 		Profiles []db.Profile
 		AuthMap  map[string]db.UserAuth
-		T        func(string) string
-	}{Profiles: profiles, AuthMap: authMap, T: i18n.T(lang)}
+	}{Translator: i18n.NewTranslator(lang), Profiles: profiles, AuthMap: authMap}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "auth_list", data); err != nil {
 		log.Printf("auth_list template error: %v", err)

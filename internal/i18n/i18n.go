@@ -38,10 +38,28 @@ func Load(fs embed.FS) {
 	}
 }
 
-// T gibt einen Translator zurück: func(key) string.
-// Unbekannte Keys geben den Key selbst zurück (nie leer, nie Crash).
-// Unbekannte Sprachen fallen auf "de" zurück.
-func T(lang string) func(string) string {
+// Translator is an embeddable type that exposes a .T method for templates.
+// Go 1.25 html/template no longer allows calling function-valued struct fields;
+// only real methods work. Embed this in template data structs so {{.T "key"}} works.
+type Translator struct {
+	tFunc func(string) string
+}
+
+// NewTranslator creates a Translator for the given language.
+func NewTranslator(lang string) Translator {
+	return Translator{tFunc: tFunc(lang)}
+}
+
+// T translates a key. Safe to call on zero-value Translator (returns key as-is).
+func (tr Translator) T(key string) string {
+	if tr.tFunc == nil {
+		return key
+	}
+	return tr.tFunc(key)
+}
+
+// tFunc returns the internal translation function for a language.
+func tFunc(lang string) func(string) string {
 	m, ok := translations[lang]
 	if !ok {
 		m = translations["de"]
@@ -54,8 +72,15 @@ func T(lang string) func(string) string {
 		if v, ok := fallback[key]; ok {
 			return v
 		}
-		return key // Key als Notfall-Fallback – nie panic
+		return key
 	}
+}
+
+// T gibt einen Translator-func zurück (für nicht-Template-Nutzung wie 404-Handler).
+// Unbekannte Keys geben den Key selbst zurück (nie leer, nie Crash).
+// Unbekannte Sprachen fallen auf "de" zurück.
+func T(lang string) func(string) string {
+	return tFunc(lang)
 }
 
 // SupportedLanguages gibt alle geladenen Sprachcodes zurück.

@@ -13,11 +13,11 @@ import (
 var AnalyticsTmpl *template.Template
 
 type AnalyticsData struct {
+	i18n.Translator
 	Stats    []db.ClickStat
 	Profile  string
 	Profiles []db.Profile
 	Prefs    *db.UserPreferences
-	T        func(string) string
 }
 
 // HandleAnalytics renders the analytics page.
@@ -47,11 +47,11 @@ func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
 	data := AnalyticsData{
-		Stats:    stats,
-		Profile:  filterProfile,
-		Profiles: profiles,
-		Prefs:    prefs,
-		T:        i18n.T(prefs.Language),
+		Translator: i18n.NewTranslator(prefs.Language),
+		Stats:      stats,
+		Profile:    filterProfile,
+		Profiles:   profiles,
+		Prefs:      prefs,
 	}
 	if err := AnalyticsTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
 		log.Printf("Analytics template error: %v", err)
