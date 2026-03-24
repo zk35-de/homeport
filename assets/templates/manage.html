@@ -1,5 +1,16 @@
 {{define "content"}}
-<div class="manage-grid">
+<div class="manage-nav">
+    <a href="#manage-services">⊞ Services</a>
+    <a href="#discovery-inbox-wrapper">📥 Inbox</a>
+    <a href="#discovery-sources">🔌 Discovery</a>
+    <a href="#analytics-link">📊 Analytics</a>
+    <a href="#backup">💾 Backup</a>
+    <a href="#appearance">⚙️ Settings</a>
+    <a href="#auth">🔐 Auth</a>
+    <a href="#profiles">👤 Profile</a>
+    <a href="#pages">📄 Pages</a>
+</div>
+<div class="manage-grid" id="manage-services">
     <div class="sidebar">
         <div class="manage-category">
             <h3>{{.T "manage.add_category"}}</h3>
@@ -30,7 +41,7 @@
                         <option value="gray">Gray</option>
                     </select>
                 </div>
-                <button type="submit">{{.T "manage.add_category"}}</button>
+                <button type="submit" class="btn">{{.T "manage.add_category"}}</button>
             </form>
         </div>
 
@@ -76,7 +87,7 @@
                         {{end}}
                     </select>
                 </div>
-                <button type="submit">{{.T "manage.add_service"}}</button>
+                <button type="submit" class="btn">{{.T "manage.add_service"}}</button>
             </form>
         </div>
 
@@ -208,7 +219,7 @@
                         {{end}}
                     </select>
                 </div>
-                <button type="submit">{{.T "manage.add_widget"}}</button>
+                <button type="submit" class="btn">{{.T "manage.add_widget"}}</button>
             </form>
         </div>
 
@@ -324,7 +335,7 @@
         <label>DB-Datei wiederherstellen</label>
         <input type="file" name="file" accept=".db" required>
       </div>
-      <button type="submit" class="btn-sm" style="background:var(--fehler)">⚠️ Restore</button>
+      <button type="submit" class="btn-sm btn-danger">⚠️ Restore</button>
     </div>
   </form>
 </section>
@@ -373,6 +384,21 @@
           <option value="de" {{if eq .Prefs.Language "de"}}selected{{end}}>{{.T "pref.language.de"}}</option>
           <option value="en" {{if eq .Prefs.Language "en"}}selected{{end}}>{{.T "pref.language.en"}}</option>
         </select>
+      </div>
+    </div>
+
+    <div class="form-group" style="flex:0 0 auto">
+      <label>Hintergrund</label>
+      <div style="display:flex;gap:0.4rem;margin-top:0.25rem">
+        <button class="btn-sm bg-mode-btn" data-mode="aurora"
+          onclick="setBgMode('aurora')"
+          style="{{if or (eq .Prefs.BackgroundMode "aurora") (eq .Prefs.BackgroundMode "")}}outline:2px solid var(--accent);{{end}}">✦ Aurora</button>
+        <button class="btn-sm bg-mode-btn" data-mode="time"
+          onclick="setBgMode('time')"
+          style="{{if eq .Prefs.BackgroundMode "time"}}outline:2px solid var(--accent);{{end}}">🕐 Zeit</button>
+        <button class="btn-sm bg-mode-btn" data-mode="none"
+          onclick="setBgMode('none')"
+          style="{{if eq .Prefs.BackgroundMode "none"}}outline:2px solid var(--accent);{{end}}">○ Keine</button>
       </div>
     </div>
 

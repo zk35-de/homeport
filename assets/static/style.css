@@ -169,12 +169,80 @@
     display: none;
 }
 
+/* ── btn-primary ── */
+.btn-primary {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb),0.75) 0%, rgba(6,182,212,0.55) 100%);
+    color: rgba(255,255,255,0.95);
+    border: none;
+    padding: 0.48rem 1.1rem;
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-decoration: none;
+    box-shadow: var(--shadow-btn);
+    transition: opacity 0.2s, transform 0.15s;
+    text-transform: uppercase;
+}
+.btn-primary:hover  { opacity: 0.88; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+/* ── btn-danger ── */
+.btn-danger,
+.btn-sm.btn-danger {
+    background: rgba(239,68,68,0.12);
+    border-color: rgba(239,68,68,0.35);
+    color: var(--fehler);
+}
+.btn-danger:hover,
+.btn-sm.btn-danger:hover {
+    background: rgba(239,68,68,0.22);
+    border-color: rgba(239,68,68,0.6);
+    color: var(--fehler);
+}
+
+/* ── Manage Quick-Nav ── */
+.manage-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+}
+.manage-nav a {
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+    color: var(--sub);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.manage-nav a:hover {
+    color: var(--accent);
+    border-color: rgba(var(--accent-rgb), 0.4);
+    background: rgba(var(--accent-rgb), 0.06);
+}
+
 /* Management UI */
 .manage-grid {
     display: grid;
     grid-template-columns: 300px 1fr;
     gap: 2rem;
     align-items: start;
+}
+
+@media (max-width: 900px) {
+    .manage-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .form-group {
