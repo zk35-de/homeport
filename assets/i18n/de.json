@@ -66,6 +66,7 @@
   "analytics.table.profile": "Profil",
   "analytics.table.clicks": "Klicks",
   "analytics.table.last_clicked": "Zuletzt",
+  "analytics.description": "Meist geklickte Dienste pro Profil",
   "analytics.empty": "Noch keine Klicks erfasst.",
 
   "404.title": "Seite nicht gefunden.",
