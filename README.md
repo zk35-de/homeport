@@ -2,6 +2,20 @@
 
 Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
 
+## Screenshots
+
+| Dashboard (dark) | Dashboard (light) |
+|---|---|
+| ![Dashboard dark](docs/screenshots/dashboard-dark.png) | ![Dashboard light](docs/screenshots/dashboard-light.png) |
+
+| Search spotlight | Manage UI |
+|---|---|
+| ![Search](docs/screenshots/search-spotlight.png) | ![Manage](docs/screenshots/manage.png) |
+
+<p align="center">
+  <img src="docs/screenshots/mobile.png" alt="Mobile view" width="300">
+</p>
+
 **Why homeport?**
 - No config file editing – everything via management Web-UI
 - Multi-profile: `/` default, `/{slug}` per user (no login needed)
@@ -248,4 +262,12 @@ go test ./... -cover       # with coverage (api ≥30%, db ≥55%)
 go build ./...             # compile all packages
 ```
 
-No Node.js required. Frontend is Go templates + HTMX + embedded CSS.
+**E2E tests** (requires running server on port 8855):
+
+```bash
+cd tests/e2e
+npm install
+npx playwright test
+```
+
+No Node.js required for the app itself. Frontend is Go templates + HTMX + embedded CSS.
