@@ -204,32 +204,46 @@
     color: var(--fehler);
 }
 
-/* ── Manage Quick-Nav ── */
+/* ── Manage Tab Bar ── */
 .manage-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.3rem;
     margin-bottom: 1.5rem;
-    padding: 0.6rem 0.75rem;
+    padding: 0.45rem;
     background: var(--glass);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
 }
-.manage-nav a {
-    padding: 0.2rem 0.65rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--glass-border);
+.manage-tab {
+    padding: 0.3rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    background: none;
     color: var(--sub);
+    font-family: var(--mono);
     font-size: 0.68rem;
     letter-spacing: 0.05em;
-    text-decoration: none;
+    cursor: pointer;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
+    white-space: nowrap;
 }
-.manage-nav a:hover {
+.manage-tab:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.06);
+}
+.manage-tab.active {
     color: var(--accent);
-    border-color: rgba(var(--accent-rgb), 0.4);
-    background: rgba(var(--accent-rgb), 0.06);
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb), 0.35);
 }
+
+/* ── Manage Panels (tab content) ── */
+.manage-panel {
+    display: none;
+}
+/* default active panel shown via JS; this ensures no flash before JS runs */
+#panel-services { display: block; }
 
 /* Management UI */
 .manage-grid {

@@ -1,16 +1,16 @@
 {{define "content"}}
-<div class="manage-nav">
-    <a href="#manage-services">⊞ Services</a>
-    <a href="#discovery-inbox-wrapper">📥 Inbox</a>
-    <a href="#discovery-sources">🔌 Discovery</a>
-    <a href="#analytics-link">📊 Analytics</a>
-    <a href="#backup">💾 Backup</a>
-    <a href="#appearance">⚙️ Settings</a>
-    <a href="#auth">🔐 Auth</a>
-    <a href="#profiles">👤 Profile</a>
-    <a href="#pages">📄 Pages</a>
+<div class="manage-nav" role="tablist">
+    <button class="manage-tab" data-panel="panel-services"    role="tab">⊞ Services</button>
+    <button class="manage-tab" data-panel="discovery-sources" role="tab">🔌 Discovery</button>
+    <button class="manage-tab" data-panel="analytics-link"    role="tab">📊 Analytics</button>
+    <button class="manage-tab" data-panel="backup"            role="tab">💾 Backup</button>
+    <button class="manage-tab" data-panel="appearance"        role="tab">⚙️ Settings</button>
+    <button class="manage-tab" data-panel="auth"              role="tab">🔐 Auth</button>
+    <button class="manage-tab" data-panel="profiles"          role="tab">👤 Profile</button>
+    <button class="manage-tab" data-panel="pages"             role="tab">📄 Pages</button>
 </div>
-<div class="manage-grid" id="manage-services">
+<div class="manage-panel" id="panel-services">
+<div class="manage-grid">
     <div class="sidebar">
         <div class="manage-category">
             <h3>{{.T "manage.add_category"}}</h3>
@@ -267,8 +267,9 @@
          hx-get="/manage/discovery" hx-trigger="load" hx-swap="innerHTML">
     </div>
 </div>
+</div>{{/* end panel-services */}}
 
-<section class="manage-section" id="discovery-sources">
+<section class="manage-panel manage-section" id="discovery-sources">
   <h2>{{.T "manage.discovery.sources"}}</h2>
   <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem">
     Nginx Proxy Manager, Docker und Traefik werden automatisch auf neue Dienste gescannt.
@@ -310,7 +311,7 @@
   </div>
 </section>
 
-<section class="manage-section" id="analytics-link">
+<section class="manage-panel manage-section" id="analytics-link">
   <h2>{{.T "analytics.title"}}</h2>
   <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
     <a href="/manage/analytics" class="btn-sm">📊 {{.T "analytics.title"}} {{.T "manage.edit"}}</a>
@@ -318,7 +319,7 @@
   </div>
 </section>
 
-<section class="manage-section" id="backup">
+<section class="manage-panel manage-section" id="backup">
   <h2>Backup & Restore</h2>
 
   <!-- Manueller Backup-Download -->
@@ -358,7 +359,7 @@
 }
 </style>
 
-<section class="manage-section" id="appearance">
+<section class="manage-panel manage-section" id="appearance">
   <h2>{{.T "manage.settings"}}</h2>
   <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
 
@@ -428,7 +429,7 @@
   </div>
 </section>
 
-<section class="manage-section" id="auth">
+<section class="manage-panel manage-section" id="auth">
   <h2>{{.T "manage.auth"}}</h2>
   <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
     Auth aktiv wenn <code>HOMEPORT_AUTH=true</code> gesetzt ist.
@@ -446,7 +447,7 @@
   </form>
 </section>
 
-<section class="manage-section" id="profiles">
+<section class="manage-panel manage-section" id="profiles">
   <h2>{{.T "manage.profiles"}}</h2>
   <div id="profile-list">
     {{template "profile_list" .}}
@@ -458,7 +459,7 @@
   </form>
 </section>
 
-<section class="manage-section" id="pages">
+<section class="manage-panel manage-section" id="pages">
   <h2>{{.T "manage.pages"}}</h2>
   <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
     Pages erlauben es, Kategorien und Widgets auf verschiedene Tabs aufzuteilen (Work / Personal / Hobby).
@@ -632,5 +633,39 @@ function hexToRGBjs(hex) {
     const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
     return `${r},${g},${b}`;
 }
+
+// ── Manage Tab System ──────────────────────────────────────────
+(function() {
+    var STORAGE_KEY = 'hp-manage-tab';
+    var DEFAULT_TAB = 'panel-services';
+
+    function showPanel(panelId) {
+        // hide all panels
+        document.querySelectorAll('.manage-panel').forEach(function(p) {
+            p.style.display = 'none';
+        });
+        // show target
+        var panel = document.getElementById(panelId);
+        if (panel) panel.style.display = '';
+
+        // update tab active state
+        document.querySelectorAll('.manage-tab').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.panel === panelId);
+        });
+
+        try { localStorage.setItem(STORAGE_KEY, panelId); } catch(e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var saved;
+        try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
+        var target = (saved && document.getElementById(saved)) ? saved : DEFAULT_TAB;
+        showPanel(target);
+
+        document.querySelectorAll('.manage-tab').forEach(function(btn) {
+            btn.addEventListener('click', function() { showPanel(btn.dataset.panel); });
+        });
+    });
+})();
 </script>
 {{end}}
