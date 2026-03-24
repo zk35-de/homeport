@@ -89,6 +89,7 @@ func main() {
 	go runWeatherFetcher()
 	go runRSSFetcher()
 	go runGithubFetcher()
+	go runRouterFetcher()
 	go runPodmanScanner()
 	go runSessionPurger()
 
@@ -486,6 +487,61 @@ func runRSSFetcher() {
 	}
 	fetchAll()
 	for range time.Tick(30 * time.Minute) {
+		fetchAll()
+	}
+}
+
+func runRouterFetcher() {
+	fetchAll := func() {
+		widgets, err := db.GetAllWidgets()
+		if err != nil {
+			slog.Error("Router fetcher: error loading widgets", "err", err)
+			return
+		}
+		for _, w := range widgets {
+			if w.Type != "router" {
+				continue
+			}
+			var cfg struct {
+				RouterType     string `json:"router_type"`
+				RouterURL      string `json:"router_url"`
+				RouterPassword string `json:"router_password"`
+			}
+			if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil {
+				continue
+			}
+			fetcher := core.NewRouterFetcher(cfg.RouterType, cfg.RouterURL, cfg.RouterPassword)
+			rs, err := fetcher.Fetch()
+			if err != nil {
+				slog.Error("Router fetcher: widget error", "widget_id", w.ID, "err", err)
+				continue
+			}
+			data, _ := json.Marshal(struct {
+				DSLDownMbit  float64 `json:"DSLDownMbit"`
+				DSLUpMbit    float64 `json:"DSLUpMbit"`
+				DSLOnline    bool    `json:"DSLOnline"`
+				LTEActive    bool    `json:"LTEActive"`
+				LTESignalDBm float64 `json:"LTESignalDBm"`
+				LTEBand      string  `json:"LTEBand"`
+				Mode         string  `json:"Mode"`
+				Online       bool    `json:"Online"`
+			}{
+				DSLDownMbit:  rs.DSLDownMbit,
+				DSLUpMbit:    rs.DSLUpMbit,
+				DSLOnline:    rs.DSLOnline,
+				LTEActive:    rs.LTEActive,
+				LTESignalDBm: rs.LTESignalDBm,
+				LTEBand:      rs.LTEBand,
+				Mode:         rs.Mode,
+				Online:       rs.Online,
+			})
+			if err := db.UpdateWidgetCache(w.ID, string(data)); err != nil {
+				slog.Error("Router fetcher: cache update error", "widget_id", w.ID, "err", err)
+			}
+		}
+	}
+	fetchAll()
+	for range time.Tick(60 * time.Second) {
 		fetchAll()
 	}
 }

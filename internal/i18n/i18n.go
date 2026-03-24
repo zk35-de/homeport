@@ -1,0 +1,68 @@
+package i18n
+
+import (
+	"embed"
+	"encoding/json"
+	"log"
+	"strings"
+)
+
+// translations[lang][key] = value
+var translations = map[string]map[string]string{}
+
+// Load lädt alle JSON-Dateien aus assets/i18n/ in den Speicher.
+// Muss einmal beim Start aufgerufen werden (in InitTemplates oder main).
+func Load(fs embed.FS) {
+	entries, err := fs.ReadDir("i18n")
+	if err != nil {
+		log.Printf("i18n: cannot read i18n dir: %v", err)
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		lang := strings.TrimSuffix(e.Name(), ".json")
+		data, err := fs.ReadFile("i18n/" + e.Name())
+		if err != nil {
+			log.Printf("i18n: cannot read %s: %v", e.Name(), err)
+			continue
+		}
+		var m map[string]string
+		if err := json.Unmarshal(data, &m); err != nil {
+			log.Printf("i18n: cannot parse %s: %v", e.Name(), err)
+			continue
+		}
+		translations[lang] = m
+		log.Printf("i18n: loaded %d strings for lang=%s", len(m), lang)
+	}
+}
+
+// T gibt einen Translator zurück: func(key) string.
+// Unbekannte Keys geben den Key selbst zurück (nie leer, nie Crash).
+// Unbekannte Sprachen fallen auf "de" zurück.
+func T(lang string) func(string) string {
+	m, ok := translations[lang]
+	if !ok {
+		m = translations["de"]
+	}
+	fallback := translations["de"]
+	return func(key string) string {
+		if v, ok := m[key]; ok {
+			return v
+		}
+		if v, ok := fallback[key]; ok {
+			return v
+		}
+		return key // Key als Notfall-Fallback – nie panic
+	}
+}
+
+// SupportedLanguages gibt alle geladenen Sprachcodes zurück.
+func SupportedLanguages() []string {
+	langs := make([]string, 0, len(translations))
+	for k := range translations {
+		langs = append(langs, k)
+	}
+	return langs
+}

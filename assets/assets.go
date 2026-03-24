@@ -3,5 +3,5 @@ package assets
 
 import "embed"
 
-//go:embed templates static
+//go:embed templates static i18n
 var FS embed.FS

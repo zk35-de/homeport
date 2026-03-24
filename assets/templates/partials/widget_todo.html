@@ -3,13 +3,13 @@
   <h3 class="widget-title">{{.Name}}</h3>
   {{range .Todos}}
   <div class="todo-item{{if .Done}} done{{end}}">
-    <button class="todo-check" title="{{if .Done}}Erledigt{{else}}Offen{{end}}"
+    <button class="todo-check" title="{{if .Done}}Done{{else}}Open{{end}}"
       hx-post="/api/todos/{{.ID}}/toggle"
       hx-target="#widget-todo-{{$.ID}}"
       hx-swap="outerHTML">{{if .Done}}✅{{else}}⬜{{end}}</button>
     <span class="todo-text">{{.Text}}</span>
     {{if .DueDate}}<span class="todo-due">{{.DueDate}}</span>{{end}}
-    <button class="btn-icon delete todo-del" title="Löschen"
+    <button class="btn-icon delete todo-del" title="{{$.T "widget.todo.delete"}}"
       hx-delete="/api/todos/{{.ID}}"
       hx-target="#widget-todo-{{$.ID}}"
       hx-swap="outerHTML">🗑️</button>
@@ -21,7 +21,7 @@
         hx-on::after-request="this.reset()"
         class="todo-add-form">
     <input type="hidden" name="widget_id" value="{{.ID}}">
-    <input type="text" name="text" placeholder="Neue Aufgabe…" class="todo-input" autocomplete="off">
+    <input type="text" name="text" placeholder="{{.T "widget.todo.add_placeholder"}}" class="todo-input" autocomplete="off">
     <button type="submit" class="btn-sm">+</button>
   </form>
 </div>

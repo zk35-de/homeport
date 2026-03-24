@@ -15,7 +15,12 @@ func renderBookmarksWidget(w http.ResponseWriter, widgetID int) {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
 	}
-	if err := IndexTmpl.ExecuteTemplate(w, "widget_bookmarks", widget); err != nil {
+	lang := "de"
+	if prefs, err := db.GetUserPreferences(widget.Profile); err == nil && prefs != nil && prefs.Language != "" {
+		lang = prefs.Language
+	}
+
+	if err := IndexTmpl.ExecuteTemplate(w, "widget_bookmarks", newWidgetRender(widget, lang)); err != nil {
 		log.Printf("renderBookmarksWidget error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

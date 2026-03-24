@@ -10,38 +10,34 @@ import (
 )
 
 // renderTodoWidget renders the widget_todo template for a given widget and returns it.
-func renderTodoWidget(w http.ResponseWriter, widgetID int, widgetName string) {
+func renderTodoWidget(w http.ResponseWriter, widgetID int) {
+	widget, err := db.GetWidgetByID(widgetID)
+	if err != nil {
+		log.Printf("Error fetching widget %d: %v", widgetID, err)
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
 	todos, err := db.GetTodos(widgetID)
 	if err != nil {
 		log.Printf("Error fetching todos for widget %d: %v", widgetID, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	widget := db.Widget{
-		ID:    widgetID,
-		Name:  widgetName,
-		Type:  "todo",
-		Todos: todos,
+	widget.Todos = todos
+
+	lang := "de"
+	if prefs, err := db.GetUserPreferences(widget.Profile); err == nil && prefs != nil && prefs.Language != "" {
+		lang = prefs.Language
 	}
-	if err := IndexTmpl.ExecuteTemplate(w, "widget_todo", widget); err != nil {
+
+	if err := IndexTmpl.ExecuteTemplate(w, "widget_todo", newWidgetRender(widget, lang)); err != nil {
 		log.Printf("Error rendering todo widget: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-// getWidgetNameByID returns the name of a widget (for re-rendering after mutations).
-func getWidgetNameByID(id int) string {
-	widgets, err := db.GetAllWidgets()
-	if err != nil {
-		return ""
-	}
-	for _, w := range widgets {
-		if w.ID == id {
-			return w.Name
-		}
-	}
-	return ""
-}
+// getWidgetNameByID is now redundant for re-rendering since we fetch the full widget in renderTodoWidget.
+// Keeping it if needed elsewhere, but updating callers of renderTodoWidget.
 
 func HandleAddTodo(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
@@ -64,7 +60,7 @@ func HandleAddTodo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderTodoWidget(w, widgetID, getWidgetNameByID(widgetID))
+	renderTodoWidget(w, widgetID)
 }
 
 func HandleToggleTodo(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +79,7 @@ func HandleToggleTodo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderTodoWidget(w, widgetID, getWidgetNameByID(widgetID))
+	renderTodoWidget(w, widgetID)
 }
 
 func HandleDeleteTodo(w http.ResponseWriter, r *http.Request) {
@@ -97,11 +93,10 @@ func HandleDeleteTodo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	name := getWidgetNameByID(widgetID)
 	if err := db.DeleteTodo(id); err != nil {
 		log.Printf("Error deleting todo %d: %v", id, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderTodoWidget(w, widgetID, name)
+	renderTodoWidget(w, widgetID)
 }

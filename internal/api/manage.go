@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
+	"git.zk35.de/secalpha/homeport/internal/i18n"
 )
 
 type ManageData struct {
@@ -16,8 +17,10 @@ type ManageData struct {
 	Prefs         *db.UserPreferences
 	Profiles      []db.Profile
 	Pages         []db.Page
+	Widgets       []db.Widget
 	Profile       string // für base.html (.Profile)
 	ProfileName   string // für base.html <title>
+	T             func(string) string
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -52,14 +55,21 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
+	widgets, err := db.GetAllWidgets()
+	if err != nil {
+		log.Printf("GetAllWidgets: %v", err)
+	}
+
 	data := ManageData{
 		Categories:    categories,
 		SearchEngines: db.GetAllSearchEngines(),
 		Prefs:         prefs,
 		Profiles:      profiles,
 		Pages:         pages,
+		Widgets:       widgets,
 		Profile:       defaultSlug,
 		ProfileName:   profileName,
+		T:             i18n.T(prefs.Language),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -107,7 +117,8 @@ func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleAddService(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +141,8 @@ func HandleAddService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +152,8 @@ func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +163,8 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleGetService(w http.ResponseWriter, r *http.Request) {
@@ -171,14 +185,17 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("GetProfiles: %v", err)
 	}
+	lang := GetLang(r)
 	data := struct {
 		Service    *db.Service
 		Categories []db.Category
 		Profiles   []db.Profile
+		T          func(string) string
 	}{
 		Service:    svc,
 		Categories: categories,
 		Profiles:   profiles,
+		T:          i18n.T(lang),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "service_edit_form", data); err != nil {
@@ -207,7 +224,8 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
@@ -218,10 +236,13 @@ func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	lang := GetLang(r)
 	data := struct {
 		Category *db.Category
+		T        func(string) string
 	}{
 		Category: cat,
+		T:        i18n.T(lang),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "category_edit_form", data); err != nil {
@@ -247,7 +268,8 @@ func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleUpdateCategorySpan(w http.ResponseWriter, r *http.Request) {
@@ -258,7 +280,8 @@ func HandleUpdateCategorySpan(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleReorderCategories(w http.ResponseWriter, r *http.Request) {
@@ -285,6 +308,15 @@ func HandleReorderServices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func GetLang(r *http.Request) string {
+	if def, err := db.GetDefaultProfile(); err == nil && def != nil {
+		if prefs, err := db.GetUserPreferences(def.Slug); err == nil && prefs != nil && prefs.Language != "" {
+			return prefs.Language
+		}
+	}
+	return "de"
 }
 
 func HandleSortCategory(w http.ResponseWriter, r *http.Request) {
@@ -317,7 +349,8 @@ func HandleSortCategory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleSortService(w http.ResponseWriter, r *http.Request) {
@@ -354,7 +387,8 @@ func HandleSortService(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
 func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
@@ -472,7 +506,7 @@ func HandleCloneToAndrea(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func renderCategoryList(w http.ResponseWriter) {
+func renderCategoryList(w http.ResponseWriter, lang string) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
 		log.Printf("Error fetching categories: %v", err)
@@ -482,8 +516,10 @@ func renderCategoryList(w http.ResponseWriter) {
 
 	data := struct {
 		Categories []db.Category
+		T          func(string) string
 	}{
 		Categories: categories,
+		T:          i18n.T(lang),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
@@ -494,7 +530,8 @@ func renderCategoryList(w http.ResponseWriter) {
 
 // HandleDiscoveryInbox handles the GET request for the discovery inbox partial.
 func HandleDiscoveryInbox(w http.ResponseWriter, r *http.Request) {
-	renderDiscoveryInbox(w)
+	lang := GetLang(r)
+	renderDiscoveryInbox(w, lang)
 }
 
 // HandleAcceptDiscovery handles accepting a discovered service.
@@ -510,7 +547,8 @@ func HandleAcceptDiscovery(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderDiscoveryInbox(w)
+	lang := GetLang(r)
+	renderDiscoveryInbox(w, lang)
 }
 
 // HandleIgnoreDiscovery handles ignoring a discovered service.
@@ -526,11 +564,12 @@ func HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderDiscoveryInbox(w)
+	lang := GetLang(r)
+	renderDiscoveryInbox(w, lang)
 }
 
 // renderDiscoveryInbox fetches discovery items and renders the discovery_inbox partial.
-func renderDiscoveryInbox(w http.ResponseWriter) {
+func renderDiscoveryInbox(w http.ResponseWriter, lang string) {
 	items, err := db.GetDiscoveryInbox()
 	if err != nil {
 		log.Printf("Error fetching discovery inbox items: %v", err)
@@ -540,8 +579,10 @@ func renderDiscoveryInbox(w http.ResponseWriter) {
 
 	data := struct {
 		Items []db.DiscoveryItem
+		T     func(string) string
 	}{
 		Items: items,
+		T:     i18n.T(lang),
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "discovery_inbox", data); err != nil {
@@ -551,13 +592,19 @@ func renderDiscoveryInbox(w http.ResponseWriter) {
 }
 
 
-func renderProfileList(w http.ResponseWriter) {
+func renderProfileList(w http.ResponseWriter, lang string) {
 	profiles, err := db.GetProfiles()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	data := struct{ Profiles []db.Profile }{Profiles: profiles}
+	data := struct {
+		Profiles []db.Profile
+		T        func(string) string
+	}{
+		Profiles: profiles,
+		T:        i18n.T(lang),
+	}
 	if err := ManageTmpl.ExecuteTemplate(w, "profile_list", data); err != nil {
 		log.Printf("Error executing profile_list: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -580,7 +627,8 @@ func HandleAddProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderProfileList(w)
+	lang := GetLang(r)
+	renderProfileList(w, lang)
 }
 
 func HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
@@ -590,7 +638,8 @@ func HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderProfileList(w)
+	lang := GetLang(r)
+	renderProfileList(w, lang)
 }
 
 func HandleSetDefaultProfile(w http.ResponseWriter, r *http.Request) {
@@ -600,5 +649,6 @@ func HandleSetDefaultProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderProfileList(w)
+	lang := GetLang(r)
+	renderProfileList(w, lang)
 }

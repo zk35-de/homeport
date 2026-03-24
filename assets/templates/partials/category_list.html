@@ -22,7 +22,7 @@
                     hx-get="/manage/category/{{.ID}}/edit"
                     hx-target="#cat-edit-{{.ID}}"
                     hx-swap="innerHTML">✏️</button>
-                <button class="btn-icon delete" hx-delete="/manage/category/{{.ID}}" hx-confirm="Are you sure?" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
+                <button class="btn-icon delete" hx-delete="/manage/category/{{.ID}}" hx-confirm="{{$.T "common.confirm_delete"}}" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
             </div>
         </div>
         <div id="cat-edit-{{.ID}}"></div>
@@ -44,7 +44,7 @@
                         hx-get="/manage/service/{{.ID}}/edit"
                         hx-target="#svc-edit-{{.ID}}"
                         hx-swap="innerHTML">✏️</button>
-                    <button class="btn-icon delete" hx-delete="/manage/service/{{.ID}}" hx-confirm="Are you sure?" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
+                    <button class="btn-icon delete" hx-delete="/manage/service/{{.ID}}" hx-confirm="{{$.T "common.confirm_delete"}}" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
                 </div>
                 <div id="svc-edit-{{.ID}}"></div>
             </div>
@@ -117,15 +117,15 @@
       hx-swap="innerHTML">
     <div class="edit-form-grid">
         <div class="form-group">
-            <label>Name</label>
+            <label>{{.T "manage.name"}}</label>
             <input type="text" name="name" value="{{.Service.Name}}" required>
         </div>
         <div class="form-group">
-            <label>URL</label>
+            <label>{{.T "manage.url"}}</label>
             <input type="url" name="url" value="{{.Service.URL}}" required>
         </div>
         <div class="form-group">
-            <label>Icon</label>
+            <label>{{.T "manage.icon"}}</label>
             <div style="display:flex;gap:0.4rem;align-items:center">
                 <input type="text" name="icon" id="edit-icon-{{.Service.ID}}" value="{{.Service.Icon}}" placeholder="🏠 oder leer">
                 <button type="button" class="btn-sm" onclick="fetchFaviconEdit({{.Service.ID}})" title="Favicon laden">🌐</button>
@@ -142,7 +142,7 @@
             <input type="url" name="status_check" value="{{.Service.StatusCheck}}">
         </div>
         <div class="form-group">
-            <label>Kategorie</label>
+            <label>{{.T "manage.category"}}</label>
             <select name="category_id">
                 {{range .Categories}}
                 <option value="{{.ID}}" {{if eq .ID $.Service.CategoryID}}selected{{end}}>{{.Name}}</option>
@@ -150,7 +150,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Visibility</label>
+            <label>{{.T "manage.profile"}}</label>
             <select name="visibility" multiple size="{{len .Profiles}}">
                 {{range .Profiles}}{{$slug := .Slug}}
                 <option value="{{.Slug}}" {{range $.Service.VisibleTo}}{{if eq . $slug}}selected{{end}}{{end}}>{{.Name}}</option>
@@ -159,8 +159,8 @@
         </div>
     </div>
     <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
-        <button type="submit" class="btn-sm">Speichern</button>
-        <button type="button" class="btn-sm" onclick="document.getElementById('svc-edit-{{.Service.ID}}').innerHTML=''">Abbrechen</button>
+        <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
+        <button type="button" class="btn-sm" onclick="document.getElementById('svc-edit-{{.Service.ID}}').innerHTML=''">{{.T "manage.cancel"}}</button>
     </div>
 </form>
 {{end}}
@@ -172,7 +172,7 @@
       hx-swap="innerHTML">
     <div class="edit-form-grid">
         <div class="form-group">
-            <label>Name</label>
+            <label>{{.T "manage.name"}}</label>
             <input type="text" name="name" value="{{.Category.Name}}" required>
         </div>
         <div class="form-group">
@@ -199,8 +199,8 @@
         </div>
     </div>
     <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
-        <button type="submit" class="btn-sm">Speichern</button>
-        <button type="button" class="btn-sm" onclick="document.getElementById('cat-edit-{{.Category.ID}}').innerHTML=''">Abbrechen</button>
+        <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
+        <button type="button" class="btn-sm" onclick="document.getElementById('cat-edit-{{.Category.ID}}').innerHTML=''">{{.T "manage.cancel"}}</button>
     </div>
 </form>
 {{end}}

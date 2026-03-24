@@ -12,13 +12,13 @@
         {{end}}
         <span class="bookmark-name">{{$link.Name}}</span>
       </a>
-      <button class="btn-icon bookmark-del" title="Löschen"
+      <button class="btn-icon bookmark-del" title="{{$.T "widget.bookmarks.delete"}}"
         hx-delete="/api/widgets/{{$.ID}}/bookmark/{{$idx}}"
         hx-target="#widget-bookmarks-{{$.ID}}"
         hx-swap="outerHTML">🗑️</button>
     </div>
     {{else}}
-    <p class="bookmark-empty">Noch keine Lesezeichen.</p>
+    <p class="bookmark-empty">{{.T "widget.bookmarks.empty"}}</p>
     {{end}}
   </div>
   <form class="bookmark-add-form"
@@ -26,8 +26,8 @@
     hx-target="#widget-bookmarks-{{.ID}}"
     hx-swap="outerHTML"
     hx-on::after-request="this.reset()">
-    <input type="text" name="name" placeholder="Name" class="bookmark-input-name" autocomplete="off">
-    <input type="url" name="url" placeholder="https://…" class="bookmark-input-url" autocomplete="off" required>
+    <input type="text" name="name" placeholder="{{.T "widget.bookmarks.name_placeholder"}}" class="bookmark-input-name" autocomplete="off">
+    <input type="url" name="url" placeholder="{{.T "widget.bookmarks.url_placeholder"}}" class="bookmark-input-url" autocomplete="off" required>
     <button type="submit" class="btn-sm">+</button>
   </form>
 </div>

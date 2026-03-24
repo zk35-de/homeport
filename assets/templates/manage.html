@@ -2,10 +2,10 @@
 <div class="manage-grid">
     <div class="sidebar">
         <div class="manage-category">
-            <h3>Add Category</h3>
+            <h3>{{.T "manage.add_category"}}</h3>
             <form hx-post="/manage/category" hx-target="#category-list" hx-swap="innerHTML">
                 <div class="form-group">
-                    <label>Name</label>
+                    <label>{{.T "manage.name"}}</label>
                     <input type="text" name="name" required>
                 </div>
                 <div class="form-group">
@@ -30,15 +30,15 @@
                         <option value="gray">Gray</option>
                     </select>
                 </div>
-                <button type="submit">Create Category</button>
+                <button type="submit">{{.T "manage.add_category"}}</button>
             </form>
         </div>
 
         <div class="manage-category">
-            <h3>Add Service</h3>
+            <h3>{{.T "manage.add_service"}}</h3>
             <form hx-post="/manage/service" hx-target="#category-list" hx-swap="innerHTML" hx-on::after-request="this.reset()">
                 <div class="form-group">
-                    <label>Category</label>
+                    <label>{{.T "manage.category"}}</label>
                     <select name="category_id" required>
                         {{range .Categories}}
                         <option value="{{.ID}}">{{.Name}}</option>
@@ -46,15 +46,15 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Name</label>
+                    <label>{{.T "manage.name"}}</label>
                     <input type="text" name="name" required>
                 </div>
                 <div class="form-group">
-                    <label>URL</label>
+                    <label>{{.T "manage.url"}}</label>
                     <input type="url" name="url" required>
                 </div>
                 <div class="form-group">
-                    <label>Icon (Emoji, Text oder Favicon)</label>
+                    <label>{{.T "manage.icon"}}</label>
                     <div style="display:flex;gap:0.4rem;align-items:center">
                         <input type="text" name="icon" id="svc-icon-input" placeholder="🏠 oder leer lassen">
                         <button type="button" class="btn-sm" id="fetch-favicon-btn" title="Favicon von der URL laden">🌐</button>
@@ -70,21 +70,21 @@
                     <input type="url" name="status_check">
                 </div>
                 <div class="form-group">
-                    <label>Visibility</label>
+                    <label>{{.T "manage.profile"}}</label>
                     <select name="visibility" multiple size="{{len .Profiles}}">
                         {{range .Profiles}}<option value="{{.Slug}}" selected>{{.Name}}</option>
                         {{end}}
                     </select>
                 </div>
-                <button type="submit">Add Service</button>
+                <button type="submit">{{.T "manage.add_service"}}</button>
             </form>
         </div>
 
         <div class="manage-category">
-            <h3>Add Widget</h3>
+            <h3>{{.T "manage.add_widget"}}</h3>
             <form hx-post="/manage/widget" hx-swap="none" hx-on::after-request="this.reset()" id="add-widget-form">
                 <div class="form-group">
-                    <label>Typ</label>
+                    <label>{{.T "manage.widget_type"}}</label>
                     <select name="widget_type" id="widget-type-select" onchange="updateWidgetForm()">
                         <option value="ical">iCal Kalender</option>
                         <option value="caldav">CalDAV Kalender</option>
@@ -99,7 +99,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Name</label>
+                    <label>{{.T "manage.name"}}</label>
                     <input type="text" name="name" placeholder="Meine Uhr" required>
                 </div>
                 <div id="widget-ical-fields">
@@ -201,16 +201,32 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Profil</label>
+                    <label>{{.T "manage.profile"}}</label>
                     <select name="profile">
                         <option value="all">Alle</option>
                         {{range .Profiles}}<option value="{{.Slug}}">Nur {{.Name}}</option>
                         {{end}}
                     </select>
                 </div>
-                <button type="submit">Widget hinzufügen</button>
+                <button type="submit">{{.T "manage.add_widget"}}</button>
             </form>
         </div>
+
+        {{if .Widgets}}
+        <div class="manage-category">
+            <h3>Vorhandene Widgets</h3>
+            {{range .Widgets}}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0;border-bottom:1px solid var(--border)">
+                <span style="font-size:0.875rem">{{.Name}} <span style="color:var(--text-muted);font-size:0.75rem">({{.Type}})</span></span>
+                <button class="btn-sm btn-danger"
+                    hx-delete="/manage/widget/{{.ID}}"
+                    hx-confirm="Widget '{{.Name}}' löschen?"
+                    hx-swap="none"
+                    hx-on::after-request="window.location.reload()">✕</button>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
 
         <div class="manage-category">
             <h3>Suchmaschine</h3>
@@ -242,7 +258,7 @@
 </div>
 
 <section class="manage-section" id="discovery-sources">
-  <h2>Auto-Discovery Quellen</h2>
+  <h2>{{.T "manage.discovery.sources"}}</h2>
   <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem">
     Nginx Proxy Manager, Docker und Traefik werden automatisch auf neue Dienste gescannt.
   </p>
@@ -250,7 +266,7 @@
   <form hx-post="/manage/discovery/sources" hx-target="#discovery-sources-list" hx-swap="outerHTML"
         style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1.5rem">
     <div class="form-group" style="margin-bottom:0">
-      <label>Typ</label>
+      <label>{{.T "manage.widget_type"}}</label>
       <select name="type">
         <option value="npm">Nginx Proxy Manager</option>
         <option value="traefik">Traefik</option>
@@ -258,11 +274,11 @@
       </select>
     </div>
     <div class="form-group" style="margin-bottom:0">
-      <label>Name</label>
+      <label>{{.T "manage.name"}}</label>
       <input type="text" name="name" placeholder="Mein NPM" required>
     </div>
     <div class="form-group" style="margin-bottom:0">
-      <label>URL</label>
+      <label>{{.T "manage.url"}}</label>
       <input type="url" name="url" placeholder="http://192.168.2.1:81" required>
     </div>
     <div class="form-group" style="margin-bottom:0">
@@ -274,7 +290,7 @@
       <input type="number" name="interval" value="300" min="10">
     </div>
     <div style="display:flex;align-items:flex-end">
-      <button type="submit" class="btn-primary" style="width:100%">Quelle hinzufügen</button>
+      <button type="submit" class="btn-primary" style="width:100%">{{.T "manage.discovery.add"}}</button>
     </div>
   </form>
 
@@ -284,9 +300,9 @@
 </section>
 
 <section class="manage-section" id="analytics-link">
-  <h2>Analytics</h2>
+  <h2>{{.T "analytics.title"}}</h2>
   <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-    <a href="/manage/analytics" class="btn-sm">📊 Klick-Statistiken anzeigen</a>
+    <a href="/manage/analytics" class="btn-sm">📊 {{.T "analytics.title"}} {{.T "manage.edit"}}</a>
     <span style="font-size:0.8rem;color:var(--sub)">Meist geklickte Dienste pro Profil</span>
   </div>
 </section>
@@ -332,11 +348,11 @@
 </style>
 
 <section class="manage-section" id="appearance">
-  <h2>Erscheinungsbild</h2>
+  <h2>{{.T "manage.settings"}}</h2>
   <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
 
     <div class="form-group" style="flex:0 0 auto">
-      <label>Theme</label>
+      <label>{{.T "manage.theme"}}</label>
       <div style="display:flex;gap:0.4rem;margin-top:0.25rem">
         <button class="btn-sm theme-btn" data-theme="dark"
           onclick="setTheme('dark')"
@@ -351,19 +367,17 @@
     </div>
 
     <div class="form-group" style="flex:0 0 auto">
-      <label>Hintergrund</label>
-      <div style="display:flex;gap:0.4rem;margin-top:0.25rem;flex-wrap:wrap">
-        <button class="btn-sm bg-mode-btn" data-mode="aurora"  onclick="setBgMode('aurora')"
-          style="{{if eq .Prefs.BackgroundMode "aurora"}}outline:2px solid var(--accent);{{end}}">✨ Aurora</button>
-        <button class="btn-sm bg-mode-btn" data-mode="time"    onclick="setBgMode('time')"
-          style="{{if eq .Prefs.BackgroundMode "time"}}outline:2px solid var(--accent);{{end}}">🕐 Tageszeit</button>
-        <button class="btn-sm bg-mode-btn" data-mode="none"    onclick="setBgMode('none')"
-          style="{{if eq .Prefs.BackgroundMode "none"}}outline:2px solid var(--accent);{{end}}">⬛ Keiner</button>
+      <label>{{.T "manage.language"}}</label>
+      <div style="margin-top:0.25rem">
+        <select name="language" hx-patch="/api/user/preferences" hx-ext="json-enc" hx-trigger="change" hx-swap="none">
+          <option value="de" {{if eq .Prefs.Language "de"}}selected{{end}}>{{.T "pref.language.de"}}</option>
+          <option value="en" {{if eq .Prefs.Language "en"}}selected{{end}}>{{.T "pref.language.en"}}</option>
+        </select>
       </div>
     </div>
 
     <div class="form-group" style="flex:0 0 auto">
-      <label>Accent Color</label>
+      <label>{{.T "manage.accent_color"}}</label>
       <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.25rem">
         <input type="color" id="accent-picker" value="{{.Prefs.AccentColor}}"
                oninput="previewAccent(this.value)"
@@ -382,14 +396,14 @@
               style="width:100%;font-family:monospace;font-size:0.8rem;resize:vertical"
               placeholder="/* z.B. .widget { border-radius: 0; } */">{{.Prefs.CustomCSS}}</textarea>
     <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
-      <button class="btn-sm" onclick="saveCustomCSS()">Speichern</button>
-      <button class="btn-sm" onclick="resetCustomCSS()">Zurücksetzen</button>
+      <button class="btn-sm" onclick="saveCustomCSS()">{{.T "manage.save"}}</button>
+      <button class="btn-sm" onclick="resetCustomCSS()">{{.T "manage.cancel"}}</button>
     </div>
   </div>
 </section>
 
 <section class="manage-section" id="auth">
-  <h2>Zugänge &amp; Passwörter</h2>
+  <h2>{{.T "manage.auth"}}</h2>
   <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
     Auth aktiv wenn <code>HOMEPORT_AUTH=true</code> gesetzt ist.
     Erster User mit Passwort wird automatisch Admin.
@@ -402,24 +416,24 @@
       {{range .Profiles}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
     </select>
     <input type="password" name="password" placeholder="Neues Passwort" required style="flex:2;min-width:150px">
-    <button class="btn-sm" type="submit">Passwort setzen</button>
+    <button class="btn-sm" type="submit">{{.T "manage.auth.set"}}</button>
   </form>
 </section>
 
 <section class="manage-section" id="profiles">
-  <h2>Profile</h2>
+  <h2>{{.T "manage.profiles"}}</h2>
   <div id="profile-list">
     {{template "profile_list" .}}
   </div>
   <form hx-post="/manage/profile" hx-target="#profile-list" hx-swap="innerHTML" style="display:flex;gap:0.5rem;margin-top:0.75rem">
     <input type="text" name="name" placeholder="Profilname" required style="flex:1">
     <input type="text" name="slug" placeholder="slug (URL)" required pattern="[a-z0-9-]+" style="flex:1">
-    <button class="btn-sm" type="submit">+ Profil</button>
+    <button class="btn-sm" type="submit">+ {{.T "manage.profile"}}</button>
   </form>
 </section>
 
 <section class="manage-section" id="pages">
-  <h2>Pages (Multi-Tab Layout)</h2>
+  <h2>{{.T "manage.pages"}}</h2>
   <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem">
     Pages erlauben es, Kategorien und Widgets auf verschiedene Tabs aufzuteilen (Work / Personal / Hobby).
     Nicht zugewiesene Inhalte (Page 0) erscheinen auf allen Tabs.
@@ -436,7 +450,7 @@
     <input type="hidden" name="profile" value="{{.Slug}}">
     <input type="text" name="icon" placeholder="📄" style="width:3rem">
     <input type="text" name="name" placeholder="Page Name (z.B. Work)" required style="flex:1">
-    <button class="btn-sm" type="submit">+ Page</button>
+    <button class="btn-sm" type="submit">+ {{.T "manage.add_page"}}</button>
   </form>
   {{end}}
   {{end}}
@@ -454,10 +468,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (!btn || !iconInput || !urlInput) return;
 
-    btn.addEventListener("click", async function() {
+    async function doFetchFavicon() {
         const url = urlInput.value.trim();
-        if (!url) { btn.textContent = "❌"; setTimeout(() => btn.textContent = "🌐", 1500); return; }
-
+        if (!url) return;
         btn.textContent = "⏳";
         const faviconURL = "/api/favicon?url=" + encodeURIComponent(url);
         try {
@@ -474,6 +487,12 @@ document.addEventListener("DOMContentLoaded", function() {
             btn.textContent = "❌";
         }
         setTimeout(() => btn.textContent = "🌐", 2000);
+    }
+
+    btn.addEventListener("click", doFetchFavicon);
+    urlInput.addEventListener("blur", function() {
+        // Only auto-fetch if icon field is still empty
+        if (!iconInput.value.trim()) doFetchFavicon();
     });
 
     // Show preview if icon field already contains an img URL

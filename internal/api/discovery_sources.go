@@ -9,11 +9,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
 	"git.zk35.de/secalpha/homeport/internal/discovery"
+	"git.zk35.de/secalpha/homeport/internal/i18n"
 )
 
 // HandleGetDiscoverySources GET /manage/discovery/sources – returns rendered source list partial
 func HandleGetDiscoverySources(w http.ResponseWriter, r *http.Request) {
-	renderDiscoverySources(w)
+	renderDiscoverySources(w, r)
 }
 
 // HandleAddDiscoverySource POST /manage/discovery/sources
@@ -49,7 +50,7 @@ func HandleAddDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	discovery.Global.Reload()
-	renderDiscoverySources(w)
+	renderDiscoverySources(w, r)
 }
 
 // HandleDeleteDiscoverySource DELETE /manage/discovery/sources/{id}
@@ -65,7 +66,7 @@ func HandleDeleteDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	discovery.Global.Reload()
-	renderDiscoverySources(w)
+	renderDiscoverySources(w, r)
 }
 
 // HandleToggleDiscoverySource POST /manage/discovery/sources/{id}/toggle
@@ -91,7 +92,7 @@ func HandleToggleDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	discovery.Global.Reload()
-	renderDiscoverySources(w)
+	renderDiscoverySources(w, r)
 }
 
 // HandleScanDiscoverySource POST /manage/discovery/sources/{id}/scan – manual immediate scan
@@ -120,14 +121,16 @@ func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func renderDiscoverySources(w http.ResponseWriter) {
+func renderDiscoverySources(w http.ResponseWriter, r *http.Request) {
 	sources, err := db.GetDiscoverySources()
 	if err != nil {
 		log.Printf("GetDiscoverySources: %v", err)
 	}
+	lang := GetLang(r)
 	data := struct {
 		Sources []db.DiscoverySource
-	}{Sources: sources}
+		T       func(string) string
+	}{Sources: sources, T: i18n.T(lang)}
 	if err := ManageTmpl.ExecuteTemplate(w, "discovery_sources", data); err != nil {
 		log.Printf("discovery_sources template error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

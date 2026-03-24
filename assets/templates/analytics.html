@@ -20,16 +20,16 @@
 
 <div class="analytics-wrap">
   <div class="analytics-header">
-    <h2>📊 Analytics</h2>
+    <h2>📊 {{.T "analytics.title"}}</h2>
     <div class="analytics-filter">
-      <label style="color:var(--sub);font-size:0.9rem">Profil:</label>
+      <label style="color:var(--sub);font-size:0.9rem">{{.T "analytics.filter.profile"}}</label>
       <select onchange="location.href='/manage/analytics?profile='+this.value">
-        <option value="" {{if eq .Profile ""}}selected{{end}}>Alle</option>
+        <option value="" {{if eq .Profile ""}}selected{{end}}>{{.T "analytics.filter.all"}}</option>
         {{range .Profiles}}
         <option value="{{.Slug}}" {{if eq $.Profile .Slug}}selected{{end}}>{{.Name}}</option>
         {{end}}
       </select>
-      <a href="/manage" style="color:var(--sub);font-size:0.85rem;margin-left:1rem">← Manage</a>
+      <a href="/manage" style="color:var(--sub);font-size:0.85rem;margin-left:1rem">{{.T "analytics.back"}}</a>
     </div>
   </div>
 
@@ -37,11 +37,11 @@
   <table class="analytics-table">
     <thead>
       <tr>
-        <th class="a-rank">#</th>
-        <th>Dienst</th>
-        <th>Profil</th>
-        <th>Klicks</th>
-        <th>Zuletzt</th>
+        <th class="a-rank">{{.T "analytics.table.rank"}}</th>
+        <th>{{.T "analytics.table.service"}}</th>
+        <th>{{.T "analytics.table.profile"}}</th>
+        <th>{{.T "analytics.table.clicks"}}</th>
+        <th>{{.T "analytics.table.last_clicked"}}</th>
       </tr>
     </thead>
     <tbody>
@@ -68,7 +68,7 @@
     </tbody>
   </table>
   {{else}}
-  <p class="analytics-empty">Noch keine Klicks erfasst.<br>
+  <p class="analytics-empty">{{.T "analytics.empty"}}<br>
   Dienste werden automatisch getrackt wenn sie über das Dashboard geöffnet werden.</p>
   {{end}}
 </div>

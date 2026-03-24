@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
+	"git.zk35.de/secalpha/homeport/internal/i18n"
 )
 
 // isImgURL returns true if the icon value is a URL (should be rendered as <img>).
@@ -37,6 +38,9 @@ var tmplFuncs = template.FuncMap{
 	"isImgURL": isImgURL,
 	"hexToRGB": hexToRGB,
 	"inc":      func(i int) int { return i + 1 },
+	"newWidgetRender": func(w db.Widget, lang string) WidgetRenderData {
+		return WidgetRenderData{Widget: w, T: i18n.T(lang)}
+	},
 }
 
 // Separate template sets per page to avoid {{define "content"}} conflicts.
@@ -44,6 +48,7 @@ var IndexTmpl *template.Template
 var ManageTmpl *template.Template
 
 func InitTemplates(fs embed.FS) {
+	i18n.Load(fs)
 	var err error
 
 	// Index templates: base + index.html + partials
@@ -92,6 +97,7 @@ type IndexData struct {
 	SearchAction string
 	Prefs        *db.UserPreferences
 	Profiles     []db.Profile  // NEU: für Nav-Links
+	T            func(string) string
 }
 
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
@@ -199,6 +205,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		SearchAction: db.GetSearchEngine(profileObj.Slug),
 		Prefs:        prefs,
 		Profiles:     allProfiles,
+		T:            i18n.T(prefs.Language),
 	}
 
 	if err := IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -208,10 +215,13 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func Handle404(w http.ResponseWriter, r *http.Request) {
-	body := []byte(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>404 – homeport</title>` +
-		`<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f0f13;color:#e2e8f0}` +
-		`h1{font-size:4rem;margin:0;color:#6366f1}p{color:#94a3b8}a{color:#6366f1;text-decoration:none}</style>` +
-		`</head><body><h1>404</h1><p>Seite nicht gefunden.</p><p><a href="/">← Zurück zur Startseite</a></p></body></html>`)
+	t := i18n.T("de")
+	title := t("404.title")
+	back := t("404.back")
+	body := []byte(fmt.Sprintf(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>%s – homeport</title>`+
+		`<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f0f13;color:#e2e8f0}`+
+		`h1{font-size:4rem;margin:0;color:#6366f1}p{color:#94a3b8}a{color:#6366f1;text-decoration:none}</style>`+
+		`</head><body><h1>404</h1><p>%s</p><p><a href="/">%s</a></p></body></html>`, title, title, back))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
 	w.WriteHeader(http.StatusNotFound)

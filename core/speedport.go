@@ -43,7 +43,13 @@ func (s *SpeedportFetcher) Fetch() (*RouterStatus, error) {
 		return nil, fmt.Errorf("speedport: read body: %w", err)
 	}
 
-	plaintext, err := speedportDecrypt(body)
+	// The router returns hex-encoded ciphertext – decode to raw bytes first.
+	cipherBytes, err := hex.DecodeString(strings.TrimSpace(string(body)))
+	if err != nil {
+		return nil, fmt.Errorf("speedport: hex decode: %w", err)
+	}
+
+	plaintext, err := speedportDecrypt(cipherBytes)
 	if err != nil {
 		return nil, fmt.Errorf("speedport: decrypt: %w", err)
 	}
@@ -123,31 +129,26 @@ func speedportDecrypt(ciphertext []byte) ([]byte, error) {
 }
 
 // speedportVar is one entry in the Status.json array.
+// VarValue may be a string or a nested array – use RawMessage to handle both.
 type speedportVar struct {
-	VarType  string `json:"vartype"`
-	VarID    string `json:"varid"`
-	VarValue string `json:"varvalue"`
+	VarType  string          `json:"vartype"`
+	VarID    string          `json:"varid"`
+	VarValue json.RawMessage `json:"varvalue"`
 }
 
 func parseSpeedportStatus(data []byte) (*RouterStatus, error) {
-	// The plaintext may still be hex-encoded JSON – some firmware variants
-	// return hex, others return raw bytes. Try raw JSON first.
 	var vars []speedportVar
 	if err := json.Unmarshal(data, &vars); err != nil {
-		// Try hex-decode → JSON
-		hexStr := strings.TrimSpace(string(data))
-		decoded, herr := hex.DecodeString(hexStr)
-		if herr != nil {
-			return nil, fmt.Errorf("json decode: %w (hex decode also failed: %v)", err, herr)
-		}
-		if err2 := json.Unmarshal(decoded, &vars); err2 != nil {
-			return nil, fmt.Errorf("json decode after hex: %w", err2)
-		}
+		return nil, fmt.Errorf("json decode: %w", err)
 	}
 
 	m := make(map[string]string, len(vars))
 	for _, v := range vars {
-		m[v.VarID] = v.VarValue
+		// Only use string values; skip nested arrays (e.g. phone numbers)
+		var s string
+		if err := json.Unmarshal(v.VarValue, &s); err == nil {
+			m[v.VarID] = s
+		}
 	}
 
 	status := &RouterStatus{}

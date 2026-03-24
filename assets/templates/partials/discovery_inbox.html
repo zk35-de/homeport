@@ -10,9 +10,9 @@
     </div>
     <div class="inbox-actions">
       <button hx-post="/manage/discovery/{{.ID}}/accept"
-              hx-target="#discovery-inbox" hx-swap="outerHTML">Übernehmen</button>
+              hx-target="#discovery-inbox" hx-swap="outerHTML">{{$.T "manage.discovery.add"}}</button>
       <button hx-post="/manage/discovery/{{.ID}}/ignore"
-              hx-target="#discovery-inbox" hx-swap="outerHTML">Ignorieren</button>
+              hx-target="#discovery-inbox" hx-swap="outerHTML">{{$.T "manage.discovery.ignore"}}</button>
     </div>
   </div>
   {{end}}

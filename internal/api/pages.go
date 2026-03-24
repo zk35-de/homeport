@@ -7,12 +7,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
+	"git.zk35.de/secalpha/homeport/internal/i18n"
 )
 
 // HandleGetPageList GET /manage/page-list?profile=...
 func HandleGetPageList(w http.ResponseWriter, r *http.Request) {
 	profile := r.URL.Query().Get("profile")
-	renderPageList(w, profile)
+	renderPageList(w, r, profile)
 }
 
 // HandleAddPage POST /manage/page
@@ -36,7 +37,7 @@ func HandleAddPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderPageList(w, profile)
+	renderPageList(w, r, profile)
 }
 
 // HandleDeletePage DELETE /manage/page/{id}
@@ -48,7 +49,7 @@ func HandleDeletePage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderPageList(w, profile)
+	renderPageList(w, r, profile)
 }
 
 // HandleUpdatePage PATCH /manage/page/{id}
@@ -66,7 +67,7 @@ func HandleUpdatePage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderPageList(w, profile)
+	renderPageList(w, r, profile)
 }
 
 // HandleSortPage POST /manage/sort/page/{id}/{direction}
@@ -94,7 +95,7 @@ func HandleSortPage(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	renderPageList(w, profile)
+	renderPageList(w, r, profile)
 }
 
 // HandleSetCategoryPage POST /manage/category/{id}/page/{pageID}
@@ -106,20 +107,23 @@ func HandleSetCategoryPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderCategoryList(w)
+	lang := GetLang(r)
+	renderCategoryList(w, lang)
 }
 
-func renderPageList(w http.ResponseWriter, profile string) {
+func renderPageList(w http.ResponseWriter, r *http.Request, profile string) {
 	pages, err := db.GetPages(profile)
 	if err != nil {
 		log.Printf("Error fetching pages: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	lang := GetLang(r)
 	data := struct {
 		Pages   []db.Page
 		Profile string
-	}{Pages: pages, Profile: profile}
+		T       func(string) string
+	}{Pages: pages, Profile: profile, T: i18n.T(lang)}
 	if err := ManageTmpl.ExecuteTemplate(w, "page_list", data); err != nil {
 		log.Printf("Error executing page_list template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

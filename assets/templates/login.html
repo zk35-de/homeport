@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Homeport – Login</title>
+    <title>Homeport – {{.T "login.title"}}</title>
     <link rel="stylesheet" href="/static/css/prism-tokens.css">
     <link rel="stylesheet" href="/static/css/prism-base.css">
     <link rel="stylesheet" href="/static/css/prism-aurora.css">
@@ -34,7 +34,7 @@
                 {{end}}
                 <form method="post" action="/login">
                     <div class="form-group">
-                        <label>Profil</label>
+                        <label>{{.T "login.profile"}}</label>
                         <select name="profile" required style="width:100%">
                             {{range .Profiles}}
                             <option value="{{.Slug}}">{{.Name}}</option>
@@ -42,10 +42,10 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Passwort</label>
+                        <label>{{.T "login.password"}}</label>
                         <input type="password" name="password" required autofocus style="width:100%">
                     </div>
-                    <button type="submit" style="width:100%;margin-top:0.5rem">Einloggen</button>
+                    <button type="submit" style="width:100%;margin-top:0.5rem">{{.T "login.submit"}}</button>
                 </form>
             </div>
         </div>

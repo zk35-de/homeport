@@ -226,9 +226,9 @@
         {{range .Profiles}}
         <a href="{{if .IsDefault}}/{{else}}/{{.Slug}}{{end}}">{{.Name}}</a>
         {{end}}
-        <a href="/manage" class="nav-action">Manage</a>
+        <a href="/manage" class="nav-action">{{.T "nav.manage"}}</a>
         <button class="btn-icon nav-theme-toggle" onclick="cycleTheme()" title="Theme wechseln" aria-label="Theme wechseln">🌙</button>
-        {{if .Profile}}<form method="post" action="/logout" style="display:inline"><button class="btn-icon" title="Ausloggen" aria-label="Ausloggen">⎋</button></form>{{end}}
+        {{if .Profile}}<form method="post" action="/logout" style="display:inline"><button class="btn-icon" title="{{.T "nav.logout"}}" aria-label="{{.T "nav.logout"}}">⎋</button></form>{{end}}
     </nav>
     <main>
         {{block "content" .}}{{end}}

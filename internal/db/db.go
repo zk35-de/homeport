@@ -20,7 +20,8 @@ func InitDB(dbPath string) error {
 		return fmt.Errorf("failed to create db directory: %w", err)
 	}
 
-	dsn := dbPath + "?_pragma=foreign_keys(on)"
+	// Encode foreign_keys pragma directly in DSN so it applies to every connection.
+	dsn := dbPath + "?_pragma=foreign_keys(on)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
 	if dbPath == ":memory:" {
 		dsn = ":memory:?_pragma=foreign_keys(on)"
 	}

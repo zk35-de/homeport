@@ -3,7 +3,7 @@
   <div class="search-bar-outer">
     <form class="search-bar" id="search-form" action="{{.SearchAction}}" method="get" target="_blank">
       <input type="search" name="q" id="search-input"
-             placeholder="Suchen… (Ctrl+K, !g !d !b !yt !w)"
+             placeholder="{{.T "common.loading"}} (Ctrl+K, !g !d !b !yt !w)"
              autocomplete="off" autofocus>
       <button type="button" class="search-engine-btn" id="search-engine-btn" title="Suchanbieter wählen" tabindex="0">
         <span id="search-engine-label">{{if .SearchAction}}{{if eq .SearchAction "https://www.google.com/search"}}G{{else if eq .SearchAction "https://search.brave.com/search"}}B{{else if eq .SearchAction "https://www.startpage.com/search"}}S{{else if eq .SearchAction "https://www.bing.com/search"}}Bing{{else}}DDG{{end}}{{else}}DDG{{end}}</span>▾
@@ -24,7 +24,7 @@
 
 {{if .Pages}}
 <nav class="page-tabs" id="page-tabs" aria-label="Pages">
-  <button class="page-tab" data-page="0" onclick="switchPage(0)">Alle</button>
+  <button class="page-tab" data-page="0" onclick="switchPage(0)">{{.T "analytics.filter.all"}}</button>
   {{range .Pages}}
   <button class="page-tab" data-page="{{.ID}}" onclick="switchPage({{.ID}})">{{.Icon}} {{.Name}}</button>
   {{end}}
@@ -33,18 +33,20 @@
 
 {{if .Widgets}}
 <div class="widgets-row" id="widgets-row">
+    {{$lang := .Prefs.Language}}
     {{range .Widgets}}
     <div data-widget-page="{{.PageID}}" class="widget-page-item">
-      {{if eq .Type "weather"}}{{template "widget_weather" .}}
-      {{else if eq .Type "clock"}}{{template "widget_clock" .}}
-      {{else if eq .Type "rss"}}{{template "widget_rss" .}}
-      {{else if eq .Type "todo"}}{{template "widget_todo" .}}
-      {{else if eq .Type "bookmarks"}}{{template "widget_bookmarks" .}}
-      {{else if eq .Type "notes"}}{{template "widget_notes" .}}
-      {{else if eq .Type "caldav"}}{{template "widget_caldav" .}}
-      {{else if eq .Type "github"}}{{template "widget_github" .}}
-      {{else if eq .Type "router"}}{{template "widget_router" .}}
-      {{else}}{{template "widget_ical" .}}
+      {{$wData := newWidgetRender . $lang}}
+      {{if eq .Type "weather"}}{{template "widget_weather" $wData}}
+      {{else if eq .Type "clock"}}{{template "widget_clock" $wData}}
+      {{else if eq .Type "rss"}}{{template "widget_rss" $wData}}
+      {{else if eq .Type "todo"}}{{template "widget_todo" $wData}}
+      {{else if eq .Type "bookmarks"}}{{template "widget_bookmarks" $wData}}
+      {{else if eq .Type "notes"}}{{template "widget_notes" $wData}}
+      {{else if eq .Type "caldav"}}{{template "widget_caldav" $wData}}
+      {{else if eq .Type "github"}}{{template "widget_github" $wData}}
+      {{else if eq .Type "router"}}{{template "widget_router" $wData}}
+      {{else}}{{template "widget_ical" $wData}}
       {{end}}
     </div>
     {{end}}
@@ -56,7 +58,7 @@
         <div style="font-size:2.5rem;margin-bottom:0.75rem">🚀</div>
         <h2 style="margin:0 0 0.5rem">Willkommen bei homeport</h2>
         <p style="color:var(--text-muted);margin:0 0 1.25rem">Noch keine Dienste konfiguriert.</p>
-        <a href="/manage" class="btn-primary">Jetzt einrichten →</a>
+        <a href="/manage" class="btn-primary">{{.T "manage.title"}} →</a>
     </div>
     {{end}}
     {{range .Categories}}

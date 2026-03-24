@@ -9,6 +9,7 @@ import (
 
 	"git.zk35.de/secalpha/homeport/internal/config"
 	"git.zk35.de/secalpha/homeport/internal/db"
+	"git.zk35.de/secalpha/homeport/internal/i18n"
 )
 
 const sessionCookie = "hp_session"
@@ -64,8 +65,9 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 
 // HandleLogin GET/POST /login
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
+	t := i18n.T("de")
 	if r.Method == http.MethodGet {
-		renderLogin(w, "")
+		renderLogin(w, "", "de")
 		return
 	}
 
@@ -78,12 +80,12 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if !LoginRateLimit(r) {
 		time.Sleep(loginDelay)
-		renderLogin(w, "Zu viele Versuche. Bitte warte einen Moment.")
+		renderLogin(w, t("login.error.ratelimit"), "de")
 		return
 	}
 
 	if !db.CheckPassword(profile, password) {
-		renderLogin(w, "Falsches Profil oder Passwort.")
+		renderLogin(w, t("login.error.invalid"), "de")
 		return
 	}
 	LoginReset(r)
@@ -128,12 +130,14 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func renderLogin(w http.ResponseWriter, errMsg string) {
+func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 	data := struct {
 		Error    string
 		Profiles []db.Profile
+		T        func(string) string
 	}{
 		Error: errMsg,
+		T:     i18n.T(lang),
 	}
 	profiles, err := db.GetProfiles()
 	if err != nil {
@@ -184,10 +188,18 @@ func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 		authMap[a.Profile] = a
 	}
 
+	lang := "de"
+	if def, err := db.GetDefaultProfile(); err == nil && def != nil {
+		if prefs, err := db.GetUserPreferences(def.Slug); err == nil && prefs != nil && prefs.Language != "" {
+			lang = prefs.Language
+		}
+	}
+
 	data := struct {
 		Profiles []db.Profile
 		AuthMap  map[string]db.UserAuth
-	}{Profiles: profiles, AuthMap: authMap}
+		T        func(string) string
+	}{Profiles: profiles, AuthMap: authMap, T: i18n.T(lang)}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "auth_list", data); err != nil {
 		log.Printf("auth_list template error: %v", err)

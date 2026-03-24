@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"git.zk35.de/secalpha/homeport/internal/db"
+	"git.zk35.de/secalpha/homeport/internal/i18n"
 )
 
 // AnalyticsTmpl is initialized in InitTemplates.
@@ -16,6 +17,7 @@ type AnalyticsData struct {
 	Profile  string
 	Profiles []db.Profile
 	Prefs    *db.UserPreferences
+	T        func(string) string
 }
 
 // HandleAnalytics renders the analytics page.
@@ -49,6 +51,7 @@ func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 		Profile:  filterProfile,
 		Profiles: profiles,
 		Prefs:    prefs,
+		T:        i18n.T(prefs.Language),
 	}
 	if err := AnalyticsTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
 		log.Printf("Analytics template error: %v", err)
