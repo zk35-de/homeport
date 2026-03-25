@@ -15,7 +15,6 @@ import (
 type ManageData struct {
 	i18n.Translator
 	Categories    []db.Category
-	SearchEngines map[string]string
 	Prefs         *db.UserPreferences
 	Profiles      []db.Profile
 	Pages         []db.Page
@@ -63,10 +62,9 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ManageData{
-		Translator:    i18n.NewTranslator(prefs.Language),
-		Categories:    categories,
-		SearchEngines: db.GetAllSearchEngines(),
-		Prefs:         prefs,
+		Translator: i18n.NewTranslator(prefs.Language),
+		Categories: categories,
+		Prefs:      prefs,
 		Profiles:      profiles,
 		Pages:         pages,
 		Widgets:       widgets,
@@ -81,28 +79,6 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleSetSearchEngine(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-	profile := r.FormValue("profile")
-	engine := r.FormValue("engine")
-	if prof, _ := db.GetProfileBySlug(profile); prof == nil {
-		http.Error(w, "Invalid profile", http.StatusBadRequest)
-		return
-	}
-	if engine == "" {
-		http.Error(w, "Missing engine", http.StatusBadRequest)
-		return
-	}
-	if err := db.SetSearchEngine(profile, engine); err != nil {
-		log.Printf("Error setting search engine: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
 
 func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {

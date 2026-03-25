@@ -180,7 +180,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		Pages:        pages,
 		Profile:      profileObj.Slug,
 		ProfileName:  profileObj.Name,
-		SearchAction: db.GetSearchEngine(profileObj.Slug),
+		SearchAction: prefs.SearchEngine,
 		Prefs:        prefs,
 		Profiles:     allProfiles,
 	}

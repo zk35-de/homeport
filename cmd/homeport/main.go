@@ -160,8 +160,6 @@ func main() {
 		r.Post("/discovery/sources/{id}/toggle", api.HandleToggleDiscoverySource)
 		r.Post("/discovery/sources/{id}/scan", api.HandleScanDiscoverySource)
 
-		r.Post("/settings/search", api.HandleSetSearchEngine)
-
 		// Auth management
 		r.Get("/auth", api.HandleManageAuth)
 		r.Post("/auth/password", api.HandleSetPassword)

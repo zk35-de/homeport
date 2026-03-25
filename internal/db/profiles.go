@@ -203,17 +203,3 @@ func GetSearchEngine(profile string) string {
 	return url
 }
 
-func SetSearchEngine(profile, engineURL string) error {
-	_, err := DB.Exec(`INSERT INTO user_settings (profile, search_engine) VALUES (?, ?)
-		ON CONFLICT(profile) DO UPDATE SET search_engine = ?`, profile, engineURL, engineURL)
-	return err
-}
-
-func GetAllSearchEngines() map[string]string {
-	profiles, _ := GetProfiles()
-	result := make(map[string]string)
-	for _, p := range profiles {
-		result[p.Slug] = GetSearchEngine(p.Slug)
-	}
-	return result
-}

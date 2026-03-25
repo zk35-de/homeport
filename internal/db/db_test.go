@@ -318,54 +318,6 @@ func TestDeleteWidget(t *testing.T) {
 	}
 }
 
-func TestSearchEngineFunctions(t *testing.T) {
-	cleanup := setupTestDB(t)
-	defer cleanup()
-
-	// Test default GetSearchEngine
-	if db.GetSearchEngine("markus") != "https://duckduckgo.com/" {
-		t.Errorf("Expected default search engine for markus to be DuckDuckGo")
-	}
-
-	// Set custom search engine
-	err := db.SetSearchEngine("markus", "https://google.com/search?q=")
-	if err != nil {
-		t.Fatalf("Failed to set search engine for markus: %v", err)
-	}
-	err = db.SetSearchEngine("andrea", "https://bing.com/search?q=")
-	if err != nil {
-		t.Fatalf("Failed to set search engine for andrea: %v", err)
-	}
-
-	// Test GetSearchEngine for custom values
-	if db.GetSearchEngine("markus") != "https://google.com/search?q=" {
-		t.Errorf("Expected search engine for markus to be Google, got %s", db.GetSearchEngine("markus"))
-	}
-	if db.GetSearchEngine("andrea") != "https://bing.com/search?q=" {
-		t.Errorf("Expected search engine for andrea to be Bing, got %s", db.GetSearchEngine("andrea"))
-	}
-
-	// Test GetAllSearchEngines
-	allEngines := db.GetAllSearchEngines()
-	if len(allEngines) != 2 {
-		t.Fatalf("Expected 2 search engines, got %d", len(allEngines))
-	}
-	if allEngines["markus"] != "https://google.com/search?q=" {
-		t.Errorf("Expected markus search engine to be Google, got %s", allEngines["markus"])
-	}
-	if allEngines["andrea"] != "https://bing.com/search?q=" {
-		t.Errorf("Expected andrea search engine to be Bing, got %s", allEngines["andrea"])
-	}
-
-	// Test updating an existing search engine
-	err = db.SetSearchEngine("markus", "https://newgoogle.com/search?q=")
-	if err != nil {
-		t.Fatalf("Failed to update search engine for markus: %v", err)
-	}
-	if db.GetSearchEngine("markus") != "https://newgoogle.com/search?q=" {
-		t.Errorf("Expected updated search engine for markus, got %s", db.GetSearchEngine("markus"))
-	}
-}
 
 func TestCloneServicesToProfile(t *testing.T) {
 	cleanup := setupTestDB(t)
@@ -938,9 +890,6 @@ func TestSQLInjection(t *testing.T) {
 	if services[0].Services[0].Name != injSvcName {
 		t.Errorf("Service name not stored correctly: got %q, want %q", services[0].Services[0].Name, injSvcName)
 	}
-
-	// UNION-injection via profile slug in search engine (may fail FK constraint – must not panic)
-	_ = db.SetSearchEngine(`' UNION SELECT * FROM profiles --`, "https://evil.com/")
 
 	// Widget name with null byte – must not panic
 	_ = db.AddWidget("widget\x00name", "http://test.local/cal.ics", "markus")

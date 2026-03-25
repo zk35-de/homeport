@@ -114,7 +114,7 @@ func TestHandleIndex(t *testing.T) {
 	cacheData, _ := json.Marshal(db.WidgetCacheEntry{Events: []db.ICalEvent{{Title: "Test Event"}}})
 	db.UpdateWidgetCache(widgets[0].ID, string(cacheData))
 
-	db.SetSearchEngine("markus", "https://customsearch.com/q=")
+	db.SetUserPreferences("markus", db.UserPreferences{Theme: "dark", AccentColor: "#6366f1", SearchEngine: "https://customsearch.com/q="})
 
 	t.Run("markus profile", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -173,7 +173,6 @@ func TestHandleManage(t *testing.T) {
 	defer cleanup()
 
 	db.AddCategory("ManageMe", "red")
-	db.SetSearchEngine("markus", "https://google.com/")
 
 	req := httptest.NewRequest("GET", "/manage", nil)
 	rr := httptest.NewRecorder()
@@ -194,39 +193,6 @@ func TestHandleManage(t *testing.T) {
 	}
 }
 
-func TestHandleSetSearchEngine(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	formData := url.Values{}
-	formData.Set("profile", "markus")
-	formData.Set("engine", "https://newsearch.com/?q=")
-
-	req := httptest.NewRequest("POST", "/set-search-engine", strings.NewReader(formData.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	rr := httptest.NewRecorder()
-	api.HandleSetSearchEngine(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	if db.GetSearchEngine("markus") != "https://newsearch.com/?q=" {
-		t.Errorf("Search engine for markus not updated, got %s", db.GetSearchEngine("markus"))
-	}
-
-	// Test invalid profile
-	formData = url.Values{}
-	formData.Set("profile", "invalid")
-	formData.Set("engine", "https://newsearch.com/?q=")
-	req = httptest.NewRequest("POST", "/set-search-engine", strings.NewReader(formData.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	rr = httptest.NewRecorder()
-	api.HandleSetSearchEngine(rr, req)
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("handler returned wrong status code for invalid profile: got %v want %v", status, http.StatusBadRequest)
-	}
-}
 
 func TestHandleAddCategory(t *testing.T) {
 	cleanup := setupTest(t)

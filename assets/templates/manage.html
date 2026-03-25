@@ -179,21 +179,20 @@
 
         <div class="manage-category">
             <h3>Suchmaschine</h3>
-            {{range $profile, $engine := .SearchEngines}}
-            <form hx-post="/manage/settings/search" hx-swap="none" style="margin-bottom:0.75rem">
-                <input type="hidden" name="profile" value="{{$profile}}">
-                <div class="form-group" style="margin-bottom:0.4rem">
-                    <label>{{$profile}}</label>
-                    <select name="engine" onchange="this.form.requestSubmit()">
-                        <option value="https://duckduckgo.com/" {{if eq $engine "https://duckduckgo.com/"}}selected{{end}}>DuckDuckGo</option>
-                        <option value="https://www.google.com/search" {{if eq $engine "https://www.google.com/search"}}selected{{end}}>Google</option>
-                        <option value="https://search.brave.com/search" {{if eq $engine "https://search.brave.com/search"}}selected{{end}}>Brave</option>
-                        <option value="https://www.startpage.com/search" {{if eq $engine "https://www.startpage.com/search"}}selected{{end}}>Startpage</option>
-                        <option value="https://www.bing.com/search" {{if eq $engine "https://www.bing.com/search"}}selected{{end}}>Bing</option>
-                    </select>
-                </div>
-            </form>
-            {{end}}
+            <div class="form-group" style="margin-bottom:0.4rem">
+                <label>Suchmaschine</label>
+                <select name="search_engine"
+                        hx-patch="/api/user/preferences"
+                        hx-ext="json-enc"
+                        hx-trigger="change"
+                        hx-swap="none">
+                    <option value="https://duckduckgo.com/" {{if eq .Prefs.SearchEngine "https://duckduckgo.com/"}}selected{{end}}>DuckDuckGo</option>
+                    <option value="https://www.google.com/search" {{if eq .Prefs.SearchEngine "https://www.google.com/search"}}selected{{end}}>Google</option>
+                    <option value="https://search.brave.com/search" {{if eq .Prefs.SearchEngine "https://search.brave.com/search"}}selected{{end}}>Brave</option>
+                    <option value="https://www.startpage.com/search" {{if eq .Prefs.SearchEngine "https://www.startpage.com/search"}}selected{{end}}>Startpage</option>
+                    <option value="https://www.bing.com/search" {{if eq .Prefs.SearchEngine "https://www.bing.com/search"}}selected{{end}}>Bing</option>
+                </select>
+            </div>
         </div>
     </div>
 
