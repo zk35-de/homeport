@@ -124,7 +124,7 @@ func main() {
 	r.Get("/r/{id}", api.HandleServiceRedirect)
 
 	r.Route("/manage", func(r chi.Router) {
-	        r.Post("/clone-andrea", api.HandleCloneToAndrea)
+	        r.Post("/profile/{slug}/clone", api.HandleCloneProfile)
 	        r.Post("/widget", api.HandleAddWidget)
 	        r.Delete("/widget/{id}", api.HandleDeleteWidget)
 	        r.Get("/", api.HandleManage)

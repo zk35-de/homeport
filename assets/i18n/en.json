@@ -44,6 +44,8 @@
   "manage.auth.remove": "Remove password",
   "manage.pages": "Pages",
   "manage.add_page": "Add page",
+  "manage.clone_profile": "Clone profile",
+  "manage.clone_target_name": "New profile name",
   "manage.page.title": "Title",
   "manage.page.url": "URL",
   "manage.page.icon": "Icon",

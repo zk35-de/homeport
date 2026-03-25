@@ -367,7 +367,7 @@ func TestSearchEngineFunctions(t *testing.T) {
 	}
 }
 
-func TestCloneToAndrea(t *testing.T) {
+func TestCloneServicesToProfile(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
@@ -402,7 +402,7 @@ func TestCloneToAndrea(t *testing.T) {
 		t.Fatalf("Expected Andrea to have 1 service initially, got %d", initialAndreaServices)
 	}
 
-	added, skipped, err := db.CloneToAndrea()
+	added, skipped, err := db.CloneServicesToProfile("markus", "andrea")
 	if err != nil {
 		t.Fatalf("Error cloning to Andrea: %v", err)
 	}

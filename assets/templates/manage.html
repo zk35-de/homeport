@@ -389,6 +389,10 @@
     <input type="text" name="slug" placeholder="slug (URL)" required pattern="[a-z0-9-]+" style="flex:1">
     <button class="btn-sm" type="submit">+ {{.T "manage.profile"}}</button>
   </form>
+  <form hx-post="/manage/profile/{{.DefaultProfile}}/clone" hx-swap="outerHTML" hx-target="body" style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
+    <input type="text" name="name" placeholder="{{.T "manage.clone_target_name"}}" class="form-input" required>
+    <button type="submit" class="btn-sm">{{.T "manage.clone_profile"}}</button>
+  </form>
 </section>
 
 <section class="manage-panel manage-section" id="pages">

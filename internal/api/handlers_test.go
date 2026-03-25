@@ -467,42 +467,42 @@ func TestHandleDeleteWidget(t *testing.T) {
 	}
 }
 
-func TestHandleCloneToAndrea(t *testing.T) {
+func TestHandleCloneProfile(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
+	// Initial setup with a service for 'markus'
 	db.AddCategory("Work", "tiles", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	workCatID := cats[0].ID
 	db.AddService(workCatID, "MarkusOnly", "url1", "", "", "", []string{"markus"})
 
-	req := httptest.NewRequest("POST", "/clone-to-andrea", nil)
+	// Create a request to clone from 'markus' to 'andrea'
+	formData := url.Values{}
+	formData.Set("name", "andrea") // Name of the target profile
+
+	r := chi.NewRouter()
+	r.Post("/manage/profile/{slug}/clone", api.HandleCloneProfile)
+	r.Get("/manage", api.HandleManage) // HandleManage is called after cloning
+
+	req := httptest.NewRequest("POST", "/manage/profile/markus/clone", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	api.HandleCloneToAndrea(rr, req)
+	r.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	var response struct {
-		Added   int `json:"added"`
-		Skipped int `json:"skipped"`
-	}
-	err := json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("Failed to decode JSON response: %v", err)
-	}
-
-	if response.Added != 1 {
-		t.Errorf("Expected 1 service added, got %d", response.Added)
-	}
-	if response.Skipped != 0 {
-		t.Errorf("Expected 0 services skipped, got %d", response.Skipped)
-	}
-
+	// Verify that the 'MarkusOnly' service is now visible to 'andrea'
 	andreaCats, _ := db.GetCategoriesWithServices("andrea")
 	if len(andreaCats[0].Services) != 1 || andreaCats[0].Services[0].Name != "MarkusOnly" {
 		t.Errorf("Service 'MarkusOnly' not cloned to Andrea: %v", andreaCats)
+	}
+
+	// Check the response body (from HandleManage) for expected content
+	if !strings.Contains(rr.Body.String(), "Manage: Work") { // from testdata/manage.html
+		t.Errorf("Response body from HandleManage missing expected content, got: %s", rr.Body.String())
 	}
 }
 

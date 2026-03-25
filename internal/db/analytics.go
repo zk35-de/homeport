@@ -51,60 +51,49 @@ func GetTopClicks(profile string, limit int) ([]ClickStat, error) {
 	return stats, nil
 }
 
-// CloneToAndrea copies all services visible to 'markus' (except cyan categories) to 'andrea'.
-func CloneToAndrea() (added int, skipped int, err error) {
+// CloneServicesToProfile copies all services visible to srcProfile into dstProfile.
+// Services in categories with color 'cyan' are excluded (admin-only convention).
+// Returns counts of added and skipped services.
+func CloneServicesToProfile(srcProfile, dstProfile string) (int, int, error) {
 	tx, err := DB.Begin()
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to begin transaction: %w", err)
+		return 0, 0, err
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		} else if err != nil {
-			tx.Rollback()
-		} else {
-			err = tx.Commit()
-		}
-	}()
+	defer tx.Rollback()
 
 	rows, err := tx.Query(`
-		SELECT s.id
-		FROM services s
-		JOIN visibility vm ON s.id = vm.service_id
-		JOIN categories c ON s.category_id = c.id
-		WHERE vm.profile = 'markus' AND c.color != 'cyan'
-	`)
+		SELECT s.id FROM services s
+		JOIN visibility v ON v.service_id = s.id
+		JOIN categories c ON c.id = s.category_id
+		WHERE v.profile = ? AND c.color != 'cyan'`, srcProfile)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to query services for markus: %w", err)
+		return 0, 0, err
 	}
 	defer rows.Close()
 
-	var serviceIDsToClone []int
+	added, skipped := 0, 0
 	for rows.Next() {
 		var serviceID int
 		if err := rows.Scan(&serviceID); err != nil {
-			return 0, 0, fmt.Errorf("failed to scan service ID: %w", err)
+			return 0, 0, err
 		}
-		serviceIDsToClone = append(serviceIDsToClone, serviceID)
-	}
-
-	for _, serviceID := range serviceIDsToClone {
 		var exists int
-		err := tx.QueryRow(`SELECT COUNT(*) FROM visibility WHERE service_id = ? AND profile = 'andrea'`, serviceID).Scan(&exists)
+		err := tx.QueryRow(`SELECT COUNT(*) FROM visibility WHERE service_id = ? AND profile = ?`, serviceID, dstProfile).Scan(&exists)
 		if err != nil {
-			return 0, 0, fmt.Errorf("failed to check existing visibility for service %d: %w", serviceID, err)
+			return 0, 0, fmt.Errorf("failed to check visibility for service %d and profile %s: %w", serviceID, dstProfile, err)
 		}
 		if exists > 0 {
 			skipped++
 			continue
 		}
-		_, err = tx.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?, 'andrea')`, serviceID)
+		_, err = tx.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?, ?)`, serviceID, dstProfile)
 		if err != nil {
-			return 0, 0, fmt.Errorf("failed to insert visibility for service %d and andrea: %w", serviceID, err)
+			return 0, 0, fmt.Errorf("failed to insert visibility for service %d and profile %s: %w", serviceID, dstProfile, err)
 		}
 		added++
 	}
-
+	if err := tx.Commit(); err != nil {
+		return 0, 0, err
+	}
 	return added, skipped, nil
 }

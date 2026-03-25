@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/db"
@@ -21,6 +22,7 @@ type ManageData struct {
 	Widgets       []db.Widget
 	Profile       string // für base.html (.Profile)
 	ProfileName   string // für base.html <title>
+	DefaultProfile string
 }
 
 func HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +72,7 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		Widgets:       widgets,
 		Profile:       defaultSlug,
 		ProfileName:   profileName,
+		DefaultProfile: defaultSlug,
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -453,24 +456,44 @@ func HandleDeleteWidget(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func HandleCloneToAndrea(w http.ResponseWriter, r *http.Request) {
-	added, skipped, err := db.CloneToAndrea()
+func HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
+	srcSlug := chi.URLParam(r, "slug")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	dstName := strings.TrimSpace(r.FormValue("name"))
+	if dstName == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+	dstSlug := strings.ToLower(strings.ReplaceAll(dstName, " ", "-"))
+
+	// Create destination profile if it doesn't exist
+	profiles, _ := db.GetProfiles()
+	exists := false
+	for _, p := range profiles {
+		if p.Slug == dstSlug {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		if err := db.AddProfile(dstSlug, dstName); err != nil {
+			log.Printf("HandleCloneProfile: AddProfile error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	added, skipped, err := db.CloneServicesToProfile(srcSlug, dstSlug)
 	if err != nil {
-		log.Printf("Error cloning services to Andrea: %v", err)
+		log.Printf("HandleCloneProfile: CloneServicesToProfile error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	response := struct {
-		Added   int `json:"added"`
-		Skipped int `json:"skipped"`
-	}{
-		Added:   added,
-		Skipped: skipped,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	log.Printf("CloneProfile %s→%s: added=%d skipped=%d", srcSlug, dstSlug, added, skipped)
+	HandleManage(w, r)
 }
 
 func renderCategoryList(w http.ResponseWriter, lang string) {
