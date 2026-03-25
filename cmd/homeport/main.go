@@ -203,19 +203,6 @@ func main() {
 		r.Get("/user/preferences", api.HandleGetPreferences)
 		r.Patch("/user/preferences", api.HandleSetPreferences)
 
-		// Protected API routes (Bearer token required)
-		r.Group(func(r chi.Router) {
-			r.Use(api.AuthMiddleware(cfg.Token))
-
-			// Widgets
-			r.Get("/widgets", api.HandleGetWidgets)
-			r.Post("/widgets", api.HandleCreateWidget)
-			r.Patch("/widgets/reorder", api.HandleReorderWidgets)
-			r.Get("/widgets/{id}", api.HandleGetWidget)
-			r.Patch("/widgets/{id}", api.HandleUpdateWidget)
-			r.Delete("/widgets/{id}", api.HandleDeleteWidgetAPI)
-
-		})
 	})
 
 	// /{slug} nach allen statischen Routen – chi priorisiert diese automatisch
