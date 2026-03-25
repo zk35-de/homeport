@@ -217,8 +217,6 @@ func main() {
 			r.Patch("/widgets/{id}", api.HandleUpdateWidget)
 			r.Delete("/widgets/{id}", api.HandleDeleteWidgetAPI)
 
-			// SSE Live Updates
-			r.Get("/updates", api.DefaultHub.HandleUpdates)
 		})
 	})
 

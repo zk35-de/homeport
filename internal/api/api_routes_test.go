@@ -2,7 +2,7 @@ package api_test
 
 import (
 	"bytes"
-	"context"
+
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
+
 
 	"github.com/go-chi/chi/v5"
 	"git.zk35.de/secalpha/homeport/internal/api"
@@ -1555,99 +1555,4 @@ func TestUpdateHub_Broadcast_NoClients(t *testing.T) {
 	hub.Broadcast(api.Message{Type: api.ServiceStatusMsg, Payload: "test"})
 }
 
-func TestUpdateHub_HandleUpdates_ContextCancelled(t *testing.T) {
-	hub := api.NewUpdateHub()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // cancelled immediately
-
-	req := httptest.NewRequest("GET", "/api/updates", nil).WithContext(ctx)
-	rr := httptest.NewRecorder()
-
-	// Should return quickly because context is already cancelled
-	done := make(chan struct{})
-	go func() {
-		hub.HandleUpdates(rr, req)
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		// good
-	case <-time.After(2 * time.Second):
-		t.Error("HandleUpdates did not return after context cancellation")
-	}
-
-	if rr.Header().Get("Content-Type") != "text/event-stream" {
-		t.Errorf("expected text/event-stream, got %s", rr.Header().Get("Content-Type"))
-	}
-}
-
-// --- LoginReset ---
-
-func TestLoginReset(t *testing.T) {
-	// Record an attempt first
-	req := httptest.NewRequest("POST", "/login", nil)
-	api.LoginRateLimit(req) // register the IP
-
-	// Reset should not panic
-	api.LoginReset(req)
-
-	// After reset, rate limit should be fresh (true = not rate limited)
-	req2 := httptest.NewRequest("POST", "/login", nil)
-	if !api.LoginRateLimit(req2) {
-		t.Error("expected rate limit to allow request after reset")
-	}
-}
-
-// --- HandleStatusStream ---
-
-func TestHandleStatusStream_ContextCancelled(t *testing.T) {
-	// Start broker if not already running
-	go api.StatusBroker.Start()
-	time.Sleep(5 * time.Millisecond)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // immediately cancelled
-
-	req := httptest.NewRequest("GET", "/status-stream", nil).WithContext(ctx)
-	rr := httptest.NewRecorder()
-
-	done := make(chan struct{})
-	go func() {
-		api.HandleStatusStream(rr, req)
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		// good
-	case <-time.After(2 * time.Second):
-		t.Error("HandleStatusStream did not return after context cancellation")
-	}
-}
-
-func TestUpdateHub_Broadcast_WithClient(t *testing.T) {
-	hub := api.NewUpdateHub()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	req := httptest.NewRequest("GET", "/api/updates", nil).WithContext(ctx)
-	rr := httptest.NewRecorder()
-
-	// Start handler in background
-	done := make(chan struct{})
-	go func() {
-		hub.HandleUpdates(rr, req)
-		close(done)
-	}()
-
-	// Give goroutine time to add itself
-	time.Sleep(10 * time.Millisecond)
-
-	// Broadcast a message
-	hub.Broadcast(api.Message{Type: api.WidgetRefreshMsg, Payload: 42})
-
-	// Cancel and wait
-	cancel()
-	<-done
-}

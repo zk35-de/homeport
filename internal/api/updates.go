@@ -1,9 +1,6 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"sync"
 )
 
@@ -57,36 +54,6 @@ func (h *UpdateHub) remove(ch chan Message) {
 	h.mu.Lock()
 	delete(h.clients, ch)
 	h.mu.Unlock()
-}
-
-// HandleUpdates is the SSE endpoint.
-// GET /api/updates
-func (h *UpdateHub) HandleUpdates(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	ch := make(chan Message, 16)
-	h.add(ch)
-	defer h.remove(ch)
-
-	ctx := r.Context()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg := <-ch:
-			data, err := json.Marshal(msg)
-			if err != nil {
-				continue
-			}
-			fmt.Fprintf(w, "data: %s\n\n", data)
-			if f, ok := w.(http.Flusher); ok {
-				f.Flush()
-			}
-		}
-	}
 }
 
 // DefaultHub is the package-level hub used by the status checker to broadcast.
