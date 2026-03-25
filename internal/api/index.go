@@ -137,14 +137,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	// Populate widget data from cache / DB
 	for i := range widgets {
 		switch widgets[i].Type {
-		case "weather":
-			if wc, err := db.GetWeatherCache(widgets[i].ID); err == nil && wc != nil {
-				widgets[i].Weather = wc
-			}
-		case "rss":
-			if items, err := db.GetRSSCache(widgets[i].ID); err == nil {
-				widgets[i].RSSItems = items
-			}
 		case "todo":
 			if todos, err := db.GetTodos(widgets[i].ID); err == nil {
 				widgets[i].Todos = todos
@@ -156,21 +148,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		case "caldav":
 			if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {
 				widgets[i].Events = cache.Events
-			}
-		case "github":
-			var gh struct {
-				PRs    []db.GithubItem `json:"GithubPRs"`
-				Issues []db.GithubItem `json:"GithubIssues"`
-				User   string          `json:"GithubUser"`
-			}
-			if err := db.GetWidgetCacheRaw(widgets[i].ID, &gh); err == nil {
-				widgets[i].GithubPRs = gh.PRs
-				widgets[i].GithubIssues = gh.Issues
-				widgets[i].GithubUser = gh.User
-			}
-		case "router":
-			if rc, err := db.GetRouterCache(widgets[i].ID); err == nil && rc != nil {
-				widgets[i].RouterStatus = rc
 			}
 		default:
 			if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {

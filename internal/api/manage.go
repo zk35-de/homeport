@@ -417,20 +417,6 @@ func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
 		countdown := r.FormValue("clock_countdown")
 		config := `{"mode":"` + mode + `","timezone":"` + timezone + `","show_date":true,"show_seconds":true,"countdown":"` + countdown + `"}`
 		err = db.AddWidgetTyped(name, "clock", config, profile)
-	case "weather":
-		lat := r.FormValue("weather_lat")
-		lon := r.FormValue("weather_lon")
-		city := r.FormValue("weather_city")
-		config, _ := json.Marshal(map[string]interface{}{"lat": lat, "lon": lon, "city_name": city})
-		err = db.AddWidgetTyped(name, "weather", string(config), profile)
-	case "rss":
-		feedURL := r.FormValue("rss_url")
-		maxStr := r.FormValue("rss_max")
-		if maxStr == "" {
-			maxStr = "10"
-		}
-		config, _ := json.Marshal(map[string]interface{}{"url": feedURL, "max": maxStr})
-		err = db.AddWidgetTyped(name, "rss", string(config), profile)
 	case "todo":
 		err = db.AddWidgetTyped(name, "todo", `{}`, profile)
 	case "bookmarks":
@@ -443,25 +429,6 @@ func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
 		calPass := r.FormValue("caldav_password")
 		config, _ := json.Marshal(map[string]string{"url": calURL, "username": calUser, "password": calPass})
 		err = db.AddWidgetTyped(name, "caldav", string(config), profile)
-	case "github":
-		ghToken := r.FormValue("github_token")
-		showPRs := r.FormValue("github_show_prs") != ""
-		showIssues := r.FormValue("github_show_issues") != ""
-		config, _ := json.Marshal(map[string]interface{}{"token": ghToken, "show_prs": showPRs, "show_issues": showIssues})
-		err = db.AddWidgetTyped(name, "github", string(config), profile)
-	case "router":
-		routerType := r.FormValue("router_type")
-		if routerType == "" {
-			routerType = "fritzbox"
-		}
-		routerURL := r.FormValue("router_url")
-		routerPassword := r.FormValue("router_password")
-		config, _ := json.Marshal(map[string]string{
-			"router_type":     routerType,
-			"router_url":      routerURL,
-			"router_password": routerPassword,
-		})
-		err = db.AddWidgetTyped(name, "router", string(config), profile)
 	default:
 		// ical (legacy default)
 		url := r.FormValue("url")

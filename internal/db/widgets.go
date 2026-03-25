@@ -177,46 +177,6 @@ func UpdateWidgetCache(widgetID int, data string) error {
 	return err
 }
 
-func GetWeatherCache(widgetID int) (*WeatherCache, error) {
-	row := DB.QueryRow(`SELECT data FROM widget_cache WHERE widget_id = ?`, widgetID)
-	var data string
-	if err := row.Scan(&data); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var cache WeatherCache
-	if err := json.Unmarshal([]byte(data), &cache); err != nil {
-		return nil, err
-	}
-	return &cache, nil
-}
-
-func GetRouterCache(widgetID int) (*RouterStatusCache, error) {
-	row := DB.QueryRow(`SELECT data FROM widget_cache WHERE widget_id = ?`, widgetID)
-	var data string
-	if err := row.Scan(&data); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var cache RouterStatusCache
-	if err := json.Unmarshal([]byte(data), &cache); err != nil {
-		return nil, err
-	}
-	return &cache, nil
-}
-
-func GetRSSCache(widgetID int) ([]RSSItem, error) {
-	cache, err := GetWidgetCache(widgetID)
-	if err != nil || cache == nil {
-		return nil, err
-	}
-	return cache.RSSItems, nil
-}
-
 func GetTodos(widgetID int) ([]TodoItem, error) {
 	rows, err := DB.Query(
 		`SELECT id, widget_id, text, done, due_date, sort_order FROM todos WHERE widget_id = ? ORDER BY done ASC, sort_order ASC, id ASC`,

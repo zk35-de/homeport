@@ -51,9 +51,7 @@ type Widget struct {
 	Profile   string
 	SortOrder int
 	PageID    int
-	Events    []ICalEvent   `json:"-"`
-	Weather   *WeatherCache `json:"-"`
-	RSSItems  []RSSItem     `json:"-"`
+	Events    []ICalEvent    `json:"-"`
 	Todos         []TodoItem     `json:"-"`
 	BookmarkLinks []BookmarkLink `json:"-"`
 	NoteContent   string         `json:"-"`
@@ -62,34 +60,6 @@ type Widget struct {
 	ClockShowSeconds bool   `json:"-"`
 	ClockShowDate    bool   `json:"-"`
 	ClockCountdown   string `json:"-"`
-	GithubPRs    []GithubItem `json:"-"`
-	GithubIssues []GithubItem `json:"-"`
-	GithubUser   string       `json:"-"`
-	RouterStatus *RouterStatusCache `json:"-"`
-}
-
-type RouterStatusCache struct {
-	DSLDownMbit  float64 `json:"DSLDownMbit"`
-	DSLUpMbit    float64 `json:"DSLUpMbit"`
-	DSLOnline    bool    `json:"DSLOnline"`
-	LTEActive    bool    `json:"LTEActive"`
-	LTESignalDBm float64 `json:"LTESignalDBm"`
-	LTEBand      string  `json:"LTEBand"`
-	Mode         string  `json:"Mode"`
-	Online       bool    `json:"Online"`
-}
-
-type GithubItem struct {
-	Title  string `json:"title"`
-	URL    string `json:"url"`
-	Number int    `json:"number"`
-	Repo   string `json:"repo"`
-}
-
-type RSSItem struct {
-	Title   string `json:"title"`
-	URL     string `json:"url"`
-	PubDate string `json:"pub_date"`
 }
 
 type BookmarkLink struct {
@@ -126,27 +96,7 @@ type ICalEvent struct {
 }
 
 type WidgetCacheEntry struct {
-	Events   []ICalEvent `json:"Events,omitempty"`
-	RSSItems []RSSItem   `json:"RSSItems,omitempty"`
-}
-
-type WeatherCache struct {
-	Temperature float64
-	WeatherCode int
-	Description string
-	WindSpeed   float64
-	Humidity    int
-	IsDay       bool
-	CityName    string
-	Forecast    []WeatherForecastDay
-}
-
-type WeatherForecastDay struct {
-	Date    string
-	TempMax float64
-	TempMin float64
-	Code    int
-	Desc    string
+	Events []ICalEvent `json:"Events,omitempty"`
 }
 
 // ReorderItem is used for batch reorder operations.
