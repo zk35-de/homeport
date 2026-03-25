@@ -5,7 +5,7 @@
     <div class="manage-category" id="cat-{{.ID}}" data-id="{{.ID}}">
         <div class="manage-header">
             <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
-            <span class="category-title" style="color: var(--{{.Color}})">{{.Name}} ({{.Layout}})</span>
+            <span class="category-title color-{{.Color}}">{{.Name}} ({{.Layout}})</span>
             <div class="actions">
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/down" hx-target="#category-list" hx-swap="innerHTML">⬇️</button>
@@ -71,11 +71,11 @@
         </div>
         <div class="form-group">
             <label>{{.T "manage.icon"}}</label>
-            <div style="display:flex;gap:0.4rem;align-items:center">
+            <div class="icon-input-row">
                 <input type="text" name="icon" id="edit-icon-{{.Service.ID}}" value="{{.Service.Icon}}" placeholder="🏠 oder leer">
                 <button type="button" class="btn-sm fetch-favicon-btn" data-svc-id="{{.Service.ID}}" title="Favicon laden">🌐</button>
                 <img id="edit-favicon-preview-{{.Service.ID}}" src="{{if .Service.Icon}}{{.Service.Icon}}{{end}}"
-                    alt="" style="width:20px;height:20px;{{if not .Service.Icon}}display:none{{end}};border-radius:3px">
+                    alt="" class="favicon-preview{{if not .Service.Icon}} hidden{{end}}">
             </div>
         </div>
         <div class="form-group">
@@ -87,7 +87,7 @@
             <input type="url" name="status_check" value="{{.Service.StatusCheck}}">
         </div>
         <div class="form-group">
-            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer">
+            <label class="checkbox-label">
                 <input type="checkbox" name="no_check" value="1" {{if .Service.NoCheck}}checked{{end}}> {{.T "manage.no_check"}}
             </label>
         </div>
@@ -108,7 +108,7 @@
             </select>
         </div>
     </div>
-    <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+    <div class="form-actions">
         <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
         <button type="button" class="btn-sm" data-clear-target="svc-edit-{{.Service.ID}}">{{.T "manage.cancel"}}</button>
     </div>
@@ -148,7 +148,7 @@
             </select>
         </div>
     </div>
-    <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+    <div class="form-actions">
         <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
         <button type="button" class="btn-sm" data-clear-target="cat-edit-{{.Category.ID}}">{{.T "manage.cancel"}}</button>
     </div>

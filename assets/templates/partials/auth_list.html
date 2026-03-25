@@ -2,17 +2,17 @@
 <div id="auth-list">
   {{range .Profiles}}
   {{$auth := index $.AuthMap .Slug}}
-  <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid var(--glass-border)">
-    <span style="flex:1;font-weight:500">{{.Name}} <span style="color:var(--text-muted);font-size:0.8rem">({{.Slug}})</span></span>
+  <div class="auth-item">
+    <span class="auth-name">{{.Name}} <span class="auth-slug">({{.Slug}})</span></span>
     {{if $auth.Profile}}
-      <span style="font-size:0.75rem;color:var(--green)">✓ Passwort gesetzt{{if $auth.IsAdmin}} · Admin{{end}}</span>
+      <span class="auth-status-ok">✓ Passwort gesetzt{{if $auth.IsAdmin}} · Admin{{end}}</span>
       <form hx-post="/manage/auth/password/delete" hx-target="#auth-list" hx-swap="outerHTML"
             hx-confirm="Passwort für {{.Name}} löschen?">
         <input type="hidden" name="profile" value="{{.Slug}}">
         <button class="btn-sm btn-danger" type="submit">Passwort löschen</button>
       </form>
     {{else}}
-      <span style="font-size:0.75rem;color:var(--text-muted)">Kein Passwort</span>
+      <span class="auth-status-none">Kein Passwort</span>
     {{end}}
   </div>
   {{end}}

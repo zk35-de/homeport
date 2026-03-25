@@ -21,7 +21,7 @@
       <button class="se-option" data-url="https://www.bing.com/search?q=" data-label="Bing">Bing</button>
     </div>
     <!-- Spotlight-Ergebnis-Dropdown -->
-    <ul class="search-spotlight" id="search-spotlight" style="display:none"></ul>
+    <ul class="search-spotlight" id="search-spotlight"></ul>
   </div>
 </div>
 
@@ -37,18 +37,18 @@
 <div class="dashboard" id="dashboard">
     {{if not .Categories}}
     <div class="onboarding-hint">
-        <div style="font-size:2.5rem;margin-bottom:0.75rem">🚀</div>
-        <h2 style="margin:0 0 0.5rem">Willkommen bei homeport</h2>
-        <p style="color:var(--text-muted);margin:0 0 1.25rem">Noch keine Dienste konfiguriert.</p>
+        <div class="onboarding-icon">🚀</div>
+        <h2 class="onboarding-title">Willkommen bei homeport</h2>
+        <p class="onboarding-desc">Noch keine Dienste konfiguriert.</p>
         <a href="/manage" class="btn-primary">{{.T "manage.title"}} →</a>
     </div>
     {{end}}
     {{range .Categories}}
     {{if .Services}}
-    <div class="category" data-cat-id="{{.ID}}" data-span="{{.ColSpan}}" data-page="{{.PageID}}" style="--cat-color: var(--{{.Color}})">
-        <div class="category-header" style="cursor:pointer">
+    <div class="category" data-cat-id="{{.ID}}" data-span="{{.ColSpan}}" data-page="{{.PageID}}" data-color="{{.Color}}">
+        <div class="category-header">
             <span class="cat-arrow" id="cat-arrow-{{.ID}}">▼</span>
-            <span class="category-title" style="color: var(--{{.Color}})">{{.Name}}</span>
+            <span class="category-title color-{{.Color}}">{{.Name}}</span>
         </div>
         <div class="category-body" id="cat-body-{{.ID}}">
             <div class="category-grid">

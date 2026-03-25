@@ -20,7 +20,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		h.Set("Content-Security-Policy",
 			"default-src 'self'; "+
 				"script-src 'self'; "+
-				"style-src 'self' 'unsafe-inline'; "+ // style="" attributes remain
+				"style-src 'self'; "+
 				"img-src 'self' data:; "+
 				"connect-src 'self'; "+
 				"font-src 'self'; "+
