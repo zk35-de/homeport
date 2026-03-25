@@ -10,8 +10,6 @@
     width: 80px;
     height: 80px;
     object-fit: contain;
-    border-radius: var(--radius);
-    opacity: 0.92;
 }
 
 /* Search Bar */
@@ -40,6 +38,8 @@
     font-family: var(--mono);
     outline: none;
     transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
 }
 .search-bar input[type="search"]:focus {
     border-color: rgba(99,102,241,0.5);

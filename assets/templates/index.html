@@ -6,7 +6,7 @@
   <div class="search-bar-outer">
     <form class="search-bar" id="search-form" action="{{.SearchAction}}" method="get" target="_blank">
       <input type="search" name="q" id="search-input"
-             placeholder="{{.T "common.loading"}} (Ctrl+K, !g !d !b !yt !w)"
+             placeholder="Spotlight / Internet search  (Ctrl+K · !g !d !b !yt !w)"
              autocomplete="off" autofocus>
       <button type="button" class="search-engine-btn" id="search-engine-btn" title="Suchanbieter wählen" tabindex="0">
         <span id="search-engine-label">{{if .SearchAction}}{{if eq .SearchAction "https://www.google.com/search"}}G{{else if eq .SearchAction "https://search.brave.com/search"}}B{{else if eq .SearchAction "https://www.startpage.com/search"}}S{{else if eq .SearchAction "https://www.bing.com/search"}}Bing{{else}}DDG{{end}}{{else}}DDG{{end}}</span>▾
