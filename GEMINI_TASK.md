@@ -1,614 +1,462 @@
-# homeport – Issues #26, #30, #36
+# homeport – Cleanup Sprint: Issues #91, #92, #93, #94, #95, #96
 
-Implementiere drei Features in einem Commit. Alle Änderungen im Repo `/home/debian/new_pro/homeport`.
+Implementiere alle sechs Cleanups in separaten Commits. Alle Änderungen im Repo `/home/debian/new_pro/homeport`.
 
----
-
-## #26 – Bookmarks Widget
-
-Neues Widget-Typ `bookmarks`: Liste von Links mit Favicon, ähnlich wie das Todo-Widget.
-
-### db.go – Ergänzungen
-
-1. Neues Struct nach `TodoItem`:
-```go
-type BookmarkLink struct {
-    Name string `json:"name"`
-    URL  string `json:"url"`
-    Icon string `json:"icon"`
-}
-```
-
-2. Im `Widget` Struct nach `Todos []TodoItem` ergänzen:
-```go
-BookmarkLinks []BookmarkLink `json:"-"` // populated for type=bookmarks
-NoteContent   string         `json:"-"` // populated for type=notes
-```
-
-3. In `populateWidgetFields()` nach dem clock-Block:
-```go
-if w.Type == "bookmarks" {
-    var cfg struct {
-        Links []BookmarkLink `json:"links"`
-    }
-    if err := json.Unmarshal([]byte(w.Config), &cfg); err == nil {
-        w.BookmarkLinks = cfg.Links
-    }
-    if w.BookmarkLinks == nil {
-        w.BookmarkLinks = []BookmarkLink{}
-    }
-}
-```
-
-4. Neue Funktion `GetWidgetByID` nach `GetAllWidgets`:
-```go
-func GetWidgetByID(id int) (Widget, error) {
-    var w Widget
-    row := DB.QueryRow(`SELECT id, type, name, config, profile, sort_order FROM widgets WHERE id = ?`, id)
-    if err := row.Scan(&w.ID, &w.Type, &w.Name, &w.Config, &w.Profile, &w.SortOrder); err != nil {
-        return w, err
-    }
-    populateWidgetFields(&w)
-    return w, nil
-}
-```
-
-5. Neue Bookmark-Mutations-Funktionen am Ende von db.go:
-```go
-func AddBookmarkLink(widgetID int, link BookmarkLink) error {
-    var configStr string
-    if err := DB.QueryRow(`SELECT config FROM widgets WHERE id = ?`, widgetID).Scan(&configStr); err != nil {
-        return err
-    }
-    var cfg struct {
-        Layout string         `json:"layout"`
-        Links  []BookmarkLink `json:"links"`
-    }
-    _ = json.Unmarshal([]byte(configStr), &cfg)
-    if cfg.Layout == "" { cfg.Layout = "grid" }
-    cfg.Links = append(cfg.Links, link)
-    newConfig, err := json.Marshal(cfg)
-    if err != nil { return err }
-    s := string(newConfig)
-    return UpdateWidget(widgetID, nil, &s, nil)
-}
-
-func DeleteBookmarkLink(widgetID, idx int) error {
-    var configStr string
-    if err := DB.QueryRow(`SELECT config FROM widgets WHERE id = ?`, widgetID).Scan(&configStr); err != nil {
-        return err
-    }
-    var cfg struct {
-        Layout string         `json:"layout"`
-        Links  []BookmarkLink `json:"links"`
-    }
-    _ = json.Unmarshal([]byte(configStr), &cfg)
-    if idx < 0 || idx >= len(cfg.Links) {
-        return fmt.Errorf("bookmark index out of range")
-    }
-    cfg.Links = append(cfg.Links[:idx], cfg.Links[idx+1:]...)
-    newConfig, err := json.Marshal(cfg)
-    if err != nil { return err }
-    s := string(newConfig)
-    return UpdateWidget(widgetID, nil, &s, nil)
-}
-```
-
-6. Notes-Tabelle in `InitDB()` nach der `todos`-Tabelle:
-```go
-`CREATE TABLE IF NOT EXISTS notes (
-    widget_id  INTEGER PRIMARY KEY REFERENCES widgets(id) ON DELETE CASCADE,
-    content    TEXT NOT NULL DEFAULT '',
-    updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
-);`,
-```
-
-7. Notes DB-Funktionen am Ende:
-```go
-func GetNote(widgetID int) (string, error) {
-    var content string
-    err := DB.QueryRow(`SELECT content FROM notes WHERE widget_id = ?`, widgetID).Scan(&content)
-    if err == sql.ErrNoRows { return "", nil }
-    return content, err
-}
-
-func SaveNote(widgetID int, content string) error {
-    _, err := DB.Exec(`
-        INSERT INTO notes (widget_id, content, updated_at) VALUES (?, ?, datetime('now'))
-        ON CONFLICT(widget_id) DO UPDATE SET content=excluded.content, updated_at=excluded.updated_at`,
-        widgetID, content)
-    return err
-}
-```
-
-8. Analytics-Struct und -Funktion:
-```go
-type ClickStat struct {
-    ServiceID   int
-    ServiceName string
-    ServiceURL  string
-    ServiceIcon string
-    ClickCount  int
-    LastClicked string
-    Profile     string
-}
-
-func GetTopClicks(profile string, limit int) ([]ClickStat, error) {
-    var rows *sql.Rows
-    var err error
-    if profile != "" {
-        rows, err = DB.Query(`
-            SELECT sc.service_id, s.name, s.url, COALESCE(s.icon,''),
-                   sc.click_count, COALESCE(sc.last_clicked,''), sc.profile
-            FROM service_clicks sc JOIN services s ON s.id = sc.service_id
-            WHERE sc.profile = ?
-            ORDER BY sc.click_count DESC LIMIT ?`, profile, limit)
-    } else {
-        rows, err = DB.Query(`
-            SELECT sc.service_id, s.name, s.url, COALESCE(s.icon,''),
-                   sc.click_count, COALESCE(sc.last_clicked,''), sc.profile
-            FROM service_clicks sc JOIN services s ON s.id = sc.service_id
-            ORDER BY sc.click_count DESC LIMIT ?`, limit)
-    }
-    if err != nil { return nil, err }
-    defer rows.Close()
-    var stats []ClickStat
-    for rows.Next() {
-        var s ClickStat
-        if err := rows.Scan(&s.ServiceID, &s.ServiceName, &s.ServiceURL, &s.ServiceIcon,
-            &s.ClickCount, &s.LastClicked, &s.Profile); err != nil {
-            return nil, err
-        }
-        stats = append(stats, s)
-    }
-    return stats, nil
-}
-```
+**Nach jedem Issue:** `go build -o homeport ./cmd/homeport/ && go test ./...` – beide müssen grün sein, sonst nicht committen.
 
 ---
 
-## Neue Datei: internal/api/bookmarks.go
+## Issue #91 – Totes `background`-Feld entfernen
 
+Das Feld `Background string` in `UserPreferences` wird zwar in der DB gespeichert, aber von keinem Template gelesen. Es wurde durch `background_mode` (Migration 6) ersetzt und vergessen.
+
+### `internal/db/models.go`
+
+Lies die Datei. Entferne aus dem `UserPreferences`-Struct:
 ```go
-package api
+Background     string `json:"background"`
+```
 
-import (
-    "log"
-    "net/http"
-    "strconv"
+### `internal/db/profiles.go`
 
-    "github.com/go-chi/chi/v5"
-    "git.zk35.de/secalpha/homeport/internal/db"
-)
+Lies die Datei. Es gibt eine `GetUserPreferences()`-Funktion mit einem SELECT-Query und einem `row.Scan(...)`.
 
-func renderBookmarksWidget(w http.ResponseWriter, widgetID int) {
-    widget, err := db.GetWidgetByID(widgetID)
-    if err != nil {
-        http.Error(w, "Not Found", http.StatusNotFound)
-        return
-    }
-    if err := IndexTmpl.ExecuteTemplate(w, "widget_bookmarks", widget); err != nil {
-        log.Printf("renderBookmarksWidget error: %v", err)
-        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-    }
-}
+1. Im SELECT-Query: `background,` entfernen
+2. Im `row.Scan(...)`: `&p.Background,` entfernen
+3. In der Defaults-Initialisierung: falls `Background: "aurora"` vorkommt, entfernen
+4. In `SetUserPreferences()`: im INSERT/UPDATE-Query `background` aus der Spaltenliste und aus den Values entfernen, sowie `prefs.Background` aus den Parametern entfernen
 
-// POST /api/widgets/{id}/bookmark  (form: name, url)
-func HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
-    id, err := strconv.Atoi(chi.URLParam(r, "id"))
-    if err != nil { http.Error(w, "Bad Request", http.StatusBadRequest); return }
-    if err := r.ParseForm(); err != nil { http.Error(w, "Bad Request", http.StatusBadRequest); return }
-    link := db.BookmarkLink{Name: r.FormValue("name"), URL: r.FormValue("url")}
-    if link.URL == "" { http.Error(w, "Bad Request", http.StatusBadRequest); return }
-    if link.Name == "" { link.Name = link.URL }
-    if err := db.AddBookmarkLink(id, link); err != nil {
-        log.Printf("AddBookmarkLink error: %v", err)
-        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-        return
-    }
-    renderBookmarksWidget(w, id)
-}
+### `internal/api/preferences_api.go`
 
-// DELETE /api/widgets/{id}/bookmark/{idx}
-func HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
-    id, err := strconv.Atoi(chi.URLParam(r, "id"))
-    if err != nil { http.Error(w, "Bad Request", http.StatusBadRequest); return }
-    idx, err := strconv.Atoi(chi.URLParam(r, "idx"))
-    if err != nil { http.Error(w, "Bad Request", http.StatusBadRequest); return }
-    if err := db.DeleteBookmarkLink(id, idx); err != nil {
-        log.Printf("DeleteBookmarkLink error: %v", err)
-        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-        return
-    }
-    renderBookmarksWidget(w, id)
+Lies die Datei. Entferne den Block:
+```go
+if v, ok := patch["background"]; ok {
+    current.Background = v
 }
 ```
 
----
-
-## Neue Datei: internal/api/notes.go
-
-```go
-package api
-
-import (
-    "encoding/json"
-    "log"
-    "net/http"
-    "strconv"
-
-    "github.com/go-chi/chi/v5"
-    "git.zk35.de/secalpha/homeport/internal/db"
-)
-
-// PUT /api/notes/{id}  body: {"content":"..."}
-func HandleSaveNote(w http.ResponseWriter, r *http.Request) {
-    id, err := strconv.Atoi(chi.URLParam(r, "id"))
-    if err != nil { http.Error(w, "Bad Request", http.StatusBadRequest); return }
-    var body struct {
-        Content string `json:"content"`
-    }
-    if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-        http.Error(w, "Bad Request", http.StatusBadRequest)
-        return
-    }
-    if err := db.SaveNote(id, body.Content); err != nil {
-        log.Printf("SaveNote error: %v", err)
-        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-        return
-    }
-    w.WriteHeader(http.StatusNoContent)
-}
-```
-
----
-
-## Neue Datei: internal/api/analytics.go
-
-```go
-package api
-
-import (
-    "html/template"
-    "log"
-    "net/http"
-
-    "git.zk35.de/secalpha/homeport/internal/db"
-)
-
-var AnalyticsTmpl *template.Template
-
-type AnalyticsData struct {
-    Stats    []db.ClickStat
-    Profile  string
-    Profiles []db.Profile
-    Prefs    *db.UserPreferences
-}
-
-// GET /manage/analytics
-func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
-    filterProfile := r.URL.Query().Get("profile")
-    stats, err := db.GetTopClicks(filterProfile, 25)
-    if err != nil {
-        log.Printf("GetTopClicks error: %v", err)
-        stats = nil
-    }
-    profiles, _ := db.GetProfiles()
-    defaultProf, _ := db.GetDefaultProfile()
-    var prefs *db.UserPreferences
-    if defaultProf != nil {
-        prefs, _ = db.GetUserPreferences(defaultProf.Slug)
-    }
-    if prefs == nil {
-        prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
-    }
-    data := AnalyticsData{Stats: stats, Profile: filterProfile, Profiles: profiles, Prefs: prefs}
-    if err := AnalyticsTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
-        log.Printf("Analytics template error: %v", err)
-        http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-    }
-}
-```
-
----
-
-## internal/api/index.go – Änderungen
-
-1. In `tmplFuncs` die `inc`-Funktion ergänzen:
-```go
-var tmplFuncs = template.FuncMap{
-    "isImgURL": isImgURL,
-    "hexToRGB": hexToRGB,
-    "inc": func(i int) int { return i + 1 },
-}
-```
-
-2. In `InitTemplates()` nach der ManageTmpl-Initialisierung:
-```go
-AnalyticsTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs,
-    "templates/base.html",
-    "templates/analytics.html",
-    "templates/partials/*.html",
-)
-if err != nil {
-    log.Fatalf("Error parsing analytics templates: %v", err)
-}
-```
-
-3. Im `for i := range widgets` switch-Block nach dem `todo`-Case:
-```go
-case "notes":
-    if content, err := db.GetNote(widgets[i].ID); err == nil {
-        widgets[i].NoteContent = content
-    }
-```
-
----
-
-## internal/api/manage.go – HandleAddWidget
-
-Im `switch widgetType` nach dem `todo`-Case ergänzen:
-```go
-case "bookmarks":
-    err = db.AddWidgetTyped(name, "bookmarks", `{"layout":"grid","links":[]}`, profile)
-case "notes":
-    err = db.AddWidgetTyped(name, "notes", `{}`, profile)
-```
-
----
-
-## cmd/homeport/main.go – neue Routen
-
-Nach `r.Delete("/api/todos/{id}", api.HandleDeleteTodo)`:
-```go
-r.Post("/api/widgets/{id}/bookmark", api.HandleAddBookmark)
-r.Delete("/api/widgets/{id}/bookmark/{idx}", api.HandleDeleteBookmark)
-r.Put("/api/notes/{id}", api.HandleSaveNote)
-```
-
-Im `/manage`-Block nach `r.Get("/", api.HandleManage)`:
-```go
-r.Get("/analytics", api.HandleAnalytics)
-```
-
----
-
-## Neue Datei: assets/templates/partials/widget_bookmarks.html
-
-```html
-{{define "widget_bookmarks"}}
-<div class="widget widget-bookmarks" id="widget-bookmarks-{{.ID}}">
-  <h3 class="widget-title">{{.Name}}</h3>
-  <div class="bookmarks-list">
-    {{range $idx, $link := .BookmarkLinks}}
-    <div class="bookmark-item">
-      <a href="{{$link.URL}}" target="_blank" rel="noopener" class="bookmark-link">
-        {{if $link.Icon}}
-          <img src="{{$link.Icon}}" width="16" height="16" alt="" class="bookmark-favicon" onerror="this.style.display='none'">
-        {{else}}
-          <img src="/api/favicon?url={{$link.URL}}" width="16" height="16" alt="" class="bookmark-favicon" onerror="this.style.display='none'">
-        {{end}}
-        <span class="bookmark-name">{{$link.Name}}</span>
-      </a>
-      <button class="btn-icon bookmark-del" title="Löschen"
-        hx-delete="/api/widgets/{{$.ID}}/bookmark/{{$idx}}"
-        hx-target="#widget-bookmarks-{{$.ID}}"
-        hx-swap="outerHTML">🗑️</button>
-    </div>
-    {{else}}
-    <p class="bookmark-empty">Noch keine Lesezeichen.</p>
-    {{end}}
-  </div>
-  <form class="bookmark-add-form"
-    hx-post="/api/widgets/{{.ID}}/bookmark"
-    hx-target="#widget-bookmarks-{{.ID}}"
-    hx-swap="outerHTML"
-    hx-on::after-request="this.reset()">
-    <input type="text" name="name" placeholder="Name" class="bookmark-input-name" autocomplete="off">
-    <input type="url" name="url" placeholder="https://…" class="bookmark-input-url" autocomplete="off" required>
-    <button type="submit" class="btn-sm">+</button>
-  </form>
-</div>
-{{end}}
-```
-
----
-
-## Neue Datei: assets/templates/partials/widget_notes.html
-
-```html
-{{define "widget_notes"}}
-<div class="widget widget-notes" id="widget-notes-{{.ID}}">
-  <div class="widget-title-row">
-    <h3 class="widget-title">{{.Name}}</h3>
-    <span id="notes-status-{{.ID}}" class="notes-status"></span>
-  </div>
-  <textarea id="notes-ta-{{.ID}}" class="notes-textarea" placeholder="Notizen…">{{.NoteContent}}</textarea>
-  <script>
-  (function(){
-    var ta = document.getElementById('notes-ta-{{.ID}}');
-    var st = document.getElementById('notes-status-{{.ID}}');
-    var timer;
-    ta.addEventListener('input', function() {
-      st.textContent = '…';
-      clearTimeout(timer);
-      timer = setTimeout(function() {
-        fetch('/api/notes/{{.ID}}', {
-          method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({content: ta.value})
-        }).then(function(r) {
-          st.textContent = r.ok ? '✓' : '✗';
-          setTimeout(function(){ st.textContent = ''; }, 2000);
-        }).catch(function(){ st.textContent = '✗'; });
-      }, 500);
-    });
-  })();
-  </script>
-</div>
-{{end}}
-```
-
----
-
-## Neue Datei: assets/templates/analytics.html
-
-```html
-{{define "content"}}
-<style>
-.analytics-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
-.analytics-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
-.analytics-header h2 { margin: 0; }
-.analytics-filter { display: flex; align-items: center; gap: 0.5rem; }
-.analytics-filter select { background: var(--glass); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.5rem; color: var(--fg); font-size: 0.9rem; }
-.analytics-table { width: 100%; border-collapse: collapse; }
-.analytics-table th, .analytics-table td { padding: 0.55rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
-.analytics-table th { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; }
-.analytics-table tr:hover td { background: var(--glass); }
-.a-rank { color: var(--sub); font-size: 0.85rem; width: 2rem; }
-.a-count { font-weight: 700; color: var(--accent); }
-.a-profile-tag { font-size: 0.75rem; color: var(--sub); background: var(--glass); padding: 2px 6px; border-radius: 4px; }
-.a-date { color: var(--sub); font-size: 0.8rem; white-space: nowrap; }
-.a-svc { display: flex; align-items: center; gap: 0.5rem; }
-.a-favicon { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
-.analytics-empty { color: var(--sub); text-align: center; padding: 3rem; }
-</style>
-
-<div class="analytics-wrap">
-  <div class="analytics-header">
-    <h2>📊 Analytics</h2>
-    <div class="analytics-filter">
-      <label style="color:var(--sub);font-size:0.9rem">Profil:</label>
-      <select onchange="location.href='/manage/analytics?profile='+this.value">
-        <option value="" {{if eq .Profile ""}}selected{{end}}>Alle</option>
-        {{range .Profiles}}
-        <option value="{{.Slug}}" {{if eq $.Profile .Slug}}selected{{end}}>{{.Name}}</option>
-        {{end}}
-      </select>
-      <a href="/manage" style="color:var(--sub);font-size:0.85rem;margin-left:1rem">← Manage</a>
-    </div>
-  </div>
-
-  {{if .Stats}}
-  <table class="analytics-table">
-    <thead>
-      <tr>
-        <th class="a-rank">#</th>
-        <th>Dienst</th>
-        <th>Profil</th>
-        <th>Klicks</th>
-        <th>Zuletzt</th>
-      </tr>
-    </thead>
-    <tbody>
-    {{range $i, $s := .Stats}}
-    <tr>
-      <td class="a-rank">{{inc $i}}</td>
-      <td>
-        <div class="a-svc">
-          {{if isImgURL $s.ServiceIcon}}
-            <img src="{{$s.ServiceIcon}}" class="a-favicon" alt="" onerror="this.style.display='none'">
-          {{else if $s.ServiceIcon}}
-            <span>{{$s.ServiceIcon}}</span>
-          {{else}}
-            <img src="/api/favicon?url={{$s.ServiceURL}}" class="a-favicon" alt="" onerror="this.style.display='none'">
-          {{end}}
-          <a href="{{$s.ServiceURL}}" target="_blank" rel="noopener">{{$s.ServiceName}}</a>
-        </div>
-      </td>
-      <td><span class="a-profile-tag">{{$s.Profile}}</span></td>
-      <td class="a-count">{{$s.ClickCount}}</td>
-      <td class="a-date">{{$s.LastClicked}}</td>
-    </tr>
-    {{end}}
-    </tbody>
-  </table>
-  {{else}}
-  <p class="analytics-empty">Noch keine Klicks erfasst.<br>
-  Dienste müssen über <code>/r/{id}?p={profile}</code> geöffnet werden – das passiert automatisch wenn sie auf dem Dashboard angeklickt werden.</p>
-  {{end}}
-</div>
-{{end}}
-```
-
----
-
-## assets/templates/index.html – Widget-Switch erweitern
-
-Im Widget-Switch-Block (Zeile mit `{{if eq .Type "weather"}}...`), neue Zeilen nach `{{else if eq .Type "todo"}}{{template "widget_todo" .}}` ergänzen:
-```
-{{else if eq .Type "bookmarks"}}{{template "widget_bookmarks" .}}
-{{else if eq .Type "notes"}}{{template "widget_notes" .}}
-```
-
----
-
-## assets/templates/manage.html – Änderungen
-
-1. Im `<select name="widget_type" id="widget-type-select">` ergänzen:
-```html
-<option value="bookmarks">Lesezeichen</option>
-<option value="notes">Notizen</option>
-```
-
-2. Nach `<div id="widget-todo-fields"...>` zwei neue Divs ergänzen:
-```html
-<div id="widget-bookmarks-fields" style="display:none">
-    <p style="font-size:0.8rem;color:var(--sub);margin:0">Links werden direkt im Widget verwaltet.</p>
-</div>
-<div id="widget-notes-fields" style="display:none">
-    <p style="font-size:0.8rem;color:var(--sub);margin:0">Inhalt wird direkt im Widget bearbeitet.</p>
-</div>
-```
-
-3. In der JS-Funktion `updateWidgetForm()`: Die Funktion versteckt je nach Widget-Typ die nicht benötigten Felder. Suche die bestehende Logik und ergänze `bookmarks` und `notes` so dass deren Felder gezeigt / alle anderen versteckt werden. Das Muster ist dasselbe wie bei `todo` (zeige nur den zugehörigen div).
-
-4. Analytics-Link: Suche in manage.html den Abschnitt mit `<h1>` oder `<h2>` Überschrift der Seite und ergänze einen Link:
-```html
-<a href="/manage/analytics" style="font-size:0.85rem;color:var(--sub)">📊 Analytics</a>
-```
-Stelle es gut sichtbar in den Header-Bereich.
-
----
-
-## assets/static/style.css – neue CSS-Klassen am Ende
-
-```css
-/* ─── Bookmarks Widget ─────────────────────────────── */
-.bookmarks-list { display: flex; flex-direction: column; gap: 0.35rem; }
-.bookmark-item { display: flex; align-items: center; gap: 0.4rem; }
-.bookmark-link { display: flex; align-items: center; gap: 0.5rem; flex: 1; text-decoration: none; color: var(--fg); padding: 0.25rem 0.4rem; border-radius: 6px; transition: background 0.15s; overflow: hidden; }
-.bookmark-link:hover { background: var(--glass); }
-.bookmark-favicon { border-radius: 3px; flex-shrink: 0; }
-.bookmark-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
-.bookmark-empty { color: var(--sub); font-size: 0.85rem; margin: 0.25rem 0; }
-.bookmark-add-form { display: flex; gap: 0.4rem; margin-top: 0.6rem; flex-wrap: wrap; }
-.bookmark-input-name { flex: 1; min-width: 80px; }
-.bookmark-input-url { flex: 2; min-width: 120px; }
-
-/* ─── Notes Widget ──────────────────────────────────── */
-.widget-title-row { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.5rem; }
-.widget-title-row .widget-title { margin-bottom: 0; }
-.notes-textarea { width: 100%; min-height: 120px; resize: vertical; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.6rem; color: var(--fg); font-family: inherit; font-size: 0.9rem; box-sizing: border-box; line-height: 1.5; }
-.notes-textarea:focus { outline: none; border-color: var(--accent); }
-.notes-status { font-size: 0.75rem; color: var(--sub); flex-shrink: 0; }
-```
-
----
-
-## Build und Test
+### Build + Test + Commit
 
 ```bash
-cd /home/debian/new_pro/homeport
-go build ./...
-go test ./...
+go build -o homeport ./cmd/homeport/ && go test ./...
+git add internal/db/models.go internal/db/profiles.go internal/api/preferences_api.go
+git commit -m "cleanup: remove dead background field from UserPreferences (#91)
+
+Field was superseded by background_mode in migration 6 but never removed.
+DB column stays (SQLite has no DROP COLUMN before 3.35) but is no longer
+read or written by Go code."
 ```
 
 ---
 
-## Git Commit
+## Issue #92 – Aurora/Tageszeit-Hintergrund entfernen
+
+Aurora und Tageszeit-Hintergrund sind reine Dekoration. Danach gibt es nur noch einen schlichten dunklen/hellen Hintergrund per CSS.
+
+### `assets/templates/base.html`
+
+Lies die Datei. Entferne:
+1. `<link rel="stylesheet" href="/static/css/prism-aurora.css">` (die Zeile mit aurora.css)
+2. Die `<div class="aurora" id="bg-aurora">...</div>` Sektion (alle Zeilen des Aurora-Divs)
+3. Die `<div class="bg-time" id="bg-time" ...></div>` Zeile
+4. Die `<div class="bg-image" id="bg-image" ...></div>` Zeile
+5. Den `<script>`-Block der `data-bg` auswertet und `setBgMode()` aufruft (der Block direkt nach den bg-Divs)
+6. Das `data-bg="..."` Attribut aus dem `<body>`-Tag
+
+### `assets/templates/manage.html`
+
+Lies die Datei. Entferne im Appearance-Abschnitt:
+1. Den Label "Hintergrund" / "Background" mit den drei Buttons (Aurora, Zeit, Keine)
+2. Die `setBgMode()`-Funktion im JS-Bereich
+3. Den Aufruf `savePrefs({background_mode: mode})` (der in `setBgMode` steckt – fällt automatisch weg)
+
+### `internal/db/models.go`
+
+Entferne aus `UserPreferences`:
+```go
+BackgroundMode string `json:"background_mode"`
+```
+
+### `internal/db/profiles.go`
+
+Lies die Datei:
+1. Im SELECT-Query: `COALESCE(background_mode,'aurora')` entfernen
+2. Im `row.Scan(...)`: `&p.BackgroundMode` entfernen
+3. In der Defaults-Initialisierung: `BackgroundMode: "aurora"` entfernen
+4. In `SetUserPreferences()`: `background_mode` aus INSERT/UPDATE-Query entfernen, `prefs.BackgroundMode` aus Parametern entfernen
+
+### `internal/api/preferences_api.go`
+
+Entferne den Block:
+```go
+if v, ok := patch["background_mode"]; ok {
+    current.BackgroundMode = v
+}
+```
+
+### `assets/static/css/prism-aurora.css`
+
+Prüfe ob diese Datei existiert: `ls assets/static/css/prism-aurora.css`
+Falls ja: löschen.
+
+### Build + Test + Commit
 
 ```bash
+go build -o homeport ./cmd/homeport/ && go test ./...
 git add -A
-git commit -m "feat: Bookmarks Widget (#26), Notes Widget (#30), Analytics (#36)"
+git commit -m "cleanup: remove aurora/time background modes (#92)
+
+Pure decoration with no functional value. Removes prism-aurora.css,
+background divs, JS mode switcher, and background_mode pref field.
+Plain CSS background remains."
 ```
+
+---
+
+## Issue #93 – clone-andrea durch generisches Profil-Klonen ersetzen
+
+`POST /manage/clone-andrea` und `CloneToAndrea()` sind hardcodiert auf Profilnamen "markus" und "andrea". Dazu kommt hardcodiertes "andrea" in `analytics.go`.
+
+### `internal/db/analytics.go`
+
+Lies die Datei. Finde die Funktion die "andrea" hartcodiert verwendet (ca. Zeile 54ff). Diese Funktion heißt vermutlich `CloneToAndrea` oder ähnlich und enthält:
+```sql
+WHERE profile = 'andrea'
+INSERT INTO visibility (service_id, profile) VALUES (?, 'andrea')
+```
+
+Ersetze die gesamte Funktion durch eine generische Version:
+
+```go
+// CloneServicesToProfile copies all services visible to srcProfile into dstProfile.
+// Services in categories with color 'cyan' are excluded (admin-only convention).
+// Returns counts of added and skipped services.
+func CloneServicesToProfile(srcProfile, dstProfile string) (int, int, error) {
+	tx, err := DB.Begin()
+	if err != nil {
+		return 0, 0, err
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query(`
+		SELECT s.id FROM services s
+		JOIN visibility v ON v.service_id = s.id
+		JOIN categories c ON c.id = s.category_id
+		WHERE v.profile = ? AND c.color != 'cyan'`, srcProfile)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer rows.Close()
+
+	added, skipped := 0, 0
+	for rows.Next() {
+		var serviceID int
+		if err := rows.Scan(&serviceID); err != nil {
+			return 0, 0, err
+		}
+		var exists int
+		err := tx.QueryRow(`SELECT COUNT(*) FROM visibility WHERE service_id = ? AND profile = ?`, serviceID, dstProfile).Scan(&exists)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to check visibility for service %d and profile %s: %w", serviceID, dstProfile, err)
+		}
+		if exists > 0 {
+			skipped++
+			continue
+		}
+		_, err = tx.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?, ?)`, serviceID, dstProfile)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to insert visibility for service %d and profile %s: %w", serviceID, dstProfile, err)
+		}
+		added++
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, 0, err
+	}
+	return added, skipped, nil
+}
+```
+
+Prüfe welche Imports die Datei bereits hat. Falls `fmt` noch nicht importiert ist, ergänzen.
+
+### `internal/api/manage.go`
+
+Lies die Datei. Finde `HandleCloneToAndrea`. Ersetze die gesamte Funktion durch:
+
+```go
+// HandleCloneProfile POST /manage/profile/{slug}/clone
+// Clones all services from the given profile to a new profile specified in the form.
+func HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
+	srcSlug := chi.URLParam(r, "slug")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	dstName := strings.TrimSpace(r.FormValue("name"))
+	if dstName == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+	dstSlug := strings.ToLower(strings.ReplaceAll(dstName, " ", "-"))
+
+	// Create destination profile if it doesn't exist
+	profiles, _ := db.GetProfiles()
+	exists := false
+	for _, p := range profiles {
+		if p.Slug == dstSlug {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		if err := db.AddProfile(dstSlug, dstName); err != nil {
+			log.Printf("HandleCloneProfile: AddProfile error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	added, skipped, err := db.CloneServicesToProfile(srcSlug, dstSlug)
+	if err != nil {
+		log.Printf("HandleCloneProfile: CloneServicesToProfile error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	log.Printf("CloneProfile %s→%s: added=%d skipped=%d", srcSlug, dstSlug, added, skipped)
+	HandleManage(w, r)
+}
+```
+
+Prüfe ob `strings` bereits importiert ist; falls nicht, ergänzen.
+
+### `cmd/homeport/main.go`
+
+Lies die Datei. Ersetze:
+```go
+r.Post("/clone-andrea", api.HandleCloneToAndrea)
+```
+durch:
+```go
+r.Post("/profile/{slug}/clone", api.HandleCloneProfile)
+```
+
+### `assets/templates/manage.html`
+
+Lies die Datei. Finde den Bereich mit dem "clone-andrea"-Formular oder Button. Ersetze ihn durch ein generisches Klonen-UI. Suche nach `clone-andrea` oder `CloneToAndrea` oder einem Button/Form der darauf zeigt.
+
+Ersetze das bestehende Formular durch:
+```html
+<form hx-post="/manage/profile/{{.DefaultProfile}}/clone" hx-swap="outerHTML" hx-target="body" style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem">
+  <input type="text" name="name" placeholder="{{.T "manage.clone_target_name"}}" class="form-input" required>
+  <button type="submit" class="btn-sm">{{.T "manage.clone_profile"}}</button>
+</form>
+```
+
+Falls `.DefaultProfile` nicht im ManageData-Struct vorhanden ist: lies `manage.go`, finde `ManageData` und ergänze:
+```go
+DefaultProfile string
+```
+Und beim Befüllen: hole es via `db.GetDefaultProfile()`.
+
+### i18n – neue Strings
+
+Lies `assets/i18n/de.json` und `assets/i18n/en.json`. Ergänze:
+
+**de.json:**
+```json
+"manage.clone_profile": "Profil klonen",
+"manage.clone_target_name": "Name des neuen Profils"
+```
+
+**en.json:**
+```json
+"manage.clone_profile": "Clone profile",
+"manage.clone_target_name": "New profile name"
+```
+
+### Build + Test + Commit
+
+```bash
+go build -o homeport ./cmd/homeport/ && go test ./...
+git add -A
+git commit -m "feat: replace hardcoded clone-andrea with generic profile clone (#93)
+
+- db: CloneServicesToProfile(src, dst string) replaces CloneToAndrea()
+- api: HandleCloneProfile replaces HandleCloneToAndrea
+- route: POST /manage/profile/{slug}/clone
+- analytics: no more hardcoded 'andrea' profile name
+- i18n: new strings for clone UI"
+```
+
+---
+
+## Issue #94 – Category-Layout-Feld entfernen (nie implementiert)
+
+Das `Layout`-Feld in `Category` und `UserPreferences` setzt CSS-Klassen wie `grid-tiles`, `grid-list`, `grid-icons`, die in der CSS-Datei nicht existieren. Feature wurde nie fertiggestellt. Entfernen ist sauberer als halbfertig lassen.
+
+### `internal/db/models.go`
+
+Lies die Datei. Entferne:
+1. `Layout string` aus dem `Category`-Struct
+2. `Layout string` aus dem `UserPreferences`-Struct (falls vorhanden – prüfen)
+
+### `internal/db/profiles.go` (UserPreferences Layout)
+
+Falls `layout` in `GetUserPreferences()` oder `SetUserPreferences()` vorkommt: entfernen (SELECT, Scan, INSERT, UPDATE).
+
+### `internal/db/` – Category-Queries
+
+Lies die Datei(en) die `categories`-DB-Operationen enthalten (wahrscheinlich `services.go` oder `categories.go` oder `db.go`). Suche nach Funktionen die Kategorien anlegen oder lesen. Entferne `layout` aus allen Category-INSERT/UPDATE/SELECT-Queries und den zugehörigen Scan/Parameter-Calls.
+
+### `assets/templates/index.html`
+
+Lies die Datei. Finde `class="grid-{{.Layout}}"`. Ersetze durch einfaches `class="grid"` (oder das passende bestehende Grid-CSS, z.B. `class="category-grid"`). Schau was die CSS-Datei `prism-base.css` als Klasse für das Service-Grid verwendet und nutze die korrekte Klasse.
+
+### `assets/templates/manage.html`
+
+Lies die Datei. Entferne im Kategorie-Formular (Add + Edit):
+- Den `<div class="form-group">` Block mit `<label>Layout</label>` und dem `<select name="layout">`
+- Ebenso im Edit-Formular für Kategorien
+
+### `internal/api/manage.go`
+
+Lies die Datei. Entferne in `HandleAddCategory` und `HandleUpdateCategory` die Zeilen die `layout` aus dem Formular lesen und an DB-Funktionen übergeben.
+
+### `internal/api/preferences_api.go`
+
+Falls `layout` im Preferences-Patch-Handler vorkommt: entfernen.
+
+### Build + Test + Commit
+
+```bash
+go build -o homeport ./cmd/homeport/ && go test ./...
+git add -A
+git commit -m "cleanup: remove unimplemented category layout field (#94)
+
+CSS classes grid-tiles/grid-list/grid-icons never existed. Field stored
+in DB but had no visual effect. Removes layout from Category model,
+UserPreferences model, all DB queries, and manage UI forms."
+```
+
+---
+
+## Issue #95 – /api/updates SSE-Endpoint entfernen
+
+`GET /api/updates` ist ein Bearer-geschützter SSE-Endpoint der vom Frontend nie genutzt wird. Das Frontend verwendet ausschließlich `GET /status/stream`.
+
+### Analyse zuerst
+
+```bash
+grep -rn "DefaultHub\|HandleUpdates\|Broadcast" /home/debian/new_pro/homeport/internal/ --include="*.go"
+```
+
+Prüfe ob `DefaultHub.Broadcast` außer in `status.go` noch woanders aufgerufen wird.
+
+### `internal/api/updates.go`
+
+Lies die Datei. Entscheide basierend auf der Analyse:
+
+**Falls `DefaultHub.Broadcast` nur in `status.go` und `updates.go` selbst vorkommt:**
+- Lösche `updates.go` komplett
+- Entferne in `status.go` den Import und den `DefaultHub.Broadcast(...)`-Aufruf
+
+**Falls `DefaultHub.Broadcast` noch woanders genutzt wird:**
+- Nur die `HandleUpdates`-Funktion und `UpdateHub.HandleUpdates`-Methode entfernen
+- `DefaultHub` und `Broadcast` behalten
+
+### `cmd/homeport/main.go`
+
+Lies die Datei. Entferne:
+```go
+// SSE Live Updates
+r.Get("/updates", api.DefaultHub.HandleUpdates)
+```
+
+Prüfe danach ob die Bearer-Auth-Gruppe (`r.Group(func(r chi.Router) { r.Use(api.AuthMiddleware(...)) ... })`) leer ist. Falls ja: die gesamte leere Gruppe entfernen. Hinweis: `AuthMiddleware` selbst noch NICHT entfernen – das kommt in Issue #97 nach #90.
+
+### Build + Test + Commit
+
+```bash
+go build -o homeport ./cmd/homeport/ && go test ./...
+git add -A
+git commit -m "cleanup: remove unused /api/updates SSE endpoint (#95)
+
+Frontend uses /status/stream exclusively. /api/updates was behind
+Bearer auth and never consumed by any browser code."
+```
+
+---
+
+## Issue #96 – Doppelten Search-Engine-Endpoint entfernen
+
+Die Suchmaschine kann über zwei Wege gesetzt werden: `POST /manage/settings/search` und `PATCH /api/user/preferences`. Ersterer wird entfernt.
+
+### `internal/db/` – SetSearchEngine / GetAllSearchEngines
+
+Lies die DB-Dateien (wahrscheinlich `profiles.go` oder eine separate Datei). Entferne:
+- `func SetSearchEngine(profile, engine string) error`
+- `func GetAllSearchEngines() map[string]string`
+
+### `internal/api/manage.go`
+
+Lies die Datei:
+1. Entferne `func HandleSetSearchEngine(...)` komplett
+2. In `HandleManage` und `ManageData`: entferne `SearchEngines map[string]string` und den Aufruf `db.GetAllSearchEngines()`
+3. In der `ManageData`-Struct-Definition: `SearchEngines`-Feld entfernen
+
+### `cmd/homeport/main.go`
+
+Entferne die Route:
+```go
+r.Post("/settings/search", api.HandleSetSearchEngine)
+```
+
+### `assets/templates/manage.html`
+
+Lies die Datei. Finde den Bereich mit `hx-post="/manage/settings/search"` oder einem Search-Engine-Formular das auf diese Route posted.
+
+Ersetze es durch einen HTMX-Patch auf die Preferences-API (wie das Language-Dropdown bereits funktioniert):
+
+```html
+<select name="search_engine"
+        hx-patch="/api/user/preferences"
+        hx-ext="json-enc"
+        hx-trigger="change"
+        hx-swap="none">
+  <option value="https://duckduckgo.com/" {{if eq .Prefs.SearchEngine "https://duckduckgo.com/"}}selected{{end}}>DuckDuckGo</option>
+  <option value="https://www.google.com/search" {{if eq .Prefs.SearchEngine "https://www.google.com/search"}}selected{{end}}>Google</option>
+  <option value="https://search.brave.com/search" {{if eq .Prefs.SearchEngine "https://search.brave.com/search"}}selected{{end}}>Brave</option>
+  <option value="https://www.startpage.com/search" {{if eq .Prefs.SearchEngine "https://www.startpage.com/search"}}selected{{end}}>Startpage</option>
+  <option value="https://www.bing.com/search" {{if eq .Prefs.SearchEngine "https://www.bing.com/search"}}selected{{end}}>Bing</option>
+</select>
+```
+
+Passe den umliegenden HTML-Kontext an (Label etc. beibehalten, nur das Form/Action austauschen).
+
+### Build + Test + Commit
+
+```bash
+go build -o homeport ./cmd/homeport/ && go test ./...
+git add -A
+git commit -m "cleanup: remove duplicate search engine endpoint (#96)
+
+POST /manage/settings/search replaced by PATCH /api/user/preferences
+with search_engine field. Removes HandleSetSearchEngine, SetSearchEngine,
+GetAllSearchEngines and the dedicated route."
+```
+
+---
+
+## Abschluss
+
+Nach allen sechs Commits:
+
+```bash
+git push origin main
+```
+
+Falls Push rejected (remote ahead):
+```bash
+git pull --rebase && git push origin main
+```
+
+**Nicht in diesem Task:** Issues #90 (Widgets komplett raus + no_check) und #97 (Bearer-Auth komplett raus) – diese haben Abhängigkeiten und kommen separat.

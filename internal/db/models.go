@@ -114,7 +114,7 @@ type UserPreferences struct {
 	Language       string `json:"language"`
 	Layout         string `json:"layout"`
 	CustomCSS      string `json:"custom_css"`
-	BackgroundMode string `json:"background_mode"`
+
 }
 
 type DiscoveryItem struct {

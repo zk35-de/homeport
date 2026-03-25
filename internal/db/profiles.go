@@ -166,11 +166,11 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 		SearchEngine:   "https://duckduckgo.com/",
 		Language:       "de",
 		Layout:         "grid",
-		BackgroundMode: "aurora",
+
 	}
-	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, language, layout, COALESCE(custom_css,''), COALESCE(background_mode,'aurora')
+	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, language, layout, COALESCE(custom_css,'')
 		FROM user_preferences WHERE profile = ?`, profile)
-	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Language, &p.Layout, &p.CustomCSS, &p.BackgroundMode)
+	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Language, &p.Layout, &p.CustomCSS)
 	if err == sql.ErrNoRows {
 		return p, nil
 	}
@@ -181,18 +181,17 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 }
 
 func SetUserPreferences(profile string, prefs UserPreferences) error {
-	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, language, layout, custom_css, background_mode)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, language, layout, custom_css)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(profile) DO UPDATE SET
 			theme = excluded.theme,
 			accent_color = excluded.accent_color,
 			search_engine = excluded.search_engine,
 			language = excluded.language,
 			layout = excluded.layout,
-			custom_css = excluded.custom_css,
-			background_mode = excluded.background_mode`,
+			custom_css = excluded.custom_css`,
 		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
-		prefs.Language, prefs.Layout, prefs.CustomCSS, prefs.BackgroundMode)
+		prefs.Language, prefs.Layout, prefs.CustomCSS)
 	return err
 }
 

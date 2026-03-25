@@ -333,20 +333,7 @@
       </div>
     </div>
 
-    <div class="form-group" style="flex:0 0 auto">
-      <label>Hintergrund</label>
-      <div style="display:flex;gap:0.4rem;margin-top:0.25rem">
-        <button class="btn-sm bg-mode-btn" data-mode="aurora"
-          onclick="setBgMode('aurora')"
-          style="{{if or (eq .Prefs.BackgroundMode "aurora") (eq .Prefs.BackgroundMode "")}}outline:2px solid var(--accent);{{end}}">✦ Aurora</button>
-        <button class="btn-sm bg-mode-btn" data-mode="time"
-          onclick="setBgMode('time')"
-          style="{{if eq .Prefs.BackgroundMode "time"}}outline:2px solid var(--accent);{{end}}">🕐 Zeit</button>
-        <button class="btn-sm bg-mode-btn" data-mode="none"
-          onclick="setBgMode('none')"
-          style="{{if eq .Prefs.BackgroundMode "none"}}outline:2px solid var(--accent);{{end}}">○ Keine</button>
-      </div>
-    </div>
+
 
     <div class="form-group" style="flex:0 0 auto">
       <label>{{.T "manage.accent_color"}}</label>
@@ -523,18 +510,7 @@ function setTheme(theme) {
     savePrefs({theme});
 }
 
-function setBgMode(mode) {
-    // Update buttons
-    document.querySelectorAll('.bg-mode-btn').forEach(b => {
-        b.style.outline = b.dataset.mode === mode ? '2px solid var(--accent)' : '';
-    });
-    // Apply live
-    const aurora = document.getElementById('bg-aurora');
-    const bgTime = document.getElementById('bg-time');
-    if (aurora) aurora.style.display = mode === 'aurora' ? '' : 'none';
-    if (bgTime) bgTime.style.display  = mode === 'time'   ? '' : 'none';
-    savePrefs({background_mode: mode});
-}
+
 
 function previewAccent(hex) {
     document.getElementById('accent-hex').textContent = hex;

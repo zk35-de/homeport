@@ -16,7 +16,7 @@
     </script>
     <link rel="stylesheet" href="/static/css/prism-tokens.css">
     <link rel="stylesheet" href="/static/css/prism-base.css">
-    <link rel="stylesheet" href="/static/css/prism-aurora.css">
+
     <link rel="stylesheet" href="/static/css/prism-components.css">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="manifest" href="/static/manifest.json">
@@ -181,33 +181,11 @@
     }
     </script>
 </head>
-<body data-profile="{{if .Profile}}{{.Profile}}{{end}}" data-bg="{{if .Prefs}}{{.Prefs.BackgroundMode}}{{else}}aurora{{end}}">
-    <div class="aurora" id="bg-aurora">
-        <div class="ab ab-1"></div>
-        <div class="ab ab-2"></div>
-        <div class="ab ab-3"></div>
-    </div>
-    <div class="bg-time" id="bg-time" style="display:none"></div>
-    <div class="bg-image" id="bg-image" style="display:none"></div>
-    <script>
-    (function(){
-      var mode = document.body.dataset.bg || 'aurora';
-      function applyBg(m) {
-        document.getElementById('bg-aurora').style.display = m === 'aurora' ? '' : 'none';
-        document.getElementById('bg-time').style.display  = m === 'time'   ? '' : 'none';
-        document.getElementById('bg-image').style.display = m === 'image'  ? '' : 'none';
-        if (m === 'time') applyTimeBg();
-      }
-      function applyTimeBg() {
-        var h = new Date().getHours();
-        var slot = h >= 6 && h < 12 ? 'morning' : h >= 12 && h < 18 ? 'day' : h >= 18 && h < 22 ? 'evening' : 'night';
-        document.getElementById('bg-time').dataset.slot = slot;
-      }
-      applyBg(mode);
-      // Refresh time bg every 10 min
-      if (mode === 'time') setInterval(applyTimeBg, 600000);
-    })();
-    </script>
+<body data-profile="{{if .Profile}}{{.Profile}}{{end}}">
+
+
+
+
     <div class="htmx-loading-bar" id="htmx-loading-bar"></div>
     <nav>
         <a href="/" class="brand">homeport</a>
