@@ -143,10 +143,11 @@ var migrations = []struct {
 	{9, `ALTER TABLE categories ADD COLUMN public INTEGER NOT NULL DEFAULT 0`, true},
 	{10, `ALTER TABLE discovery_inbox ADD COLUMN source_id INTEGER REFERENCES discovery_sources(id) ON DELETE SET NULL`, true},
 	{11, `ALTER TABLE discovery_inbox ADD COLUMN external_id TEXT NOT NULL DEFAULT ''`, true},
+	{12, `ALTER TABLE services ADD COLUMN no_check INTEGER NOT NULL DEFAULT 0`, true},
 }
 
 // maxMigrationVersion is the highest version number in the migrations list.
-const maxMigrationVersion = 11
+const maxMigrationVersion = 12
 
 // Migrate applies all pending migrations to db using PRAGMA user_version as the version tracker.
 // It is safe to call on both fresh and existing (pre-migration) databases.

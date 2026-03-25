@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -14,182 +13,6 @@ import (
 	"git.zk35.de/secalpha/homeport/internal/api"
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
-
-// setupBookmarksWidget creates a bookmarks widget for markus and returns its ID.
-func setupBookmarksWidget(t *testing.T) int {
-	t.Helper()
-	if err := db.AddWidgetTyped("My Bookmarks", "bookmarks", `{"layout":"grid","links":[]}`, "markus"); err != nil {
-		t.Fatalf("AddWidgetTyped bookmarks: %v", err)
-	}
-	widgets, err := db.GetWidgets("markus")
-	if err != nil || len(widgets) == 0 {
-		t.Fatalf("GetWidgets after creating bookmarks widget: %v", err)
-	}
-	return widgets[0].ID
-}
-
-// ── Feature Tests: Bookmarks ──────────────────────────────────────────────────
-
-func TestHandleAddBookmark(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-	widgetID := setupBookmarksWidget(t)
-
-	r := chi.NewRouter()
-	r.Post("/api/widgets/{id}/bookmark", api.HandleAddBookmark)
-
-	t.Run("happy path", func(t *testing.T) {
-		form := url.Values{"name": {"Go Blog"}, "url": {"https://go.dev/blog"}}
-		req := httptest.NewRequest("POST", fmt.Sprintf("/api/widgets/%d/bookmark", widgetID),
-			strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body.String())
-		}
-		if !strings.Contains(rr.Body.String(), "Go Blog") {
-			t.Errorf("response should contain 'Go Blog', got: %s", rr.Body.String())
-		}
-	})
-
-	t.Run("missing url returns 400", func(t *testing.T) {
-		form := url.Values{"name": {"NoURL"}}
-		req := httptest.NewRequest("POST", fmt.Sprintf("/api/widgets/%d/bookmark", widgetID),
-			strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for missing url, got %d", rr.Code)
-		}
-	})
-
-	t.Run("invalid widget id returns 400", func(t *testing.T) {
-		form := url.Values{"name": {"Test"}, "url": {"https://test.com"}}
-		req := httptest.NewRequest("POST", "/api/widgets/notanumber/bookmark",
-			strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for non-numeric widget id, got %d", rr.Code)
-		}
-	})
-}
-
-func TestHandleDeleteBookmark(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-	widgetID := setupBookmarksWidget(t)
-
-	// Pre-populate two links
-	db.AddBookmarkLink(widgetID, db.BookmarkLink{Name: "Link1", URL: "https://link1.com"})
-	db.AddBookmarkLink(widgetID, db.BookmarkLink{Name: "Link2", URL: "https://link2.com"})
-
-	r := chi.NewRouter()
-	r.Delete("/api/widgets/{id}/bookmark/{idx}", api.HandleDeleteBookmark)
-
-	t.Run("happy path – delete index 0", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE",
-			fmt.Sprintf("/api/widgets/%d/bookmark/0", widgetID), nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body.String())
-		}
-		// Link1 removed; Link2 should remain
-		if strings.Contains(rr.Body.String(), "Link1") {
-			t.Error("deleted link Link1 still appears in response")
-		}
-	})
-
-	t.Run("out-of-range index returns 500", func(t *testing.T) {
-		// Only Link2 remains (index 0); index 999 is out of range
-		req := httptest.NewRequest("DELETE",
-			fmt.Sprintf("/api/widgets/%d/bookmark/999", widgetID), nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code == http.StatusOK {
-			t.Error("expected non-200 for out-of-range bookmark index, got 200")
-		}
-	})
-
-	t.Run("invalid widget id returns 400", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE", "/api/widgets/bad/bookmark/0", nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for invalid widget id, got %d", rr.Code)
-		}
-	})
-
-	t.Run("invalid idx returns 400", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE",
-			fmt.Sprintf("/api/widgets/%d/bookmark/notanumber", widgetID), nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for invalid idx, got %d", rr.Code)
-		}
-	})
-}
-
-// ── Feature Tests: Notes ─────────────────────────────────────────────────────
-
-func TestHandleSaveNote(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	if err := db.AddWidgetTyped("My Notes", "notes", `{}`, "markus"); err != nil {
-		t.Fatalf("AddWidgetTyped notes: %v", err)
-	}
-	widgets, _ := db.GetWidgets("markus")
-	widgetID := widgets[0].ID
-
-	r := chi.NewRouter()
-	r.Put("/api/notes/{id}", api.HandleSaveNote)
-
-	t.Run("happy path", func(t *testing.T) {
-		body := []byte(`{"content":"Hello Notes"}`)
-		req := httptest.NewRequest("PUT", fmt.Sprintf("/api/notes/%d", widgetID),
-			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusNoContent {
-			t.Errorf("expected 204, got %d: %s", rr.Code, rr.Body.String())
-		}
-		content, _ := db.GetNote(widgetID)
-		if content != "Hello Notes" {
-			t.Errorf("note not stored: got %q", content)
-		}
-	})
-
-	t.Run("empty content is valid", func(t *testing.T) {
-		body := []byte(`{"content":""}`)
-		req := httptest.NewRequest("PUT", fmt.Sprintf("/api/notes/%d", widgetID),
-			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusNoContent {
-			t.Errorf("expected 204 for empty content, got %d", rr.Code)
-		}
-	})
-
-	t.Run("no json body returns 400", func(t *testing.T) {
-		req := httptest.NewRequest("PUT", fmt.Sprintf("/api/notes/%d", widgetID),
-			strings.NewReader("not json"))
-		req.Header.Set("Content-Type", "application/json")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for invalid JSON body, got %d", rr.Code)
-		}
-	})
-}
 
 // ── Feature Tests: Analytics ─────────────────────────────────────────────────
 
@@ -224,7 +47,7 @@ func TestHandleAnalytics(t *testing.T) {
 		// Add service and record a click for markus
 		db.AddCategory("Cat", "blue")
 		cats, _ := db.GetCategoriesWithServices("")
-		db.AddService(cats[0].ID, "MySvc", "http://my.svc", "", "", "", []string{"markus"})
+		db.AddService(cats[0].ID, "MySvc", "http://my.svc", "", "", "", false, []string{"markus"})
 		allCats, _ := db.GetCategoriesWithServices("")
 		svcID := allCats[0].Services[0].ID
 		db.RecordClick(svcID, "markus")
@@ -250,60 +73,6 @@ func TestHandleAnalytics(t *testing.T) {
 func TestInputValidationBoundary(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
-	widgetID := setupBookmarksWidget(t)
-
-	r := chi.NewRouter()
-	r.Post("/api/widgets/{id}/bookmark", api.HandleAddBookmark)
-	r.Delete("/api/widgets/{id}/bookmark/{idx}", api.HandleDeleteBookmark)
-	r.Put("/api/notes/{id}", api.HandleSaveNote)
-
-	t.Run("bookmark idx=-1 → 400", func(t *testing.T) {
-		// Negative index in URL – strconv.Atoi parses -1 successfully,
-		// but DeleteBookmarkLink must return error for idx < 0
-		req := httptest.NewRequest("DELETE",
-			fmt.Sprintf("/api/widgets/%d/bookmark/-1", widgetID), nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		// Handler returns 500 from db error; either 4xx or 5xx is acceptable – must not panic
-		if rr.Code == 200 {
-			t.Error("expected non-200 for idx=-1, got 200")
-		}
-	})
-
-	t.Run("bookmark idx=999999 → no panic", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE",
-			fmt.Sprintf("/api/widgets/%d/bookmark/999999", widgetID), nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		// Must not panic; any non-200 error response is acceptable
-		if rr.Code == 200 {
-			t.Error("expected non-200 for out-of-range idx=999999, got 200")
-		}
-	})
-
-	t.Run("note content 1 MB → no OOM/panic", func(t *testing.T) {
-		if err := db.AddWidgetTyped("BigNote", "notes", `{}`, "markus"); err != nil {
-			t.Fatalf("AddWidgetTyped: %v", err)
-		}
-		widgets, _ := db.GetWidgets("markus")
-		var noteWidgetID int
-		for _, w := range widgets {
-			if w.Name == "BigNote" {
-				noteWidgetID = w.ID
-			}
-		}
-
-		big := `{"content":"` + strings.Repeat("A", 1024*1024) + `"}`
-		req := httptest.NewRequest("PUT", fmt.Sprintf("/api/notes/%d", noteWidgetID),
-			strings.NewReader(big))
-		req.Header.Set("Content-Type", "application/json")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		// Must not panic; 204 or error response both acceptable
-		if rr.Code != http.StatusNoContent && rr.Code < 400 {
-			t.Errorf("unexpected status for large note: %d", rr.Code)
-		}
-	})
 
 	t.Run("service URL 10000 chars → no panic", func(t *testing.T) {
 		longURL := "http://x.com/" + strings.Repeat("a", 10000)
@@ -315,7 +84,7 @@ func TestInputValidationBoundary(t *testing.T) {
 				catID = c.ID
 			}
 		}
-		err := db.AddService(catID, "LongURL", longURL, "", "", "", []string{"markus"})
+		err := db.AddService(catID, "LongURL", longURL, "", "", "", false, []string{"markus"})
 		// Must not panic; storage may succeed or fail depending on DB constraints
 		_ = err
 	})
@@ -331,9 +100,9 @@ func TestOpenRedirect(t *testing.T) {
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
-	db.AddService(catID, "Safe", "http://safe.example.com", "", "", "", []string{"markus"})
-	db.AddService(catID, "JSEvil", "javascript:alert(1)", "", "", "", []string{"markus"})
-	db.AddService(catID, "DataEvil", "data:text/html,<script>alert(1)</script>", "", "", "", []string{"markus"})
+	db.AddService(catID, "Safe", "http://safe.example.com", "", "", "", false, []string{"markus"})
+	db.AddService(catID, "JSEvil", "javascript:alert(1)", "", "", "", false, []string{"markus"})
+	db.AddService(catID, "DataEvil", "data:text/html,<script>alert(1)</script>", "", "", "", false, []string{"markus"})
 
 	allCats, _ := db.GetCategoriesWithServices("")
 	services := allCats[0].Services
@@ -454,99 +223,6 @@ func TestSSRFFavicon(t *testing.T) {
 	})
 }
 
-// ── Feature Tests: Todo Handlers ─────────────────────────────────────────────
-
-func TestHandleAddTodo(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidgetTyped("My Todos", "todo", `{}`, "markus")
-	widgets, _ := db.GetWidgets("markus")
-	widgetID := widgets[0].ID
-
-	r := chi.NewRouter()
-	r.Post("/api/todos", api.HandleAddTodo)
-
-	t.Run("happy path", func(t *testing.T) {
-		form := url.Values{
-			"widget_id": {fmt.Sprintf("%d", widgetID)},
-			"text":      {"Buy milk"},
-		}
-		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body.String())
-		}
-		if !strings.Contains(rr.Body.String(), "Buy milk") {
-			t.Errorf("response should contain 'Buy milk', got: %s", rr.Body.String())
-		}
-	})
-
-	t.Run("missing text → 400", func(t *testing.T) {
-		form := url.Values{"widget_id": {fmt.Sprintf("%d", widgetID)}}
-		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for missing text, got %d", rr.Code)
-		}
-	})
-
-	t.Run("invalid widget_id → 400", func(t *testing.T) {
-		form := url.Values{"widget_id": {"notanumber"}, "text": {"test"}}
-		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for invalid widget_id, got %d", rr.Code)
-		}
-	})
-}
-
-func TestHandleToggleAndDeleteTodo(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidgetTyped("Todos", "todo", `{}`, "markus")
-	widgets, _ := db.GetWidgets("markus")
-	widgetID := widgets[0].ID
-	todoID, _ := db.AddTodo(widgetID, "Task One", "")
-
-	r := chi.NewRouter()
-	r.Post("/api/todos/{id}/toggle", api.HandleToggleTodo)
-	r.Delete("/api/todos/{id}", api.HandleDeleteTodo)
-
-	t.Run("toggle todo", func(t *testing.T) {
-		req := httptest.NewRequest("POST", fmt.Sprintf("/api/todos/%d/toggle", todoID), nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected 200 for toggle, got %d", rr.Code)
-		}
-		todos, _ := db.GetTodos(widgetID)
-		if len(todos) != 1 || !todos[0].Done {
-			t.Errorf("todo should be done after toggle, got %v", todos)
-		}
-	})
-
-	t.Run("delete todo", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE", fmt.Sprintf("/api/todos/%d", todoID), nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected 200 for delete, got %d", rr.Code)
-		}
-		todos, _ := db.GetTodos(widgetID)
-		if len(todos) != 0 {
-			t.Errorf("expected 0 todos after delete, got %d", len(todos))
-		}
-	})
-}
-
 // ── Health Endpoint ───────────────────────────────────────────────────────────
 
 func TestHandleHealth(t *testing.T) {
@@ -567,7 +243,7 @@ func TestHandleSearch(t *testing.T) {
 
 	db.AddCategory("Work", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
-	db.AddService(cats[0].ID, "Jira", "http://jira.local", "", "Project tracking", "", []string{"markus"})
+	db.AddService(cats[0].ID, "Jira", "http://jira.local", "", "Project tracking", "", false, []string{"markus"})
 
 	t.Run("matching query returns result", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/search?q=jira&profile=markus", nil)

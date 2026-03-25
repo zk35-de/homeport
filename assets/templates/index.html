@@ -31,27 +31,6 @@
 </nav>
 {{end}}
 
-{{if .Widgets}}
-<div class="widgets-row" id="widgets-row">
-    {{$lang := .Prefs.Language}}
-    {{range .Widgets}}
-    <div data-widget-page="{{.PageID}}" class="widget-page-item">
-      {{$wData := newWidgetRender . $lang}}
-      {{if eq .Type "weather"}}{{template "widget_weather" $wData}}
-      {{else if eq .Type "clock"}}{{template "widget_clock" $wData}}
-      {{else if eq .Type "rss"}}{{template "widget_rss" $wData}}
-      {{else if eq .Type "todo"}}{{template "widget_todo" $wData}}
-      {{else if eq .Type "bookmarks"}}{{template "widget_bookmarks" $wData}}
-      {{else if eq .Type "notes"}}{{template "widget_notes" $wData}}
-      {{else if eq .Type "caldav"}}{{template "widget_caldav" $wData}}
-      {{else if eq .Type "github"}}{{template "widget_github" $wData}}
-      {{else if eq .Type "router"}}{{template "widget_router" $wData}}
-      {{else}}{{template "widget_ical" $wData}}
-      {{end}}
-    </div>
-    {{end}}
-</div>
-{{end}}
 <div class="dashboard" id="dashboard">
     {{if not .Categories}}
     <div class="onboarding-hint">
@@ -71,7 +50,7 @@
         <div class="category-body" id="cat-body-{{.ID}}">
             <div class="category-grid">
                 {{range .Services}}
-                <a href="/r/{{.ID}}?p={{$.Profile}}" target="_blank" class="service-card{{if .URL}} {{if .Alive}}status-alive{{else}}status-dead{{end}}{{end}}" id="service-{{.ID}}">
+                <a href="/r/{{.ID}}?p={{$.Profile}}" target="_blank" class="service-card{{if and .URL (not .NoCheck)}} {{if .Alive}}status-alive{{else}}status-dead{{end}}{{end}}" id="service-{{.ID}}">
                     {{if .Icon}}
                     <div class="service-icon">{{if isImgURL .Icon}}<img src="{{.Icon}}" alt="" loading="lazy">{{else}}{{.Icon}}{{end}}</div>
                     {{else}}

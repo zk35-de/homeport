@@ -151,7 +151,7 @@ func TestHandleServiceRedirect(t *testing.T) {
 
 	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
-	db.AddService(cats[0].ID, "MySvc", "http://my.service", "", "", "", []string{"markus"})
+	db.AddService(cats[0].ID, "MySvc", "http://my.service", "", "", "", false, []string{"markus"})
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
 	svcID := catsWithSvc[0].Services[0].ID
 
@@ -230,7 +230,7 @@ func TestHandleGetService(t *testing.T) {
 
 	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
-	db.AddService(cats[0].ID, "EditSvc", "http://edit.svc", "", "", "", []string{"markus"})
+	db.AddService(cats[0].ID, "EditSvc", "http://edit.svc", "", "", "", false, []string{"markus"})
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
 	svcID := catsWithSvc[0].Services[0].ID
 
@@ -267,7 +267,7 @@ func TestHandleUpdateService(t *testing.T) {
 
 	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
-	db.AddService(cats[0].ID, "OldName", "http://old.url", "", "", "", []string{"markus"})
+	db.AddService(cats[0].ID, "OldName", "http://old.url", "", "", "", false, []string{"markus"})
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
 	svcID := catsWithSvc[0].Services[0].ID
 
@@ -408,8 +408,8 @@ func TestHandleReorderServices(t *testing.T) {
 
 	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
-	db.AddService(cats[0].ID, "Svc1", "url1", "", "", "", []string{"markus"})
-	db.AddService(cats[0].ID, "Svc2", "url2", "", "", "", []string{"markus"})
+	db.AddService(cats[0].ID, "Svc1", "url1", "", "", "", false, []string{"markus"})
+	db.AddService(cats[0].ID, "Svc2", "url2", "", "", "", false, []string{"markus"})
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
 	svcs := catsWithSvc[0].Services
 
@@ -972,215 +972,6 @@ func TestHandleDeletePassword(t *testing.T) {
 	}
 }
 
-// --- HandleAddWidget widget types ---
-
-func TestHandleAddWidget_Types(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	types := []struct {
-		name   string
-		fields url.Values
-	}{
-		{
-			name: "ical (default)",
-			fields: url.Values{
-				"name": {"MyCal"}, "url": {"http://cal.url"}, "profile": {"markus"},
-			},
-		},
-		{
-			name: "clock",
-			fields: url.Values{
-				"name": {"MyClock"}, "widget_type": {"clock"}, "profile": {"markus"},
-			},
-		},
-		{
-			name: "weather",
-			fields: url.Values{
-				"name": {"MyWeather"}, "widget_type": {"weather"},
-				"weather_lat": {"52.5"}, "weather_lon": {"13.4"}, "weather_city": {"Berlin"},
-				"profile": {"markus"},
-			},
-		},
-		{
-			name: "rss",
-			fields: url.Values{
-				"name": {"MyRSS"}, "widget_type": {"rss"},
-				"rss_url": {"http://feed.url"}, "rss_max": {"5"},
-				"profile": {"markus"},
-			},
-		},
-		{
-			name: "todo",
-			fields: url.Values{
-				"name": {"MyTodo"}, "widget_type": {"todo"}, "profile": {"markus"},
-			},
-		},
-		{
-			name: "bookmarks",
-			fields: url.Values{
-				"name": {"MyBookmarks"}, "widget_type": {"bookmarks"}, "profile": {"markus"},
-			},
-		},
-		{
-			name: "notes",
-			fields: url.Values{
-				"name": {"MyNotes"}, "widget_type": {"notes"}, "profile": {"markus"},
-			},
-		},
-	}
-
-	for _, tc := range types {
-		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/add-widget", strings.NewReader(tc.fields.Encode()))
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			rr := httptest.NewRecorder()
-			api.HandleAddWidget(rr, req)
-
-			if rr.Code != http.StatusOK {
-				t.Errorf("widget type %q: expected 200, got %d", tc.name, rr.Code)
-			}
-		})
-	}
-}
-
-// --- Notes ---
-
-func TestHandleSaveNote_Success(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidgetTyped("NoteWidget", "notes", `{}`, "markus")
-	widgets, _ := db.GetAllWidgets()
-	wID := widgets[0].ID
-
-	r := chi.NewRouter()
-	r.Put("/api/notes/{id}", api.HandleSaveNote)
-
-	body := `{"content":"My note content"}`
-	req := httptest.NewRequest("PUT", fmt.Sprintf("/api/notes/%d", wID), strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusNoContent {
-		t.Errorf("expected 204, got %d", rr.Code)
-	}
-}
-
-func TestHandleSaveNote_BadRequest(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	r := chi.NewRouter()
-	r.Put("/api/notes/{id}", api.HandleSaveNote)
-
-	req := httptest.NewRequest("PUT", "/api/notes/not-a-number", strings.NewReader(`{}`))
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 for bad ID, got %d", rr.Code)
-	}
-}
-
-// --- Todo ---
-
-func TestHandleAddTodo_Extra(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidgetTyped("TodoWidget", "todo", `{}`, "markus")
-	widgets, _ := db.GetAllWidgets()
-	wID := widgets[0].ID
-
-	t.Run("success", func(t *testing.T) {
-		formData := url.Values{}
-		formData.Set("widget_id", fmt.Sprintf("%d", wID))
-		formData.Set("text", "Buy milk")
-
-		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(formData.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		api.HandleAddTodo(rr, req)
-
-		if rr.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", rr.Code)
-		}
-	})
-
-	t.Run("missing text", func(t *testing.T) {
-		formData := url.Values{}
-		formData.Set("widget_id", fmt.Sprintf("%d", wID))
-
-		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(formData.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		api.HandleAddTodo(rr, req)
-
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for missing text, got %d", rr.Code)
-		}
-	})
-
-	t.Run("invalid widget_id", func(t *testing.T) {
-		formData := url.Values{}
-		formData.Set("widget_id", "not-a-number")
-		formData.Set("text", "Something")
-
-		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(formData.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		api.HandleAddTodo(rr, req)
-
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for bad widget_id, got %d", rr.Code)
-		}
-	})
-}
-
-func TestHandleToggleTodo(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidgetTyped("TodoWidget", "todo", `{}`, "markus")
-	widgets, _ := db.GetAllWidgets()
-	wID := widgets[0].ID
-	todoID, _ := db.AddTodo(wID, "Test item", "")
-
-	r := chi.NewRouter()
-	r.Post("/api/todos/{id}/toggle", api.HandleToggleTodo)
-
-	req := httptest.NewRequest("POST", fmt.Sprintf("/api/todos/%d/toggle", todoID), nil)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
-	}
-}
-
-func TestHandleDeleteTodo(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidgetTyped("TodoWidget", "todo", `{}`, "markus")
-	widgets, _ := db.GetAllWidgets()
-	wID := widgets[0].ID
-	todoID, _ := db.AddTodo(wID, "Delete me", "")
-
-	r := chi.NewRouter()
-	r.Delete("/api/todos/{id}", api.HandleDeleteTodo)
-
-	req := httptest.NewRequest("DELETE", fmt.Sprintf("/api/todos/%d", todoID), nil)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
-	}
-}
-
 // --- Handle404 / SetConfig / Backup nil ---
 
 func TestHandle404(t *testing.T) {
@@ -1268,56 +1059,6 @@ func TestHandleReorderServices_BadJSON(t *testing.T) {
 	}
 }
 
-// --- HandleAddWidget extra types ---
-
-func TestHandleAddWidget_ExtraTypes(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	extraTypes := []struct {
-		name   string
-		fields url.Values
-	}{
-		{
-			name: "caldav",
-			fields: url.Values{
-				"name": {"MyCal"}, "widget_type": {"caldav"},
-				"caldav_url": {"http://cal.example.com"}, "caldav_username": {"user"}, "caldav_password": {"pass"},
-				"profile": {"markus"},
-			},
-		},
-		{
-			name: "github",
-			fields: url.Values{
-				"name": {"MyGH"}, "widget_type": {"github"},
-				"github_token": {"ghp_token"}, "github_show_prs": {"on"},
-				"profile": {"markus"},
-			},
-		},
-		{
-			name: "router",
-			fields: url.Values{
-				"name": {"MyRouter"}, "widget_type": {"router"},
-				"router_type": {"fritzbox"}, "router_url": {"http://192.168.178.1"}, "router_password": {"secret"},
-				"profile": {"markus"},
-			},
-		},
-	}
-
-	for _, tc := range extraTypes {
-		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/add-widget", strings.NewReader(tc.fields.Encode()))
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			rr := httptest.NewRecorder()
-			api.HandleAddWidget(rr, req)
-
-			if rr.Code != http.StatusOK {
-				t.Errorf("widget type %q: expected 200, got %d", tc.name, rr.Code)
-			}
-		})
-	}
-}
-
 // --- HandleAddPage bad request ---
 
 func TestHandleAddPage_BadRequest(t *testing.T) {
@@ -1335,36 +1076,6 @@ func TestHandleAddPage_BadRequest(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for missing name, got %d", rr.Code)
-	}
-}
-
-// --- Bookmarks ---
-
-func TestHandleAddBookmark_Success(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidgetTyped("Bookmarks", "bookmarks", `{"layout":"grid","links":[]}`, "markus")
-	widgets, _ := db.GetAllWidgets()
-	wID := widgets[0].ID
-
-	r := chi.NewRouter()
-	r.Post("/api/widgets/{id}/bookmark", api.HandleAddBookmark)
-
-	formData := url.Values{}
-	formData.Set("name", "Google")
-	formData.Set("url", "https://google.com")
-
-	req := httptest.NewRequest("POST", fmt.Sprintf("/api/widgets/%d/bookmark", wID), strings.NewReader(formData.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
-	}
-	if !strings.Contains(rr.Body.String(), "Google") {
-		t.Errorf("expected Google in bookmarks widget, got %s", rr.Body.String())
 	}
 }
 

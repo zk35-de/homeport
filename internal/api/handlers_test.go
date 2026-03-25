@@ -107,13 +107,8 @@ func TestHandleIndex(t *testing.T) {
 	db.AddCategory("Personal", "blue")
 	db.AddCategory("Work", "indigo")
 	cats, _ := db.GetCategoriesWithServices("")
-	db.AddService(cats[0].ID, "MyBlog", "http://blog.me", "", "", "", []string{"markus"})
-	db.AddService(cats[1].ID, "Jira", "http://jira.work", "", "", "", []string{"markus", "andrea"})
-	db.AddWidget("MyCal", "http://ical.me", "markus")
-	widgets, _ := db.GetWidgets("markus")
-	cacheData, _ := json.Marshal(db.WidgetCacheEntry{Events: []db.ICalEvent{{Title: "Test Event"}}})
-	db.UpdateWidgetCache(widgets[0].ID, string(cacheData))
-
+	db.AddService(cats[0].ID, "MyBlog", "http://blog.me", "", "", "", false, []string{"markus"})
+	db.AddService(cats[1].ID, "Jira", "http://jira.work", "", "", "", false, []string{"markus", "andrea"})
 	db.SetUserPreferences("markus", db.UserPreferences{Theme: "dark", AccentColor: "#6366f1", SearchEngine: "https://customsearch.com/q="})
 
 	t.Run("markus profile", func(t *testing.T) {
@@ -127,7 +122,6 @@ func TestHandleIndex(t *testing.T) {
 		expectedBodyContains := []string{
 			"Index: markus",
 			"Personal", "Work", // category names
-			"Test Event",              // widget cache events rendered as struct
 			"https://customsearch.com/q=", // search engine
 		}
 		body := rr.Body.String()
@@ -294,7 +288,7 @@ func TestHandleDeleteService(t *testing.T) {
 	db.AddCategory("TestCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
-	db.AddService(catID, "SvcToDelete", "http://todelete.me", "", "", "", []string{"markus"})
+	db.AddService(catID, "SvcToDelete", "http://todelete.me", "", "", "", false, []string{"markus"})
 	// Re-fetch so Services slice is populated
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
 	svcID := catsWithSvc[0].Services[0].ID
@@ -357,9 +351,9 @@ func TestHandleSortService(t *testing.T) {
 	db.AddCategory("TestCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
-	db.AddService(catID, "Svc1", "url1", "", "", "", []string{"markus"}) // SO 0
-	db.AddService(catID, "Svc2", "url2", "", "", "", []string{"markus"}) // SO 1
-	db.AddService(catID, "Svc3", "url3", "", "", "", []string{"markus"}) // SO 2
+	db.AddService(catID, "Svc1", "url1", "", "", "", false, []string{"markus"}) // SO 0
+	db.AddService(catID, "Svc2", "url2", "", "", "", false, []string{"markus"}) // SO 1
+	db.AddService(catID, "Svc3", "url3", "", "", "", false, []string{"markus"}) // SO 2
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
 	svc2ID := catsWithSvc[0].Services[1].ID
 
@@ -384,55 +378,6 @@ func TestHandleSortService(t *testing.T) {
 	}
 }
 
-func TestHandleAddWidget(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	formData := url.Values{}
-	formData.Set("name", "New Widget")
-	formData.Set("url", "http://widget.url")
-	formData.Set("profile", "markus")
-
-	req := httptest.NewRequest("POST", "/add-widget", strings.NewReader(formData.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	rr := httptest.NewRecorder()
-	api.HandleAddWidget(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	widgets, _ := db.GetWidgets("markus")
-	if len(widgets) != 1 || widgets[0].Name != "New Widget" {
-		t.Errorf("Widget not added correctly: %v", widgets)
-	}
-}
-
-func TestHandleDeleteWidget(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	db.AddWidget("WidgetToDelete", "http://delete.me", "all")
-	widgets, _ := db.GetAllWidgets()
-	widgetID := widgets[0].ID
-
-	r := chi.NewRouter()
-	r.Delete("/delete-widget/{id}", api.HandleDeleteWidget)
-
-	req := httptest.NewRequest("DELETE", fmt.Sprintf("/delete-widget/%d", widgetID), nil)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	widgetsAfter, _ := db.GetAllWidgets()
-	if len(widgetsAfter) != 0 {
-		t.Errorf("Widget not deleted correctly: %v", widgetsAfter)
-	}
-}
-
 func TestHandleCloneProfile(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -441,7 +386,7 @@ func TestHandleCloneProfile(t *testing.T) {
 	db.AddCategory("Work", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	workCatID := cats[0].ID
-	db.AddService(workCatID, "MarkusOnly", "url1", "", "", "", []string{"markus"})
+	db.AddService(workCatID, "MarkusOnly", "url1", "", "", "", false, []string{"markus"})
 
 	// Create a request to clone from 'markus' to 'andrea'
 	formData := url.Values{}

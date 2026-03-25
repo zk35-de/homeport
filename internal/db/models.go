@@ -38,34 +38,10 @@ type Service struct {
 	Description string
 	StatusCheck string
 	SortOrder   int
+	NoCheck     bool
 	Alive       bool
 	LastCheck   string
 	VisibleTo   []string
-}
-
-type Widget struct {
-	ID        int
-	Type      string
-	Name      string
-	Config    string
-	Profile   string
-	SortOrder int
-	PageID    int
-	Events    []ICalEvent    `json:"-"`
-	Todos         []TodoItem     `json:"-"`
-	BookmarkLinks []BookmarkLink `json:"-"`
-	NoteContent   string         `json:"-"`
-	ClockMode        string `json:"-"`
-	ClockTimezone    string `json:"-"`
-	ClockShowSeconds bool   `json:"-"`
-	ClockShowDate    bool   `json:"-"`
-	ClockCountdown   string `json:"-"`
-}
-
-type BookmarkLink struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-	Icon string `json:"icon"`
 }
 
 type ClickStat struct {
@@ -76,27 +52,6 @@ type ClickStat struct {
 	ClickCount  int
 	LastClicked string
 	Profile     string
-}
-
-type TodoItem struct {
-	ID        int    `json:"id"`
-	WidgetID  int    `json:"widget_id"`
-	Text      string `json:"text"`
-	Done      bool   `json:"done"`
-	DueDate   string `json:"due_date"`
-	SortOrder int    `json:"sort_order"`
-}
-
-type ICalEvent struct {
-	Title      string
-	Start      string
-	End        string
-	IsToday    bool
-	IsTomorrow bool
-}
-
-type WidgetCacheEntry struct {
-	Events []ICalEvent `json:"Events,omitempty"`
 }
 
 // ReorderItem is used for batch reorder operations.

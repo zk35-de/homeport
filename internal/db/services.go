@@ -26,7 +26,7 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 
 		base := `
 			SELECT s.id, s.category_id, s.name, s.url, s.icon, s.description, s.status_check, s.sort_order,
-			       COALESCE(ss.alive, 0), COALESCE(ss.last_check, '0001-01-01 00:00:00')
+			       COALESCE(s.no_check, 0), COALESCE(ss.alive, 0), COALESCE(ss.last_check, '0001-01-01 00:00:00')
 			FROM services s
 			LEFT JOIN service_status ss ON s.id = ss.service_id
 			WHERE s.category_id = ?
@@ -49,10 +49,11 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 
 		for sRows.Next() {
 			var s Service
-			var alive int
-			if err := sRows.Scan(&s.ID, &s.CategoryID, &s.Name, &s.URL, &s.Icon, &s.Description, &s.StatusCheck, &s.SortOrder, &alive, &s.LastCheck); err != nil {
+			var noCheck, alive int
+			if err := sRows.Scan(&s.ID, &s.CategoryID, &s.Name, &s.URL, &s.Icon, &s.Description, &s.StatusCheck, &s.SortOrder, &noCheck, &alive, &s.LastCheck); err != nil {
 				return nil, err
 			}
+			s.NoCheck = noCheck == 1
 			s.Alive = alive == 1
 
 			if profile == "" {
@@ -145,8 +146,12 @@ func ReorderCategories(items []ReorderItem) error {
 	return tx.Commit()
 }
 
-func AddService(categoryID int, name, url, icon, desc, statusCheck string, profiles []string) error {
-	res, err := DB.Exec(`INSERT INTO services (category_id, name, url, icon, description, status_check, sort_order) VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM services WHERE category_id = ?))`, categoryID, name, url, icon, desc, statusCheck, categoryID)
+func AddService(categoryID int, name, url, icon, desc, statusCheck string, noCheck bool, profiles []string) error {
+	nc := 0
+	if noCheck {
+		nc = 1
+	}
+	res, err := DB.Exec(`INSERT INTO services (category_id, name, url, icon, description, status_check, no_check, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM services WHERE category_id = ?))`, categoryID, name, url, icon, desc, statusCheck, nc, categoryID)
 	if err != nil {
 		return err
 	}
@@ -167,15 +172,19 @@ func DeleteService(id int) error {
 	return err
 }
 
-func UpdateService(id int, name, url, icon, desc, statusCheck string, profiles []string) error {
+func UpdateService(id int, name, url, icon, desc, statusCheck string, noCheck bool, profiles []string) error {
 	tx, err := DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(`UPDATE services SET name=?, url=?, icon=?, description=?, status_check=? WHERE id=?`,
-		name, url, icon, desc, statusCheck, id); err != nil {
+	nc := 0
+	if noCheck {
+		nc = 1
+	}
+	if _, err := tx.Exec(`UPDATE services SET name=?, url=?, icon=?, description=?, status_check=?, no_check=? WHERE id=?`,
+		name, url, icon, desc, statusCheck, nc, id); err != nil {
 		return err
 	}
 
@@ -192,11 +201,13 @@ func UpdateService(id int, name, url, icon, desc, statusCheck string, profiles [
 }
 
 func GetService(id int) (*Service, error) {
-	row := DB.QueryRow(`SELECT id, category_id, name, url, icon, description, status_check, sort_order FROM services WHERE id=?`, id)
+	row := DB.QueryRow(`SELECT id, category_id, name, url, icon, description, status_check, COALESCE(no_check,0), sort_order FROM services WHERE id=?`, id)
 	var s Service
-	if err := row.Scan(&s.ID, &s.CategoryID, &s.Name, &s.URL, &s.Icon, &s.Description, &s.StatusCheck, &s.SortOrder); err != nil {
+	var noCheck int
+	if err := row.Scan(&s.ID, &s.CategoryID, &s.Name, &s.URL, &s.Icon, &s.Description, &s.StatusCheck, &noCheck, &s.SortOrder); err != nil {
 		return nil, err
 	}
+	s.NoCheck = noCheck == 1
 	rows, err := DB.Query(`SELECT profile FROM visibility WHERE service_id=?`, id)
 	if err != nil {
 		return nil, err
@@ -241,7 +252,7 @@ func UpdateServiceStatus(id int, alive bool) error {
 }
 
 func GetAllServicesWithStatusCheck() ([]Service, error) {
-	rows, err := DB.Query(`SELECT id, url, status_check FROM services`)
+	rows, err := DB.Query(`SELECT id, url, status_check FROM services WHERE COALESCE(no_check,0) = 0`)
 	if err != nil {
 		return nil, err
 	}

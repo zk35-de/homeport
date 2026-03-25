@@ -85,7 +85,6 @@ func main() {
 
 	// Start Background Tasks
 	api.StartStatusChecker()
-	go runICalFetcher()
 	go runPodmanScanner()
 	go runSessionPurger()
 
@@ -125,8 +124,6 @@ func main() {
 
 	r.Route("/manage", func(r chi.Router) {
 	        r.Post("/profile/{slug}/clone", api.HandleCloneProfile)
-	        r.Post("/widget", api.HandleAddWidget)
-	        r.Delete("/widget/{id}", api.HandleDeleteWidget)
 	        r.Get("/", api.HandleManage)
 		r.Get("/analytics", api.HandleAnalytics)
 
@@ -180,18 +177,6 @@ func main() {
 		r.Post("/category/{id}/page/{pageID}", api.HandleSetCategoryPage)
 	})
 
-	// Todo routes (no auth – HTMX from index page)
-	r.Post("/api/todos", api.HandleAddTodo)
-	r.Post("/api/todos/{id}/toggle", api.HandleToggleTodo)
-	r.Delete("/api/todos/{id}", api.HandleDeleteTodo)
-
-	// Bookmark routes (HTMX from index page)
-	r.Post("/api/widgets/{id}/bookmark", api.HandleAddBookmark)
-	r.Delete("/api/widgets/{id}/bookmark/{idx}", api.HandleDeleteBookmark)
-
-	// Notes route
-	r.Put("/api/notes/{id}", api.HandleSaveNote)
-
 	// REST API Routes
 	r.Route("/api", func(r chi.Router) {
 		// Health + Favicon + Search + Preferences: no Bearer auth required
@@ -237,52 +222,6 @@ func main() {
 		slog.Error("shutdown error", "err", err)
 	}
 	slog.Info("shutdown complete")
-}
-
-func runICalFetcher() {
-	fetchAll := func() {
-		widgets, err := db.GetAllWidgets()
-		if err != nil {
-			slog.Error("iCal fetcher: error loading widgets", "err", err)
-			return
-		}
-		for _, w := range widgets {
-			switch w.Type {
-			case "ical":
-				var cfg struct{ URL string }
-				if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil || cfg.URL == "" {
-					continue
-				}
-				events, err := core.FetchICalEvents(cfg.URL)
-				if err != nil {
-					slog.Error("iCal fetcher: widget error", "widget_id", w.ID, "err", err)
-					continue
-				}
-				data, _ := json.Marshal(struct{ Events interface{} }{Events: events})
-				db.UpdateWidgetCache(w.ID, string(data))
-			case "caldav":
-				var cfg struct {
-					URL      string `json:"url"`
-					Username string `json:"username"`
-					Password string `json:"password"`
-				}
-				if err := json.Unmarshal([]byte(w.Config), &cfg); err != nil || cfg.URL == "" {
-					continue
-				}
-				events, err := core.FetchCalDAVEvents(cfg.URL, cfg.Username, cfg.Password)
-				if err != nil {
-					slog.Error("CalDAV fetcher: widget error", "widget_id", w.ID, "err", err)
-					continue
-				}
-				data, _ := json.Marshal(struct{ Events interface{} }{Events: events})
-				db.UpdateWidgetCache(w.ID, string(data))
-			}
-		}
-	}
-	fetchAll()
-	for range time.Tick(6 * time.Hour) {
-		fetchAll()
-	}
 }
 
 func runPodmanScanner() {

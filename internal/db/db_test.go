@@ -83,17 +83,17 @@ func TestAddCategoryAndGetCategoriesWithServices(t *testing.T) {
 	}
 
 	// Add service to "Work" category
-	err = db.AddService(categories[0].ID, "Jira", "http://jira.local", "", "Project management", "", []string{"markus"})
+	err = db.AddService(categories[0].ID, "Jira", "http://jira.local", "", "Project management", "", false, []string{"markus"})
 	if err != nil {
 		t.Fatalf("Failed to add service Jira: %v", err)
 	}
-	err = db.AddService(categories[0].ID, "Confluence", "http://confluence.local", "", "Docs", "", []string{"markus", "andrea"})
+	err = db.AddService(categories[0].ID, "Confluence", "http://confluence.local", "", "Docs", "", false, []string{"markus", "andrea"})
 	if err != nil {
 		t.Fatalf("Failed to add service Confluence: %v", err)
 	}
 
 	// Add service to "Social" category
-	err = db.AddService(categories[1].ID, "Mastodon", "http://mastodon.social", "", "Microblogging", "", []string{"andrea"})
+	err = db.AddService(categories[1].ID, "Mastodon", "http://mastodon.social", "", "Microblogging", "", false, []string{"andrea"})
 	if err != nil {
 		t.Fatalf("Failed to add service Mastodon: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestDeleteCategory(t *testing.T) {
 	categories, _ := db.GetCategoriesWithServices("")
 	catID := categories[0].ID
 
-	db.AddService(catID, "TestService", "http://test.local", "", "", "", []string{"markus"})
+	db.AddService(catID, "TestService", "http://test.local", "", "", "", false, []string{"markus"})
 	servicesBefore, _ := db.GetCategoriesWithServices("")
 	if len(servicesBefore[0].Services) != 1 {
 		t.Fatalf("Expected 1 service before delete, got %d", len(servicesBefore[0].Services))
@@ -208,11 +208,11 @@ func TestDeleteService(t *testing.T) {
 	categories, _ := db.GetCategoriesWithServices("")
 	catID := categories[0].ID
 
-	err := db.AddService(catID, "Service1", "http://s1.local", "", "", "", []string{"markus"})
+	err := db.AddService(catID, "Service1", "http://s1.local", "", "", "", false, []string{"markus"})
 	if err != nil {
 		t.Fatalf("Failed to add service: %v", err)
 	}
-	err = db.AddService(catID, "Service2", "http://s2.local", "", "", "", []string{"andrea"})
+	err = db.AddService(catID, "Service2", "http://s2.local", "", "", "", false, []string{"andrea"})
 	if err != nil {
 		t.Fatalf("Failed to add service: %v", err)
 	}
@@ -237,88 +237,6 @@ func TestDeleteService(t *testing.T) {
 	}
 }
 
-func TestAddWidgetAndGetWidgets(t *testing.T) {
-	cleanup := setupTestDB(t)
-	defer cleanup()
-
-	err := db.AddWidget("Work Calendar", "http://ical.work/cal.ics", "markus")
-	if err != nil {
-		t.Fatalf("Failed to add widget: %v", err)
-	}
-	err = db.AddWidget("Personal Events", "http://ical.personal/cal.ics", "andrea")
-	if err != nil {
-		t.Fatalf("Failed to add widget: %v", err)
-	}
-	err = db.AddWidget("Global Announcements", "http://ical.global/cal.ics", "all")
-	if err != nil {
-		t.Fatalf("Failed to add widget: %v", err)
-	}
-
-	// Get widgets for markus
-	markusWidgets, err := db.GetWidgets("markus")
-	if err != nil {
-		t.Fatalf("Failed to get widgets for markus: %v", err)
-	}
-	if len(markusWidgets) != 2 {
-		t.Fatalf("Expected 2 widgets for markus, got %d", len(markusWidgets))
-	}
-	if markusWidgets[0].Name != "Work Calendar" && markusWidgets[1].Name != "Work Calendar" {
-		t.Errorf("Markus widgets missing 'Work Calendar'")
-	}
-	if markusWidgets[0].Name != "Global Announcements" && markusWidgets[1].Name != "Global Announcements" {
-		t.Errorf("Markus widgets missing 'Global Announcements'")
-	}
-
-	// Get widgets for andrea
-	andreaWidgets, err := db.GetWidgets("andrea")
-	if err != nil {
-		t.Fatalf("Failed to get widgets for andrea: %v", err)
-	}
-	if len(andreaWidgets) != 2 {
-		t.Fatalf("Expected 2 widgets for andrea, got %d", len(andreaWidgets))
-	}
-	if andreaWidgets[0].Name != "Personal Events" && andreaWidgets[1].Name != "Personal Events" {
-		t.Errorf("Andrea widgets missing 'Personal Events'")
-	}
-	if andreaWidgets[0].Name != "Global Announcements" && andreaWidgets[1].Name != "Global Announcements" {
-		t.Errorf("Andrea widgets missing 'Global Announcements'")
-	}
-
-	// Get all widgets
-	allWidgets, err := db.GetAllWidgets()
-	if err != nil {
-		t.Fatalf("Failed to get all widgets: %v", err)
-	}
-	if len(allWidgets) != 3 {
-		t.Fatalf("Expected 3 widgets in total, got %d", len(allWidgets))
-	}
-}
-
-func TestDeleteWidget(t *testing.T) {
-	cleanup := setupTestDB(t)
-	defer cleanup()
-
-	err := db.AddWidget("Test Widget", "http://ical.test", "all")
-	if err != nil {
-		t.Fatalf("Failed to add widget: %v", err)
-	}
-	widgets, _ := db.GetAllWidgets()
-	if len(widgets) != 1 {
-		t.Fatalf("Expected 1 widget initially, got %d", len(widgets))
-	}
-
-	err = db.DeleteWidget(widgets[0].ID)
-	if err != nil {
-		t.Fatalf("Failed to delete widget: %v", err)
-	}
-
-	widgetsAfter, _ := db.GetAllWidgets()
-	if len(widgetsAfter) != 0 {
-		t.Errorf("Expected 0 widgets after delete, got %d", len(widgetsAfter))
-	}
-}
-
-
 func TestCloneServicesToProfile(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
@@ -339,10 +257,10 @@ func TestCloneServicesToProfile(t *testing.T) {
 	personalCatID := cats[2].ID
 
 	// Add services
-	db.AddService(workCatID, "WorkService1", "url1", "", "", "", []string{"markus", "andrea"}) // Already visible to Andrea
-	db.AddService(workCatID, "WorkService2", "url2", "", "", "", []string{"markus"})
-	db.AddService(itCatID, "ITService1", "url3", "", "", "", []string{"markus"}) // Cyan category
-	db.AddService(personalCatID, "PersonalService1", "url4", "", "", "", []string{"markus"})
+	db.AddService(workCatID, "WorkService1", "url1", "", "", "", false, []string{"markus", "andrea"}) // Already visible to Andrea
+	db.AddService(workCatID, "WorkService2", "url2", "", "", "", false, []string{"markus"})
+	db.AddService(itCatID, "ITService1", "url3", "", "", "", false, []string{"markus"}) // Cyan category
+	db.AddService(personalCatID, "PersonalService1", "url4", "", "", "", false, []string{"markus"})
 
 	// Check initial state for Andrea
 	andreaInitialCats, _ := db.GetCategoriesWithServices("andrea")
@@ -522,9 +440,9 @@ func TestUpdateServiceSort(t *testing.T) {
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
-	db.AddService(catID, "SvcX", "urlX", "", "", "", []string{"markus"}) // ID 1, SortOrder 0
-	db.AddService(catID, "SvcY", "urlY", "", "", "", []string{"markus"}) // ID 2, SortOrder 1
-	db.AddService(catID, "SvcZ", "urlZ", "", "", "", []string{"markus"}) // ID 3, SortOrder 2
+	db.AddService(catID, "SvcX", "urlX", "", "", "", false, []string{"markus"}) // ID 1, SortOrder 0
+	db.AddService(catID, "SvcY", "urlY", "", "", "", false, []string{"markus"}) // ID 2, SortOrder 1
+	db.AddService(catID, "SvcZ", "urlZ", "", "", "", false, []string{"markus"}) // ID 3, SortOrder 2
 
 	categories, _ := db.GetCategoriesWithServices("")
 	if len(categories[0].Services) != 3 {
@@ -559,7 +477,7 @@ func TestUpdateServiceStatus(t *testing.T) {
 	db.AddCategory("TestCat", "red")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
-	db.AddService(catID, "MonitorMe", "http://monitor.me", "", "", "http://status.me", []string{"markus"})
+	db.AddService(catID, "MonitorMe", "http://monitor.me", "", "", "http://status.me", false, []string{"markus"})
 
 	services, _ := db.GetCategoriesWithServices("markus")
 	svcID := services[0].Services[0].ID
@@ -609,103 +527,6 @@ func TestUpdateServiceStatus(t *testing.T) {
 	}
 }
 
-func TestBookmarkWidget(t *testing.T) {
-	cleanup := setupTestDB(t)
-	defer cleanup()
-
-	if err := db.AddWidgetTyped("My Bookmarks", "bookmarks", `{"layout":"grid","links":[]}`, "markus"); err != nil {
-		t.Fatalf("AddWidgetTyped: %v", err)
-	}
-	widgets, _ := db.GetWidgets("markus")
-	widgetID := widgets[0].ID
-
-	// GetWidgetByID – initially empty links
-	w, err := db.GetWidgetByID(widgetID)
-	if err != nil {
-		t.Fatalf("GetWidgetByID: %v", err)
-	}
-	if w.Type != "bookmarks" {
-		t.Errorf("Expected type bookmarks, got %s", w.Type)
-	}
-	if len(w.BookmarkLinks) != 0 {
-		t.Errorf("Expected 0 bookmark links, got %d", len(w.BookmarkLinks))
-	}
-
-	// AddBookmarkLink
-	if err := db.AddBookmarkLink(widgetID, db.BookmarkLink{Name: "Go Blog", URL: "https://go.dev/blog"}); err != nil {
-		t.Fatalf("AddBookmarkLink: %v", err)
-	}
-	if err := db.AddBookmarkLink(widgetID, db.BookmarkLink{Name: "GitHub", URL: "https://github.com"}); err != nil {
-		t.Fatalf("AddBookmarkLink second: %v", err)
-	}
-
-	w, _ = db.GetWidgetByID(widgetID)
-	if len(w.BookmarkLinks) != 2 {
-		t.Fatalf("Expected 2 links, got %d", len(w.BookmarkLinks))
-	}
-	if w.BookmarkLinks[0].Name != "Go Blog" || w.BookmarkLinks[1].Name != "GitHub" {
-		t.Errorf("BookmarkLinks mismatch: %v", w.BookmarkLinks)
-	}
-
-	// DeleteBookmarkLink – index 0 removes "Go Blog"
-	if err := db.DeleteBookmarkLink(widgetID, 0); err != nil {
-		t.Fatalf("DeleteBookmarkLink: %v", err)
-	}
-	w, _ = db.GetWidgetByID(widgetID)
-	if len(w.BookmarkLinks) != 1 || w.BookmarkLinks[0].Name != "GitHub" {
-		t.Errorf("After delete index 0, expected [GitHub], got %v", w.BookmarkLinks)
-	}
-
-	// Out-of-range index – must return error, not panic
-	if err := db.DeleteBookmarkLink(widgetID, 999); err == nil {
-		t.Error("Expected error for out-of-range bookmark index 999, got nil")
-	}
-	if err := db.DeleteBookmarkLink(widgetID, -1); err == nil {
-		t.Error("Expected error for negative bookmark index -1, got nil")
-	}
-}
-
-func TestNotesWidget(t *testing.T) {
-	cleanup := setupTestDB(t)
-	defer cleanup()
-
-	if err := db.AddWidgetTyped("My Notes", "notes", `{}`, "markus"); err != nil {
-		t.Fatalf("AddWidgetTyped notes: %v", err)
-	}
-	widgets, _ := db.GetWidgets("markus")
-	widgetID := widgets[0].ID
-
-	// GetNote on empty widget returns empty string
-	content, err := db.GetNote(widgetID)
-	if err != nil {
-		t.Fatalf("GetNote empty: %v", err)
-	}
-	if content != "" {
-		t.Errorf("Expected empty note, got %q", content)
-	}
-
-	// SaveNote
-	if err := db.SaveNote(widgetID, "Hello Notes"); err != nil {
-		t.Fatalf("SaveNote: %v", err)
-	}
-	content, err = db.GetNote(widgetID)
-	if err != nil {
-		t.Fatalf("GetNote after save: %v", err)
-	}
-	if content != "Hello Notes" {
-		t.Errorf("Expected 'Hello Notes', got %q", content)
-	}
-
-	// UPSERT – update existing note
-	if err := db.SaveNote(widgetID, "Updated Note"); err != nil {
-		t.Fatalf("SaveNote update: %v", err)
-	}
-	content, _ = db.GetNote(widgetID)
-	if content != "Updated Note" {
-		t.Errorf("Expected 'Updated Note' after update, got %q", content)
-	}
-}
-
 func TestGetTopClicks(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
@@ -723,8 +544,8 @@ func TestGetTopClicks(t *testing.T) {
 	db.AddCategory("TestCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
-	db.AddService(catID, "Service A", "http://a.local", "", "", "", []string{"markus"})
-	db.AddService(catID, "Service B", "http://b.local", "", "", "", []string{"andrea"})
+	db.AddService(catID, "Service A", "http://a.local", "", "", "", false, []string{"markus"})
+	db.AddService(catID, "Service B", "http://b.local", "", "", "", false, []string{"andrea"})
 
 	allCats, _ := db.GetCategoriesWithServices("")
 	svcA := allCats[0].Services[0].ID
@@ -880,7 +701,7 @@ func TestSQLInjection(t *testing.T) {
 	catID := cats[0].ID
 	injSvcName := `' OR '1'='1`
 	injURL := `http://x.com/' OR '1'='1`
-	if err := db.AddService(catID, injSvcName, injURL, "", "", "", []string{"markus"}); err != nil {
+	if err := db.AddService(catID, injSvcName, injURL, "", "", "", false, []string{"markus"}); err != nil {
 		t.Fatalf("AddService with injection payload: %v", err)
 	}
 	services, _ := db.GetCategoriesWithServices("")
@@ -890,9 +711,6 @@ func TestSQLInjection(t *testing.T) {
 	if services[0].Services[0].Name != injSvcName {
 		t.Errorf("Service name not stored correctly: got %q, want %q", services[0].Services[0].Name, injSvcName)
 	}
-
-	// Widget name with null byte – must not panic
-	_ = db.AddWidget("widget\x00name", "http://test.local/cal.ics", "markus")
 
 	// Verify categories table still intact (DROP TABLE was not executed)
 	catsAfter, err := db.GetCategoriesWithServices("")
@@ -905,48 +723,3 @@ func TestSQLInjection(t *testing.T) {
 	}
 }
 
-func TestWidgetCache(t *testing.T) {
-	cleanup := setupTestDB(t)
-	defer cleanup()
-
-	db.AddWidget("TestCal", "http://ical.test/cal", "markus")
-	widgets, _ := db.GetWidgets("markus")
-	widgetID := widgets[0].ID
-
-	events := []db.ICalEvent{
-		{Title: "Event1", Start: "2026-01-01", End: "2026-01-01", IsToday: true},
-		{Title: "Event2", Start: "2026-01-02", End: "2026-01-02", IsTomorrow: true},
-	}
-	cacheEntry := db.WidgetCacheEntry{Events: events}
-	cacheData, _ := json.Marshal(cacheEntry)
-
-	// Update cache
-	err := db.UpdateWidgetCache(widgetID, string(cacheData))
-	if err != nil {
-		t.Fatalf("Failed to update widget cache: %v", err)
-	}
-
-	// Get cache
-	retrievedCache, err := db.GetWidgetCache(widgetID)
-	if err != nil {
-		t.Fatalf("Failed to get widget cache: %v", err)
-	}
-	if retrievedCache == nil {
-		t.Fatal("Retrieved cache is nil")
-	}
-	if len(retrievedCache.Events) != 2 {
-		t.Fatalf("Expected 2 events in cache, got %d", len(retrievedCache.Events))
-	}
-	if retrievedCache.Events[0].Title != "Event1" || retrievedCache.Events[1].Title != "Event2" {
-		t.Errorf("Events in cache mismatch: %v", retrievedCache.Events)
-	}
-
-	// Test non-existent widget cache
-	nonExistentCache, err := db.GetWidgetCache(999)
-	if err != nil {
-		t.Fatalf("Error getting non-existent widget cache: %v", err)
-	}
-	if nonExistentCache != nil {
-		t.Errorf("Expected nil for non-existent widget cache, got %v", nonExistentCache)
-	}
-}

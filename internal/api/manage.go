@@ -14,13 +14,12 @@ import (
 
 type ManageData struct {
 	i18n.Translator
-	Categories    []db.Category
-	Prefs         *db.UserPreferences
-	Profiles      []db.Profile
-	Pages         []db.Page
-	Widgets       []db.Widget
-	Profile       string // für base.html (.Profile)
-	ProfileName   string // für base.html <title>
+	Categories     []db.Category
+	Prefs          *db.UserPreferences
+	Profiles       []db.Profile
+	Pages          []db.Page
+	Profile        string
+	ProfileName    string
 	DefaultProfile string
 }
 
@@ -56,20 +55,15 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
-	widgets, err := db.GetAllWidgets()
-	if err != nil {
-		log.Printf("GetAllWidgets: %v", err)
-	}
 
 	data := ManageData{
-		Translator: i18n.NewTranslator(prefs.Language),
-		Categories: categories,
-		Prefs:      prefs,
-		Profiles:      profiles,
-		Pages:         pages,
-		Widgets:       widgets,
-		Profile:       defaultSlug,
-		ProfileName:   profileName,
+		Translator:     i18n.NewTranslator(prefs.Language),
+		Categories:     categories,
+		Prefs:          prefs,
+		Profiles:       profiles,
+		Pages:          pages,
+		Profile:        defaultSlug,
+		ProfileName:    profileName,
 		DefaultProfile: defaultSlug,
 	}
 
@@ -111,9 +105,10 @@ func HandleAddService(w http.ResponseWriter, r *http.Request) {
 	icon := r.FormValue("icon")
 	desc := r.FormValue("description")
 	statusCheck := r.FormValue("status_check")
+	noCheck := r.FormValue("no_check") == "1"
 	profiles := r.Form["visibility"]
 
-	if err := db.AddService(categoryID, name, url, icon, desc, statusCheck, profiles); err != nil {
+	if err := db.AddService(categoryID, name, url, icon, desc, statusCheck, noCheck, profiles); err != nil {
 		log.Printf("Error adding service: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -194,9 +189,10 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	icon := r.FormValue("icon")
 	desc := r.FormValue("description")
 	statusCheck := r.FormValue("status_check")
+	noCheck := r.FormValue("no_check") == "1"
 	profiles := r.Form["visibility"]
 
-	if err := db.UpdateService(id, name, url, icon, desc, statusCheck, profiles); err != nil {
+	if err := db.UpdateService(id, name, url, icon, desc, statusCheck, noCheck, profiles); err != nil {
 		log.Printf("Error updating service %d: %v", id, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -366,68 +362,6 @@ func HandleSortService(w http.ResponseWriter, r *http.Request) {
 
 	lang := GetLang(r)
 	renderCategoryList(w, lang)
-}
-
-func HandleAddWidget(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-	name := r.FormValue("name")
-	widgetType := r.FormValue("widget_type")
-	profile := r.FormValue("profile")
-	if profile == "" {
-		profile = "all"
-	}
-
-	var err error
-	switch widgetType {
-	case "clock":
-		mode := r.FormValue("clock_mode")
-		if mode == "" {
-			mode = "digital"
-		}
-		timezone := r.FormValue("clock_timezone")
-		if timezone == "" {
-			timezone = "Europe/Berlin"
-		}
-		countdown := r.FormValue("clock_countdown")
-		config := `{"mode":"` + mode + `","timezone":"` + timezone + `","show_date":true,"show_seconds":true,"countdown":"` + countdown + `"}`
-		err = db.AddWidgetTyped(name, "clock", config, profile)
-	case "todo":
-		err = db.AddWidgetTyped(name, "todo", `{}`, profile)
-	case "bookmarks":
-		err = db.AddWidgetTyped(name, "bookmarks", `{"layout":"grid","links":[]}`, profile)
-	case "notes":
-		err = db.AddWidgetTyped(name, "notes", `{}`, profile)
-	case "caldav":
-		calURL := r.FormValue("caldav_url")
-		calUser := r.FormValue("caldav_username")
-		calPass := r.FormValue("caldav_password")
-		config, _ := json.Marshal(map[string]string{"url": calURL, "username": calUser, "password": calPass})
-		err = db.AddWidgetTyped(name, "caldav", string(config), profile)
-	default:
-		// ical (legacy default)
-		url := r.FormValue("url")
-		err = db.AddWidget(name, url, profile)
-	}
-
-	if err != nil {
-		log.Printf("Error adding widget: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func HandleDeleteWidget(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
-	if err := db.DeleteWidget(id); err != nil {
-		log.Printf("Error deleting widget: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func HandleCloneProfile(w http.ResponseWriter, r *http.Request) {

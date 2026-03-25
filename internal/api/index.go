@@ -38,9 +38,6 @@ var tmplFuncs = template.FuncMap{
 	"isImgURL": isImgURL,
 	"hexToRGB": hexToRGB,
 	"inc":      func(i int) int { return i + 1 },
-	"newWidgetRender": func(w db.Widget, lang string) WidgetRenderData {
-		return WidgetRenderData{Widget: w, Translator: i18n.NewTranslator(lang)}
-	},
 }
 
 // Separate template sets per page to avoid {{define "content"}} conflicts.
@@ -91,13 +88,12 @@ func InitTemplates(fs embed.FS) {
 type IndexData struct {
 	i18n.Translator
 	Categories   []db.Category
-	Widgets      []db.Widget
 	Pages        []db.Page
 	Profile      string
-	ProfileName  string        // NEU: Anzeigename für <title> etc.
+	ProfileName  string
 	SearchAction string
 	Prefs        *db.UserPreferences
-	Profiles     []db.Profile  // NEU: für Nav-Links
+	Profiles     []db.Profile
 }
 
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
@@ -129,33 +125,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	widgets, err := db.GetWidgets(profileObj.Slug)
-	if err != nil {
-		log.Printf("Error fetching widgets: %v", err)
-		widgets = nil
-	}
-	// Populate widget data from cache / DB
-	for i := range widgets {
-		switch widgets[i].Type {
-		case "todo":
-			if todos, err := db.GetTodos(widgets[i].ID); err == nil {
-				widgets[i].Todos = todos
-			}
-		case "notes":
-			if content, err := db.GetNote(widgets[i].ID); err == nil {
-				widgets[i].NoteContent = content
-			}
-		case "caldav":
-			if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {
-				widgets[i].Events = cache.Events
-			}
-		default:
-			if cache, err := db.GetWidgetCache(widgets[i].ID); err == nil && cache != nil {
-				widgets[i].Events = cache.Events
-			}
-		}
-	}
-
 	prefs, err := db.GetUserPreferences(profileObj.Slug)
 	if err != nil {
 		log.Printf("GetUserPreferences(%s): %v", profileObj.Slug, err)
@@ -176,7 +145,6 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	data := IndexData{
 		Translator:   i18n.NewTranslator(prefs.Language),
 		Categories:   categories,
-		Widgets:      widgets,
 		Pages:        pages,
 		Profile:      profileObj.Slug,
 		ProfileName:  profileObj.Name,
