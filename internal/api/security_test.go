@@ -352,6 +352,98 @@ func TestXSSTemplateEscaping(t *testing.T) {
 	})
 }
 
+// ── Security Tests: IDOR – Page Ownership ────────────────────────────────────
+
+func TestPageIDORProtection(t *testing.T) {
+	cleanup := setupTest(t)
+	defer cleanup()
+
+	pageTmpl := `{{define "page_list"}}<div id="page-list">{{range .Pages}}{{.Name}}{{end}}</div>{{end}}`
+	api.ManageTmpl, _ = api.ManageTmpl.New("").Parse(pageTmpl)
+
+	router := chi.NewRouter()
+	router.Post("/manage/page", api.HandleAddPage)
+	router.Delete("/manage/page/{id}", api.HandleDeletePage)
+	router.Patch("/manage/page/{id}", api.HandleUpdatePage)
+
+	// Create page owned by "markus"
+	form := url.Values{"profile": {"markus"}, "name": {"Markus-Page"}, "icon": {"📄"}}
+	req := httptest.NewRequest(http.MethodPost, "/manage/page", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("AddPage: want 200, got %d", rr.Code)
+	}
+
+	pages, _ := db.GetPages("markus")
+	if len(pages) != 1 {
+		t.Fatalf("expected 1 markus page, got %d", len(pages))
+	}
+	pageID := pages[0].ID
+
+	t.Run("DELETE page with wrong profile → 403", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/manage/page/%d?profile=andrea", pageID), nil)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		if rr.Code != http.StatusForbidden {
+			t.Errorf("IDOR: expected 403 Forbidden, got %d", rr.Code)
+		}
+		// Page must still exist
+		remaining, _ := db.GetPages("markus")
+		if len(remaining) != 1 {
+			t.Error("IDOR: page was deleted despite wrong profile")
+		}
+	})
+
+	t.Run("PATCH page with wrong profile → 403", func(t *testing.T) {
+		form := url.Values{"profile": {"andrea"}, "name": {"Hijacked"}, "icon": {"💀"}}
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/manage/page/%d", pageID), strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		if rr.Code != http.StatusForbidden {
+			t.Errorf("IDOR: expected 403 Forbidden, got %d", rr.Code)
+		}
+		// Name must be unchanged
+		remaining, _ := db.GetPages("markus")
+		if len(remaining) != 1 || remaining[0].Name != "Markus-Page" {
+			t.Errorf("IDOR: page was modified despite wrong profile, name=%s", remaining[0].Name)
+		}
+	})
+
+	t.Run("DELETE page with correct profile → 200", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/manage/page/%d?profile=markus", pageID), nil)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected 200 for correct profile delete, got %d", rr.Code)
+		}
+		remaining, _ := db.GetPages("markus")
+		if len(remaining) != 0 {
+			t.Error("page should be deleted with correct profile")
+		}
+	})
+
+	t.Run("DELETE non-existent page → 404", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/manage/page/99999?profile=markus", nil)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		if rr.Code != http.StatusNotFound {
+			t.Errorf("expected 404 for non-existent page, got %d", rr.Code)
+		}
+	})
+
+	t.Run("DELETE with invalid ID → 400", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/manage/page/notanid?profile=markus", nil)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 for invalid ID, got %d", rr.Code)
+		}
+	})
+}
+
 func TestHandleAddAndDeletePage(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()

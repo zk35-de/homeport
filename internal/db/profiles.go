@@ -143,6 +143,15 @@ func AddPage(profile, name, icon string) (int64, error) {
 	return res.LastInsertId()
 }
 
+func GetPage(id int) (*Page, error) {
+	row := DB.QueryRow(`SELECT id, profile, name, icon, sort_order FROM pages WHERE id = ?`, id)
+	var p Page
+	if err := row.Scan(&p.ID, &p.Profile, &p.Name, &p.Icon, &p.SortOrder); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 func DeletePage(id int) error {
 	_, err := DB.Exec(`DELETE FROM pages WHERE id = ?`, id)
 	return err

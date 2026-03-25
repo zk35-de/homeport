@@ -119,7 +119,15 @@ func HandleAddService(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if _, err := db.GetCategory(id); err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
 	if err := db.DeleteCategory(id); err != nil {
 		log.Printf("Error deleting category: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -130,7 +138,15 @@ func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if _, err := db.GetService(id); err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
 	if err := db.DeleteService(id); err != nil {
 		log.Printf("Error deleting service: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -141,7 +157,11 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleGetService(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	svc, err := db.GetService(id)
 	if err != nil {
 		http.Error(w, "Not Found", http.StatusNotFound)
@@ -178,7 +198,15 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if _, err := db.GetService(id); err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -203,7 +231,11 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	cat, err := db.GetCategory(id)
 	if err != nil {
 		http.Error(w, "Not Found", http.StatusNotFound)
@@ -226,7 +258,15 @@ func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if _, err := db.GetCategory(id); err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

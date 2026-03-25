@@ -42,8 +42,26 @@ func HandleAddPage(w http.ResponseWriter, r *http.Request) {
 
 // HandleDeletePage DELETE /manage/page/{id}
 func HandleDeletePage(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	profile := r.URL.Query().Get("profile")
+	if profile == "" {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	// IDOR fix: verify page belongs to the requested profile before deleting
+	page, err := db.GetPage(id)
+	if err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+	if page.Profile != profile {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if err := db.DeletePage(id); err != nil {
 		log.Printf("Error deleting page %d: %v", id, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -54,7 +72,11 @@ func HandleDeletePage(w http.ResponseWriter, r *http.Request) {
 
 // HandleUpdatePage PATCH /manage/page/{id}
 func HandleUpdatePage(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -62,6 +84,20 @@ func HandleUpdatePage(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	icon := r.FormValue("icon")
 	profile := r.FormValue("profile")
+	if profile == "" {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	// IDOR fix: verify page belongs to the requested profile before updating
+	page, err := db.GetPage(id)
+	if err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+	if page.Profile != profile {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if err := db.UpdatePage(id, name, icon); err != nil {
 		log.Printf("Error updating page %d: %v", id, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
