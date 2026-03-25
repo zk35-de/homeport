@@ -1,5 +1,19 @@
 /* homeport – app-specific styles (extends prism-ui) */
 
+/* Logo */
+.homeport-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+.homeport-logo img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: var(--radius);
+    opacity: 0.92;
+}
+
 /* Search Bar */
 .search-wrap {
     display: flex;
@@ -8,7 +22,7 @@
 
 .search-bar {
     display: flex;
-    gap: 0.5rem;
+    gap: 0;
     margin-bottom: 2rem;
     width: 100%;
     max-width: 640px;
@@ -18,8 +32,17 @@
     flex: 1;
     font-size: 0.9rem;
     padding: 0.55rem 0.9rem;
-    border-radius: var(--radius) 0 0 var(--radius);
+    background: var(--glass);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
     border-right: none;
+    border-radius: var(--radius) 0 0 var(--radius);
+    font-family: var(--mono);
+    outline: none;
+    transition: border-color 0.15s;
+}
+.search-bar input[type="search"]:focus {
+    border-color: rgba(99,102,241,0.5);
 }
 
 .search-bar input[type="search"]::-webkit-search-cancel-button { display: none; }
