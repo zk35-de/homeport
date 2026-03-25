@@ -47,11 +47,11 @@ func CSRFMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// API routes with Bearer token auth don't need CSRF
-		if strings.HasPrefix(r.URL.Path, "/api/") {
-			next.ServeHTTP(w, r)
-			return
-		}
+		// Bearer token auth was removed in #97 – the blanket /api/ exemption
+		// no longer has a security justification. Only read-only /api/ GETs
+		// are exempt (already covered by the safe-methods check above).
+		// PATCH /api/user/preferences and other state-changing API calls
+		// must pass CSRF validation like any other request.
 
 		// Login POST is exempt (no session yet, can't have valid CSRF)
 		if r.URL.Path == "/login" {

@@ -598,17 +598,19 @@ func TestCSRFMiddleware_SafeMethods(t *testing.T) {
 	}
 }
 
-func TestCSRFMiddleware_APIRouteExempt(t *testing.T) {
+func TestCSRFMiddleware_APIRouteNotExempt(t *testing.T) {
+	// Bearer token auth was removed in #97 – state-changing /api/ requests
+	// must now pass CSRF validation like any other POST/PATCH/DELETE.
 	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("POST", "/api/widgets", nil)
+	req := httptest.NewRequest("PATCH", "/api/user/preferences", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected /api/ to be exempt from CSRF, got %d", rr.Code)
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected /api/ state-changing request to require CSRF, got %d", rr.Code)
 	}
 }
 

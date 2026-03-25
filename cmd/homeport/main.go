@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/term"
 
 	"git.zk35.de/secalpha/homeport/assets"
 	"git.zk35.de/secalpha/homeport/core"
@@ -41,9 +42,14 @@ func main() {
 			fmt.Fprintf(os.Stderr, "DB error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Neues Passwort für '%s': ", profile)
-		var pw string
-		fmt.Scanln(&pw)
+		fmt.Fprintf(os.Stderr, "Neues Passwort für '%s': ", profile)
+		pwBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Fprintln(os.Stderr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Fehler beim Lesen des Passworts: %v\n", err)
+			os.Exit(1)
+		}
+		pw := string(pwBytes)
 		if pw == "" {
 			fmt.Fprintln(os.Stderr, "Leeres Passwort nicht erlaubt.")
 			os.Exit(1)
