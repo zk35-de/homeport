@@ -12,6 +12,7 @@ type AnalyticsData struct {
 	i18n.Translator
 	Stats         []db.ClickStat
 	Profile       string
+	ProfileName   string
 	FilterProfile string
 	Profiles      []db.Profile
 	Prefs         *db.UserPreferences
@@ -43,14 +44,16 @@ func (s *Server) HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
-	var themeProfile string
+	var themeProfile, profileName string
 	if defaultProf != nil {
 		themeProfile = defaultProf.Slug
+		profileName = defaultProf.Name
 	}
 	data := AnalyticsData{
 		Translator:    i18n.NewTranslator(prefs.Language),
 		Stats:         stats,
 		Profile:       themeProfile,
+		ProfileName:   profileName,
 		FilterProfile: filterProfile,
 		Profiles:      profiles,
 		Prefs:         prefs,
