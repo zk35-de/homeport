@@ -26,6 +26,22 @@ func SessionProfile(r *http.Request) string {
 	return db.GetSession(c.Value)
 }
 
+// RequireAdmin middleware: if auth is enabled, only admin profiles may proceed.
+// Must run after RequireAuth (assumes valid session already verified).
+func RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if appConfig != nil && appConfig.AuthEnabled {
+			profile := SessionProfile(r)
+			a, err := db.GetUserAuth(profile)
+			if err != nil || a == nil || !a.IsAdmin {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // RequireAuth middleware: if auth is enabled, check session.
 // Unauthenticated requests are redirected to /login (or shown public profile).
 // Active sessions are renewed (rolling/sliding expiry) when less than
@@ -181,21 +197,8 @@ func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 	}
 }
 
-// HandleManageAuth GET /manage/auth – Passwörter verwalten (Admin only)
+// HandleManageAuth GET /manage/auth – Passwörter verwalten (Admin only via RequireAdmin middleware)
 func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
-	// In auth mode: only admin can access this
-	if appConfig != nil && appConfig.AuthEnabled {
-		profile := SessionProfile(r)
-		a, authErr := db.GetUserAuth(profile)
-		if authErr != nil {
-			log.Printf("GetUserAuth(%s): %v", profile, authErr)
-		}
-		if a == nil || !a.IsAdmin {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-	}
-
 	profiles, err := db.GetProfiles()
 	if err != nil {
 		log.Printf("GetProfiles: %v", err)
@@ -230,17 +233,6 @@ func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 
 // HandleSetPassword POST /manage/auth/password
 func HandleSetPassword(w http.ResponseWriter, r *http.Request) {
-	if appConfig != nil && appConfig.AuthEnabled {
-		profile := SessionProfile(r)
-		a, authErr := db.GetUserAuth(profile)
-		if authErr != nil {
-			log.Printf("GetUserAuth(%s): %v", profile, authErr)
-		}
-		if a == nil || !a.IsAdmin {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -261,17 +253,6 @@ func HandleSetPassword(w http.ResponseWriter, r *http.Request) {
 
 // HandleDeletePassword DELETE /manage/auth/password/{profile}
 func HandleDeletePassword(w http.ResponseWriter, r *http.Request) {
-	if appConfig != nil && appConfig.AuthEnabled {
-		profile := SessionProfile(r)
-		a, authErr := db.GetUserAuth(profile)
-		if authErr != nil {
-			log.Printf("GetUserAuth(%s): %v", profile, authErr)
-		}
-		if a == nil || !a.IsAdmin {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

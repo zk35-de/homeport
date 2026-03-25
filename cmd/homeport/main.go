@@ -129,6 +129,7 @@ func main() {
 	r.Get("/r/{id}", api.HandleServiceRedirect)
 
 	r.Route("/manage", func(r chi.Router) {
+		r.Use(api.RequireAdmin)
 	        r.Post("/profile/{slug}/clone", api.HandleCloneProfile)
 	        r.Get("/", api.HandleManage)
 		r.Get("/analytics", api.HandleAnalytics)
