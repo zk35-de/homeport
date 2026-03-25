@@ -188,6 +188,8 @@ func main() {
 		r.Get("/user/preferences", api.HandleGetPreferences)
 		r.Patch("/user/preferences", api.HandleSetPreferences)
 
+		// Profile theme CSS (accent color + custom CSS as stylesheet)
+		r.Get("/profile/{slug}/theme.css", api.HandleProfileThemeCSS)
 	})
 
 	// /{slug} nach allen statischen Routen – chi priorisiert diese automatisch

@@ -178,8 +178,7 @@
   </div>
 
   <!-- Restore-Upload -->
-  <form method="post" action="/manage/restore" enctype="multipart/form-data"
-        onsubmit="return confirm('⚠️ Restore überschreibt ALLE Daten. Fortfahren?')">
+  <form id="restore-form" method="post" action="/manage/restore" enctype="multipart/form-data">
     <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap">
       <div class="form-group" style="margin-bottom:0">
         <label>DB-Datei wiederherstellen</label>
@@ -190,24 +189,6 @@
   </form>
 </section>
 
-<style>
-.edit-form {
-    background: var(--surface-2, rgba(255,255,255,0.05));
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-top: 0.5rem;
-}
-.edit-form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.4rem 1rem;
-}
-.edit-form .form-group {
-    margin-bottom: 0;
-}
-</style>
-
 <section class="manage-panel manage-section" id="appearance">
   <h2>{{.T "manage.settings"}}</h2>
   <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start">
@@ -215,15 +196,9 @@
     <div class="form-group" style="flex:0 0 auto">
       <label>{{.T "manage.theme"}}</label>
       <div style="display:flex;gap:0.4rem;margin-top:0.25rem">
-        <button class="btn-sm theme-btn" data-theme="dark"
-          onclick="setTheme('dark')"
-          style="{{if eq .Prefs.Theme "dark"}}outline:2px solid var(--accent);{{end}}">🌙 Dark</button>
-        <button class="btn-sm theme-btn" data-theme="light"
-          onclick="setTheme('light')"
-          style="{{if eq .Prefs.Theme "light"}}outline:2px solid var(--accent);{{end}}">☀️ Light</button>
-        <button class="btn-sm theme-btn" data-theme="system"
-          onclick="setTheme('system')"
-          style="{{if eq .Prefs.Theme "system"}}outline:2px solid var(--accent);{{end}}">💻 System</button>
+        <button class="btn-sm theme-btn {{if eq .Prefs.Theme "dark"}}active{{end}}" data-theme="dark">🌙 Dark</button>
+        <button class="btn-sm theme-btn {{if eq .Prefs.Theme "light"}}active{{end}}" data-theme="light">☀️ Light</button>
+        <button class="btn-sm theme-btn {{if eq .Prefs.Theme "system"}}active{{end}}" data-theme="system">💻 System</button>
       </div>
     </div>
 
@@ -242,12 +217,9 @@
     <div class="form-group" style="flex:0 0 auto">
       <label>{{.T "manage.accent_color"}}</label>
       <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.25rem">
-        <input type="color" id="accent-picker" value="{{.Prefs.AccentColor}}"
-               oninput="previewAccent(this.value)"
-               onchange="saveAccent(this.value)"
-               style="width:40px;height:32px;padding:2px;border:1px solid var(--glass-border);border-radius:6px;background:transparent;cursor:pointer">
+        <input type="color" id="accent-picker" value="{{.Prefs.AccentColor}}">
         <span id="accent-hex" style="font-size:0.8rem;color:var(--sub)">{{.Prefs.AccentColor}}</span>
-        <button class="btn-sm" onclick="resetAccent()">Reset</button>
+        <button class="btn-sm" id="reset-accent-btn">Reset</button>
       </div>
     </div>
 
@@ -259,8 +231,8 @@
               style="width:100%;font-family:monospace;font-size:0.8rem;resize:vertical"
               placeholder="/* z.B. .widget { border-radius: 0; } */">{{.Prefs.CustomCSS}}</textarea>
     <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
-      <button class="btn-sm" onclick="saveCustomCSS()">{{.T "manage.save"}}</button>
-      <button class="btn-sm" onclick="resetCustomCSS()">{{.T "manage.cancel"}}</button>
+      <button class="btn-sm" id="save-css-btn">{{.T "manage.save"}}</button>
+      <button class="btn-sm" id="reset-css-btn">{{.T "manage.cancel"}}</button>
     </div>
   </div>
 </section>
@@ -326,175 +298,5 @@
   </div>
 </section>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const btn = document.getElementById("fetch-favicon-btn");
-    const iconInput = document.getElementById("svc-icon-input");
-    const preview = document.getElementById("favicon-preview");
-    const urlInput = document.querySelector("input[name='url']");
-
-    if (!btn || !iconInput || !urlInput) return;
-
-    async function doFetchFavicon() {
-        const url = urlInput.value.trim();
-        if (!url) return;
-        btn.textContent = "⏳";
-        const faviconURL = "/api/favicon?url=" + encodeURIComponent(url);
-        try {
-            const resp = await fetch(faviconURL);
-            if (resp.ok) {
-                iconInput.value = faviconURL;
-                preview.src = faviconURL;
-                preview.style.display = "inline";
-                btn.textContent = "✅";
-            } else {
-                btn.textContent = "❌";
-            }
-        } catch {
-            btn.textContent = "❌";
-        }
-        setTimeout(() => btn.textContent = "🌐", 2000);
-    }
-
-    btn.addEventListener("click", doFetchFavicon);
-    urlInput.addEventListener("blur", function() {
-        // Only auto-fetch if icon field is still empty
-        if (!iconInput.value.trim()) doFetchFavicon();
-    });
-
-    // Show preview if icon field already contains an img URL
-    if (iconInput.value.startsWith("/api/favicon") || iconInput.value.startsWith("http")) {
-        preview.src = iconInput.value;
-        preview.style.display = "inline";
-    }
-});
-
-async function fetchFaviconEdit(svcId) {
-    const urlInput = document.querySelector(`#svc-edit-${svcId} input[name='url']`);
-    const iconInput = document.getElementById(`edit-icon-${svcId}`);
-    const preview = document.getElementById(`edit-favicon-preview-${svcId}`);
-    const btn = event.target;
-    if (!urlInput || !urlInput.value.trim()) { return; }
-
-    btn.textContent = "⏳";
-    const faviconURL = "/api/favicon?url=" + encodeURIComponent(urlInput.value.trim());
-    try {
-        const resp = await fetch(faviconURL);
-        if (resp.ok) {
-            iconInput.value = faviconURL;
-            preview.src = faviconURL;
-            preview.style.display = "inline";
-            btn.textContent = "✅";
-        } else {
-            btn.textContent = "❌";
-        }
-    } catch {
-        btn.textContent = "❌";
-    }
-    setTimeout(() => btn.textContent = "🌐", 2000);
-}
-
-// Theme Engine
-async function savePrefs(patch) {
-    try {
-        await fetch('/api/user/preferences', {
-            method: 'PATCH',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(patch)
-        });
-    } catch(e) { console.warn('prefs save failed', e); }
-}
-
-function setTheme(theme) {
-    if (theme === 'system') {
-        delete document.documentElement.dataset.theme;
-    } else {
-        document.documentElement.dataset.theme = theme;
-    }
-    localStorage.setItem('hp-theme', theme);
-    document.querySelectorAll('.theme-btn').forEach(b => {
-        b.style.outline = b.dataset.theme === theme ? '2px solid var(--accent)' : '';
-    });
-    savePrefs({theme});
-}
-
-
-
-function previewAccent(hex) {
-    document.getElementById('accent-hex').textContent = hex;
-    const rgb = hexToRGBjs(hex);
-    document.documentElement.style.setProperty('--accent', hex);
-    document.documentElement.style.setProperty('--accent-hover', hex);
-    document.documentElement.style.setProperty('--accent-rgb', rgb);
-    const style = document.getElementById('user-theme');
-    if (style) style.textContent = `:root{--accent:${hex};--accent-rgb:${rgb};--accent-hover:${hex};}`;
-}
-
-function saveAccent(hex) {
-    previewAccent(hex);
-    savePrefs({accent_color: hex});
-}
-
-function resetAccent() {
-    const hex = '#6366f1';
-    document.getElementById('accent-picker').value = hex;
-    saveAccent(hex);
-}
-
-function saveCustomCSS() {
-    const css = document.getElementById('custom-css-input').value;
-    let style = document.getElementById('user-theme');
-    if (!style) { style = document.createElement('style'); style.id = 'user-theme'; document.head.appendChild(style); }
-    const accent = document.getElementById('accent-picker').value || '#6366f1';
-    const rgb = hexToRGBjs(accent);
-    style.textContent = `:root{--accent:${accent};--accent-rgb:${rgb};--accent-hover:${accent};}` + css;
-    savePrefs({custom_css: css});
-}
-
-function resetCustomCSS() {
-    document.getElementById('custom-css-input').value = '';
-    saveCustomCSS();
-}
-
-function hexToRGBjs(hex) {
-    hex = hex.replace('#','');
-    if (hex.length !== 6) return '99,102,241';
-    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
-    return `${r},${g},${b}`;
-}
-
-// ── Manage Tab System ──────────────────────────────────────────
-(function() {
-    var STORAGE_KEY = 'hp-manage-tab';
-    var DEFAULT_TAB = 'panel-services';
-
-    function showPanel(panelId) {
-        // hide all panels
-        document.querySelectorAll('.manage-panel').forEach(function(p) {
-            p.style.display = 'none';
-        });
-        // show target
-        var panel = document.getElementById(panelId);
-        if (panel) panel.style.display = 'block';
-
-        // update tab active state
-        document.querySelectorAll('.manage-tab').forEach(function(btn) {
-            btn.classList.toggle('active', btn.dataset.panel === panelId);
-        });
-
-        try { localStorage.setItem(STORAGE_KEY, panelId); } catch(e) {}
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        var saved;
-        try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
-        var target = (saved && document.getElementById(saved)) ? saved : DEFAULT_TAB;
-        showPanel(target);
-
-        document.querySelectorAll('.manage-tab').forEach(function(btn) {
-            btn.addEventListener('click', function() { showPanel(btn.dataset.panel); });
-        });
-    });
-})();
-</script>
+<script src="/static/js/manage.js" defer></script>
 {{end}}

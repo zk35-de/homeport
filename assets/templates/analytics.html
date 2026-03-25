@@ -1,32 +1,15 @@
 {{define "content"}}
-<style>
-.analytics-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
-.analytics-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
-.analytics-header h2 { margin: 0; }
-.analytics-filter { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.analytics-filter select { background: var(--glass); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.5rem; color: var(--fg); font-size: 0.9rem; }
-.analytics-table { width: 100%; border-collapse: collapse; }
-.analytics-table th, .analytics-table td { padding: 0.55rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
-.analytics-table th { color: var(--sub); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; }
-.analytics-table tr:hover td { background: var(--glass); }
-.a-rank { color: var(--sub); font-size: 0.85rem; width: 2rem; }
-.a-count { font-weight: 700; color: var(--accent); }
-.a-profile-tag { font-size: 0.75rem; color: var(--sub); background: var(--glass); padding: 2px 6px; border-radius: 4px; }
-.a-date { color: var(--sub); font-size: 0.8rem; white-space: nowrap; }
-.a-svc { display: flex; align-items: center; gap: 0.5rem; }
-.a-favicon { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
-.analytics-empty { color: var(--sub); text-align: center; padding: 3rem; }
-</style>
+<link rel="stylesheet" href="/static/css/analytics.css">
 
 <div class="analytics-wrap">
   <div class="analytics-header">
     <h2>📊 {{.T "analytics.title"}}</h2>
     <div class="analytics-filter">
       <label style="color:var(--sub);font-size:0.9rem">{{.T "analytics.filter.profile"}}</label>
-      <select onchange="location.href='/manage/analytics?profile='+this.value">
-        <option value="" {{if eq .Profile ""}}selected{{end}}>{{.T "analytics.filter.all"}}</option>
+      <select id="analytics-profile-select">
+        <option value="" {{if eq .FilterProfile ""}}selected{{end}}>{{.T "analytics.filter.all"}}</option>
         {{range .Profiles}}
-        <option value="{{.Slug}}" {{if eq $.Profile .Slug}}selected{{end}}>{{.Name}}</option>
+        <option value="{{.Slug}}" {{if eq $.FilterProfile .Slug}}selected{{end}}>{{.Name}}</option>
         {{end}}
       </select>
       <a href="/manage" style="color:var(--sub);font-size:0.85rem;margin-left:1rem">{{.T "analytics.back"}}</a>
@@ -51,11 +34,11 @@
       <td>
         <div class="a-svc">
           {{if isImgURL $s.ServiceIcon}}
-            <img src="{{$s.ServiceIcon}}" class="a-favicon" alt="" onerror="this.style.display='none'">
+            <img src="{{$s.ServiceIcon}}" class="a-favicon" alt="">
           {{else if $s.ServiceIcon}}
             <span>{{$s.ServiceIcon}}</span>
           {{else}}
-            <img src="/api/favicon?url={{$s.ServiceURL}}" class="a-favicon" alt="" onerror="this.style.display='none'">
+            <img src="/api/favicon?url={{$s.ServiceURL}}" class="a-favicon" alt="">
           {{end}}
           <a href="{{$s.ServiceURL}}" target="_blank" rel="noopener">{{$s.ServiceName}}</a>
         </div>

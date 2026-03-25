@@ -53,61 +53,6 @@
     </div>
     {{end}}
 </div>
-<script>
-(function() {
-  function initSortable() {
-    var catList = document.getElementById('sortable-categories');
-    if (!catList || typeof Sortable === 'undefined') return;
-
-    Sortable.create(catList, {
-      handle: '.drag-handle',
-      animation: 150,
-      onEnd: function() {
-        var items = catList.querySelectorAll('.manage-category[data-id]');
-        var payload = Array.from(items).map(function(el, idx) {
-          return {id: parseInt(el.dataset.id), sort_order: idx};
-        });
-        fetch('/manage/sort/category/reorder', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
-          body: JSON.stringify(payload)
-        });
-      }
-    });
-
-    catList.querySelectorAll('.sortable-services').forEach(function(svcList) {
-      Sortable.create(svcList, {
-        handle: '.drag-handle',
-        animation: 150,
-        onEnd: function() {
-          var items = svcList.querySelectorAll('.manage-service-item[data-id]');
-          var payload = Array.from(items).map(function(el, idx) {
-            return {id: parseInt(el.dataset.id), sort_order: idx};
-          });
-          fetch('/manage/sort/service/reorder', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken()},
-            body: JSON.stringify(payload)
-          });
-        }
-      });
-    });
-  }
-
-  function getCsrfToken() {
-    var m = document.cookie.match('(^|;)\\s*hp_csrf\\s*=\\s*([^;]+)');
-    return m ? m.pop() : '';
-  }
-
-  initSortable();
-  // Re-init after HTMX swaps category-list
-  document.body.addEventListener('htmx:afterSwap', function(e) {
-    if (e.detail && e.detail.target && e.detail.target.id === 'category-list') {
-      initSortable();
-    }
-  });
-})();
-</script>
 {{end}}
 
 {{define "service_edit_form"}}
@@ -128,7 +73,7 @@
             <label>{{.T "manage.icon"}}</label>
             <div style="display:flex;gap:0.4rem;align-items:center">
                 <input type="text" name="icon" id="edit-icon-{{.Service.ID}}" value="{{.Service.Icon}}" placeholder="🏠 oder leer">
-                <button type="button" class="btn-sm" onclick="fetchFaviconEdit({{.Service.ID}})" title="Favicon laden">🌐</button>
+                <button type="button" class="btn-sm fetch-favicon-btn" data-svc-id="{{.Service.ID}}" title="Favicon laden">🌐</button>
                 <img id="edit-favicon-preview-{{.Service.ID}}" src="{{if .Service.Icon}}{{.Service.Icon}}{{end}}"
                     alt="" style="width:20px;height:20px;{{if not .Service.Icon}}display:none{{end}};border-radius:3px">
             </div>
@@ -165,7 +110,7 @@
     </div>
     <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
         <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
-        <button type="button" class="btn-sm" onclick="document.getElementById('svc-edit-{{.Service.ID}}').innerHTML=''">{{.T "manage.cancel"}}</button>
+        <button type="button" class="btn-sm" data-clear-target="svc-edit-{{.Service.ID}}">{{.T "manage.cancel"}}</button>
     </div>
 </form>
 {{end}}
@@ -205,7 +150,7 @@
     </div>
     <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
         <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
-        <button type="button" class="btn-sm" onclick="document.getElementById('cat-edit-{{.Category.ID}}').innerHTML=''">{{.T "manage.cancel"}}</button>
+        <button type="button" class="btn-sm" data-clear-target="cat-edit-{{.Category.ID}}">{{.T "manage.cancel"}}</button>
     </div>
 </form>
 {{end}}

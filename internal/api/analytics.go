@@ -14,10 +14,11 @@ var AnalyticsTmpl *template.Template
 
 type AnalyticsData struct {
 	i18n.Translator
-	Stats    []db.ClickStat
-	Profile  string
-	Profiles []db.Profile
-	Prefs    *db.UserPreferences
+	Stats         []db.ClickStat
+	Profile       string
+	FilterProfile string
+	Profiles      []db.Profile
+	Prefs         *db.UserPreferences
 }
 
 // HandleAnalytics renders the analytics page.
@@ -46,12 +47,17 @@ func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
+	var themeProfile string
+	if defaultProf != nil {
+		themeProfile = defaultProf.Slug
+	}
 	data := AnalyticsData{
-		Translator: i18n.NewTranslator(prefs.Language),
-		Stats:      stats,
-		Profile:    filterProfile,
-		Profiles:   profiles,
-		Prefs:      prefs,
+		Translator:    i18n.NewTranslator(prefs.Language),
+		Stats:         stats,
+		Profile:       themeProfile,
+		FilterProfile: filterProfile,
+		Profiles:      profiles,
+		Prefs:         prefs,
 	}
 	if err := AnalyticsTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
 		log.Printf("Analytics template error: %v", err)

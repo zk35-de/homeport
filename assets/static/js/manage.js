@@ -1,0 +1,238 @@
+document.addEventListener('DOMContentLoaded', function() {
+  // ── Favicon fetch (new service form) ──────────────────────────────
+  const btn = document.getElementById('fetch-favicon-btn');
+  const iconInput = document.getElementById('svc-icon-input');
+  const preview = document.getElementById('favicon-preview');
+  const urlInput = document.querySelector("input[name='url']");
+
+  if (btn && iconInput && urlInput) {
+    async function doFetchFavicon() {
+      const url = urlInput.value.trim();
+      if (!url) return;
+      btn.textContent = '⏳';
+      const faviconURL = '/api/favicon?url=' + encodeURIComponent(url);
+      try {
+        const resp = await fetch(faviconURL);
+        if (resp.ok) {
+          iconInput.value = faviconURL;
+          preview.src = faviconURL;
+          preview.style.display = 'inline';
+          btn.textContent = '✅';
+        } else {
+          btn.textContent = '❌';
+        }
+      } catch {
+        btn.textContent = '❌';
+      }
+      setTimeout(function() { btn.textContent = '🌐'; }, 2000);
+    }
+
+    btn.addEventListener('click', doFetchFavicon);
+    urlInput.addEventListener('blur', function() {
+      if (!iconInput.value.trim()) doFetchFavicon();
+    });
+
+    if (iconInput.value.startsWith('/api/favicon') || iconInput.value.startsWith('http')) {
+      preview.src = iconInput.value;
+      preview.style.display = 'inline';
+    }
+  }
+
+  // ── Restore form confirm ────────────────────────────────────────
+  var restoreForm = document.getElementById('restore-form');
+  if (restoreForm) {
+    restoreForm.addEventListener('submit', function(e) {
+      if (!confirm('⚠️ Restore überschreibt ALLE Daten. Fortfahren?')) {
+        e.preventDefault();
+      }
+    });
+  }
+
+  // ── Accent color picker ────────────────────────────────────────
+  var accentPicker = document.getElementById('accent-picker');
+  if (accentPicker) {
+    accentPicker.addEventListener('input', function() { previewAccent(this.value); });
+    accentPicker.addEventListener('change', function() { saveAccent(this.value); });
+  }
+
+  document.getElementById('reset-accent-btn')?.addEventListener('click', resetAccent);
+  document.getElementById('save-css-btn')?.addEventListener('click', saveCustomCSS);
+  document.getElementById('reset-css-btn')?.addEventListener('click', resetCustomCSS);
+
+  // ── Theme buttons ──────────────────────────────────────────────
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.theme-btn[data-theme]');
+    if (btn) setTheme(btn.dataset.theme);
+  });
+
+  // ── Favicon edit buttons (event delegation) ────────────────────
+  document.addEventListener('click', function(e) {
+    var editBtn = e.target.closest('.fetch-favicon-btn[data-svc-id]');
+    if (editBtn) fetchFaviconEdit(editBtn.dataset.svcId, editBtn);
+  });
+
+  // ── Manage Tab System ──────────────────────────────────────────
+  var STORAGE_KEY = 'hp-manage-tab';
+  var DEFAULT_TAB = 'panel-services';
+
+  function showPanel(panelId) {
+    document.querySelectorAll('.manage-panel').forEach(function(p) {
+      p.style.display = 'none';
+    });
+    var panel = document.getElementById(panelId);
+    if (panel) panel.style.display = 'block';
+    document.querySelectorAll('.manage-tab').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.panel === panelId);
+    });
+    try { localStorage.setItem(STORAGE_KEY, panelId); } catch(e) {}
+  }
+
+  var saved;
+  try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
+  var target = (saved && document.getElementById(saved)) ? saved : DEFAULT_TAB;
+  showPanel(target);
+
+  document.querySelectorAll('.manage-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() { showPanel(btn.dataset.panel); });
+  });
+
+  // ── Sortable init ──────────────────────────────────────────────
+  initSortable();
+  document.body.addEventListener('htmx:afterSwap', function(e) {
+    if (e.detail && e.detail.target && e.detail.target.id === 'category-list') {
+      initSortable();
+    }
+  });
+});
+
+// ── Sortable ──────────────────────────────────────────────────────────
+function initSortable() {
+  var catList = document.getElementById('sortable-categories');
+  if (!catList || typeof Sortable === 'undefined') return;
+
+  Sortable.create(catList, {
+    handle: '.drag-handle',
+    animation: 150,
+    onEnd: function() {
+      var items = catList.querySelectorAll('.manage-category[data-id]');
+      var payload = Array.from(items).map(function(el, idx) {
+        return {id: parseInt(el.dataset.id), sort_order: idx};
+      });
+      fetch('/manage/sort/category/reorder', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (window._getCookie || function(n){return ''})('hp_csrf')},
+        body: JSON.stringify(payload)
+      });
+    }
+  });
+
+  catList.querySelectorAll('.sortable-services').forEach(function(svcList) {
+    Sortable.create(svcList, {
+      handle: '.drag-handle',
+      animation: 150,
+      onEnd: function() {
+        var items = svcList.querySelectorAll('.manage-service-item[data-id]');
+        var payload = Array.from(items).map(function(el, idx) {
+          return {id: parseInt(el.dataset.id), sort_order: idx};
+        });
+        fetch('/manage/sort/service/reorder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (window._getCookie || function(n){return ''})('hp_csrf')},
+          body: JSON.stringify(payload)
+        });
+      }
+    });
+  });
+}
+
+// ── Favicon edit (called from event delegation above) ──────────────
+async function fetchFaviconEdit(svcId, btn) {
+  const urlInput = document.querySelector('#svc-edit-' + svcId + ' input[name="url"]');
+  const iconInput = document.getElementById('edit-icon-' + svcId);
+  const preview = document.getElementById('edit-favicon-preview-' + svcId);
+  if (!urlInput || !urlInput.value.trim()) return;
+
+  btn.textContent = '⏳';
+  const faviconURL = '/api/favicon?url=' + encodeURIComponent(urlInput.value.trim());
+  try {
+    const resp = await fetch(faviconURL);
+    if (resp.ok) {
+      iconInput.value = faviconURL;
+      preview.src = faviconURL;
+      preview.style.display = 'inline';
+      btn.textContent = '✅';
+    } else {
+      btn.textContent = '❌';
+    }
+  } catch {
+    btn.textContent = '❌';
+  }
+  setTimeout(function() { btn.textContent = '🌐'; }, 2000);
+}
+
+// ── Theme Engine ──────────────────────────────────────────────────
+async function savePrefs(patch) {
+  try {
+    await fetch('/api/user/preferences', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(patch)
+    });
+  } catch(e) { console.warn('prefs save failed', e); }
+}
+
+function setTheme(theme) {
+  if (theme === 'system') {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = theme;
+  }
+  localStorage.setItem('hp-theme', theme);
+  document.querySelectorAll('.theme-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+  savePrefs({theme: theme});
+}
+
+function previewAccent(hex) {
+  document.getElementById('accent-hex').textContent = hex;
+  const rgb = hexToRGBjs(hex);
+  document.documentElement.style.setProperty('--accent', hex);
+  document.documentElement.style.setProperty('--accent-hover', hex);
+  document.documentElement.style.setProperty('--accent-rgb', rgb);
+}
+
+function saveAccent(hex) {
+  previewAccent(hex);
+  savePrefs({accent_color: hex});
+  // Reload user-theme link to pick up new accent
+  var link = document.getElementById('user-theme');
+  if (link) link.href = link.href.replace(/[?&]t=\d+/, '') + (link.href.includes('?') ? '&' : '?') + 't=' + Date.now();
+}
+
+function resetAccent() {
+  var hex = '#6366f1';
+  var picker = document.getElementById('accent-picker');
+  if (picker) picker.value = hex;
+  saveAccent(hex);
+}
+
+async function saveCustomCSS() {
+  const css = document.getElementById('custom-css-input').value;
+  await savePrefs({custom_css: css});
+  // Reload user-theme link to pick up new custom CSS
+  var link = document.getElementById('user-theme');
+  if (link) link.href = link.href.replace(/[?&]t=\d+/, '') + (link.href.includes('?') ? '&' : '?') + 't=' + Date.now();
+}
+
+function resetCustomCSS() {
+  document.getElementById('custom-css-input').value = '';
+  saveCustomCSS();
+}
+
+function hexToRGBjs(hex) {
+  hex = hex.replace('#','');
+  if (hex.length !== 6) return '99,102,241';
+  const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+  return r + ',' + g + ',' + b;
+}
