@@ -164,14 +164,13 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 		Theme:          "dark",
 		AccentColor:    "#6366f1",
 		SearchEngine:   "https://duckduckgo.com/",
-		Background:     "aurora",
 		Language:       "de",
 		Layout:         "grid",
 		BackgroundMode: "aurora",
 	}
-	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, background, language, layout, COALESCE(custom_css,''), COALESCE(background_mode,'aurora')
+	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, language, layout, COALESCE(custom_css,''), COALESCE(background_mode,'aurora')
 		FROM user_preferences WHERE profile = ?`, profile)
-	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Background, &p.Language, &p.Layout, &p.CustomCSS, &p.BackgroundMode)
+	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Language, &p.Layout, &p.CustomCSS, &p.BackgroundMode)
 	if err == sql.ErrNoRows {
 		return p, nil
 	}
@@ -182,19 +181,18 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 }
 
 func SetUserPreferences(profile string, prefs UserPreferences) error {
-	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, background, language, layout, custom_css, background_mode)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, language, layout, custom_css, background_mode)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(profile) DO UPDATE SET
 			theme = excluded.theme,
 			accent_color = excluded.accent_color,
 			search_engine = excluded.search_engine,
-			background = excluded.background,
 			language = excluded.language,
 			layout = excluded.layout,
 			custom_css = excluded.custom_css,
 			background_mode = excluded.background_mode`,
 		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
-		prefs.Background, prefs.Language, prefs.Layout, prefs.CustomCSS, prefs.BackgroundMode)
+		prefs.Language, prefs.Layout, prefs.CustomCSS, prefs.BackgroundMode)
 	return err
 }
 

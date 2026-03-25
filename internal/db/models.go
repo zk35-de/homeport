@@ -111,7 +111,6 @@ type UserPreferences struct {
 	Theme          string `json:"theme"`
 	AccentColor    string `json:"accent_color"`
 	SearchEngine   string `json:"search_engine"`
-	Background     string `json:"background"`
 	Language       string `json:"language"`
 	Layout         string `json:"layout"`
 	CustomCSS      string `json:"custom_css"`

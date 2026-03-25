@@ -71,9 +71,6 @@ func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
 	if v, ok := patch["search_engine"]; ok {
 		current.SearchEngine = v
 	}
-	if v, ok := patch["background"]; ok {
-		current.Background = v
-	}
 	if v, ok := patch["background_mode"]; ok {
 		current.BackgroundMode = v
 	}
