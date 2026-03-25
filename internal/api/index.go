@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -120,14 +121,14 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	categories, err := db.GetCategoriesWithServices(profileObj.Slug)
 	if err != nil {
-		log.Printf("Error fetching categories: %v", err)
+		slog.Error("fetching categories", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	prefs, err := db.GetUserPreferences(profileObj.Slug)
 	if err != nil {
-		log.Printf("GetUserPreferences(%s): %v", profileObj.Slug, err)
+		slog.Error("GetUserPreferences", "profile", profileObj.Slug, "err", err)
 	}
 	if prefs == nil {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
@@ -135,11 +136,11 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 
 	allProfiles, err := db.GetProfiles()
 	if err != nil {
-		log.Printf("GetProfiles: %v", err)
+		slog.Error("GetProfiles", "err", err)
 	}
 	pages, err := db.GetPages(profileObj.Slug)
 	if err != nil {
-		log.Printf("GetPages(%s): %v", profileObj.Slug, err)
+		slog.Error("GetPages", "profile", profileObj.Slug, "err", err)
 	}
 
 	data := IndexData{
@@ -154,7 +155,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
-		log.Printf("Error executing template: %v", err)
+		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,7 +29,7 @@ func HandleBackupDownload(w http.ResponseWriter, r *http.Request) {
 
 	path, err := backup.CreateSnapshot(appConfig.DBPath, appConfig.BackupDir)
 	if err != nil {
-		log.Printf("Error creating backup: %v", err)
+		slog.Error("creating backup", "err", err)
 		http.Error(w, "Failed to create backup", http.StatusInternalServerError)
 		return
 	}
@@ -39,7 +39,7 @@ func HandleBackupDownload(w http.ResponseWriter, r *http.Request) {
 
 	f, err := os.Open(path)
 	if err != nil {
-		log.Printf("Error opening backup file: %v", err)
+		slog.Error("opening backup file", "err", err)
 		http.Error(w, "Failed to open backup", http.StatusInternalServerError)
 		return
 	}
@@ -90,7 +90,7 @@ func HandleRestore(w http.ResponseWriter, r *http.Request) {
 	tempFile.Close()
 
 	if err := backup.Validate(tempPath); err != nil {
-		log.Printf("Restore validation failed: %v", err)
+		slog.Error("restore validation failed", "err", err)
 		http.Error(w, "Invalid database file: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -98,13 +98,13 @@ func HandleRestore(w http.ResponseWriter, r *http.Request) {
 	// Atomic swap: move old DB to .bak, move new DB to DBPath
 	bakPath := appConfig.DBPath + ".bak"
 	if err := os.Rename(appConfig.DBPath, bakPath); err != nil {
-		log.Printf("Failed to backup old DB during restore: %v", err)
+		slog.Error("backup old DB during restore", "err", err)
 		http.Error(w, "Failed to swap database", http.StatusInternalServerError)
 		return
 	}
 
 	if err := os.Rename(tempPath, appConfig.DBPath); err != nil {
-		log.Printf("Failed to move restored DB: %v", err)
+		slog.Error("move restored DB", "err", err)
 		// Try to restore the backup
 		_ = os.Rename(bakPath, appConfig.DBPath)
 		http.Error(w, "Failed to restore database", http.StatusInternalServerError)
@@ -113,7 +113,7 @@ func HandleRestore(w http.ResponseWriter, r *http.Request) {
 
 	// Reinit DB
 	if err := db.ReinitDB(appConfig.DBPath); err != nil {
-		log.Printf("Failed to reinit DB after restore: %v", err)
+		slog.Error("reinit DB after restore", "err", err)
 		// This is bad, the file is there but we can't open it.
 		// A server restart might be needed.
 		http.Error(w, "Database restored but failed to re-initialize. Please restart the server.", http.StatusInternalServerError)

@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,14 +26,14 @@ type ManageData struct {
 func HandleManage(w http.ResponseWriter, r *http.Request) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
-		log.Printf("Error fetching categories: %v", err)
+		slog.Error("fetching categories", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	profiles, err := db.GetProfiles()
 	if err != nil {
-		log.Printf("GetProfiles: %v", err)
+		slog.Error("GetProfiles", "err", err)
 	}
 
 	var prefs *db.UserPreferences
@@ -41,15 +41,15 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	defaultSlug := ""
 	profileName := ""
 	if def, defErr := db.GetDefaultProfile(); defErr != nil {
-		log.Printf("GetDefaultProfile: %v", defErr)
+		slog.Error("GetDefaultProfile", "err", defErr)
 	} else if def != nil {
 		defaultSlug = def.Slug
 		profileName = def.Name
 		if prefs, err = db.GetUserPreferences(def.Slug); err != nil {
-			log.Printf("GetUserPreferences(%s): %v", def.Slug, err)
+			slog.Error("GetUserPreferences", "profile", def.Slug, "err", err)
 		}
 		if pages, err = db.GetPages(def.Slug); err != nil {
-			log.Printf("GetPages(%s): %v", def.Slug, err)
+			slog.Error("GetPages", "profile", def.Slug, "err", err)
 		}
 	}
 	if prefs == nil {
@@ -68,7 +68,7 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
-		log.Printf("Error executing template: %v", err)
+		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -84,7 +84,7 @@ func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 	color := r.FormValue("color")
 
 	if _, err := db.AddCategory(name, color); err != nil {
-		log.Printf("Error adding category: %v", err)
+		slog.Error("adding category", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -109,7 +109,7 @@ func HandleAddService(w http.ResponseWriter, r *http.Request) {
 	profiles := r.Form["visibility"]
 
 	if err := db.AddService(categoryID, name, url, icon, desc, statusCheck, noCheck, profiles); err != nil {
-		log.Printf("Error adding service: %v", err)
+		slog.Error("adding service", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -129,7 +129,7 @@ func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.DeleteCategory(id); err != nil {
-		log.Printf("Error deleting category: %v", err)
+		slog.Error("deleting category", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -148,7 +148,7 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.DeleteService(id); err != nil {
-		log.Printf("Error deleting service: %v", err)
+		slog.Error("deleting service", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -176,7 +176,7 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 
 	profiles, err := db.GetProfiles()
 	if err != nil {
-		log.Printf("GetProfiles: %v", err)
+		slog.Error("GetProfiles", "err", err)
 	}
 	lang := GetLang(r)
 	data := struct {
@@ -192,7 +192,7 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "service_edit_form", data); err != nil {
-		log.Printf("Error executing service_edit_form: %v", err)
+		slog.Error("executing service_edit_form", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -221,7 +221,7 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	profiles := r.Form["visibility"]
 
 	if err := db.UpdateService(id, name, url, icon, desc, statusCheck, noCheck, profiles); err != nil {
-		log.Printf("Error updating service %d: %v", id, err)
+		slog.Error("updating service", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -252,7 +252,7 @@ func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "category_edit_form", data); err != nil {
-		log.Printf("Error executing category_edit_form: %v", err)
+		slog.Error("executing category_edit_form", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -276,7 +276,7 @@ func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	color := r.FormValue("color")
 
 	if err := db.UpdateCategory(id, name, color); err != nil {
-		log.Printf("Error updating category %d: %v", id, err)
+		slog.Error("updating category", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -289,7 +289,7 @@ func HandleUpdateCategorySpan(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	span, _ := strconv.Atoi(chi.URLParam(r, "span"))
 	if err := db.UpdateCategorySpan(id, span); err != nil {
-		log.Printf("Error updating category span %d: %v", id, err)
+		slog.Error("updating category span", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -428,7 +428,7 @@ func HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	if !exists {
 		if err := db.AddProfile(dstSlug, dstName); err != nil {
-			log.Printf("HandleCloneProfile: AddProfile error: %v", err)
+			slog.Error("HandleCloneProfile: AddProfile", "err", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -436,18 +436,18 @@ func HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
 
 	added, skipped, err := db.CloneServicesToProfile(srcSlug, dstSlug)
 	if err != nil {
-		log.Printf("HandleCloneProfile: CloneServicesToProfile error: %v", err)
+		slog.Error("HandleCloneProfile: CloneServicesToProfile", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	log.Printf("CloneProfile %s→%s: added=%d skipped=%d", srcSlug, dstSlug, added, skipped)
+	slog.Info("CloneProfile", "src", srcSlug, "dst", dstSlug, "added", added, "skipped", skipped)
 	HandleManage(w, r)
 }
 
 func renderCategoryList(w http.ResponseWriter, lang string) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
-		log.Printf("Error fetching categories: %v", err)
+		slog.Error("fetching categories", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -461,7 +461,7 @@ func renderCategoryList(w http.ResponseWriter, lang string) {
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
-		log.Printf("Error executing template: %v", err)
+		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -481,7 +481,7 @@ func HandleAcceptDiscovery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.AcceptDiscoveryItem(id); err != nil {
-		log.Printf("Error accepting discovery item %d: %v", id, err)
+		slog.Error("accepting discovery item", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -498,7 +498,7 @@ func HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.IgnoreDiscoveryItem(id); err != nil {
-		log.Printf("Error ignoring discovery item %d: %v", id, err)
+		slog.Error("ignoring discovery item", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -510,7 +510,7 @@ func HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
 func renderDiscoveryInbox(w http.ResponseWriter, lang string) {
 	items, err := db.GetDiscoveryInbox()
 	if err != nil {
-		log.Printf("Error fetching discovery inbox items: %v", err)
+		slog.Error("fetching discovery inbox items", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -524,7 +524,7 @@ func renderDiscoveryInbox(w http.ResponseWriter, lang string) {
 	}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "discovery_inbox", data); err != nil {
-		log.Printf("Error executing discovery_inbox template: %v", err)
+		slog.Error("executing discovery_inbox template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -544,7 +544,7 @@ func renderProfileList(w http.ResponseWriter, lang string) {
 		Profiles:   profiles,
 	}
 	if err := ManageTmpl.ExecuteTemplate(w, "profile_list", data); err != nil {
-		log.Printf("Error executing profile_list: %v", err)
+		slog.Error("executing profile_list", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -561,7 +561,7 @@ func HandleAddProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.AddProfile(name, slug); err != nil {
-		log.Printf("Error adding profile: %v", err)
+		slog.Error("adding profile", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -572,7 +572,7 @@ func HandleAddProfile(w http.ResponseWriter, r *http.Request) {
 func HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if err := db.DeleteProfile(slug); err != nil {
-		log.Printf("Error deleting profile %s: %v", slug, err)
+		slog.Error("deleting profile", "slug", slug, "err", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -583,7 +583,7 @@ func HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
 func HandleSetDefaultProfile(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if err := db.SetDefaultProfile(slug); err != nil {
-		log.Printf("Error setting default profile %s: %v", slug, err)
+		slog.Error("setting default profile", "slug", slug, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

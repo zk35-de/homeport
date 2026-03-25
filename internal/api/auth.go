@@ -2,7 +2,7 @@ package api
 
 import (
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -133,7 +133,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := db.CreateSession(profile, sessionDays)
 	if err != nil {
-		log.Printf("Login: failed to create session for %s: %v", profile, err)
+		slog.Error("create session", "profile", profile, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -178,13 +178,13 @@ func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 	}
 	profiles, err := db.GetProfiles()
 	if err != nil {
-		log.Printf("GetProfiles: %v", err)
+		slog.Error("GetProfiles", "err", err)
 	}
 	// Only show profiles that have a password set
 	for _, p := range profiles {
 		a, authErr := db.GetUserAuth(p.Slug)
 		if authErr != nil {
-			log.Printf("GetUserAuth(%s): %v", p.Slug, authErr)
+			slog.Error("GetUserAuth", "profile", p.Slug, "err", authErr)
 			continue
 		}
 		if a != nil {
@@ -192,7 +192,7 @@ func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 		}
 	}
 	if err := LoginTmpl.ExecuteTemplate(w, "login.html", data); err != nil {
-		log.Printf("Login template error: %v", err)
+		slog.Error("login template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -201,11 +201,11 @@ func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 	profiles, err := db.GetProfiles()
 	if err != nil {
-		log.Printf("GetProfiles: %v", err)
+		slog.Error("GetProfiles", "err", err)
 	}
 	auths, err := db.GetAllUserAuth()
 	if err != nil {
-		log.Printf("GetAllUserAuth: %v", err)
+		slog.Error("GetAllUserAuth", "err", err)
 	}
 	authMap := make(map[string]db.UserAuth)
 	for _, a := range auths {
@@ -226,7 +226,7 @@ func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 	}{Translator: i18n.NewTranslator(lang), Profiles: profiles, AuthMap: authMap}
 
 	if err := ManageTmpl.ExecuteTemplate(w, "auth_list", data); err != nil {
-		log.Printf("auth_list template error: %v", err)
+		slog.Error("auth_list template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -244,7 +244,7 @@ func HandleSetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.SetPassword(target, password); err != nil {
-		log.Printf("SetPassword error: %v", err)
+		slog.Error("SetPassword", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -259,7 +259,7 @@ func HandleDeletePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	target := r.FormValue("profile")
 	if err := db.DeleteUserAuth(target); err != nil {
-		log.Printf("DeleteUserAuth error: %v", err)
+		slog.Error("DeleteUserAuth", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

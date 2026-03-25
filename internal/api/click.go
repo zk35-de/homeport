@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,7 +34,7 @@ func HandleServiceRedirect(w http.ResponseWriter, r *http.Request) {
 
 	if profile != "" {
 		if err := db.RecordClick(id, profile); err != nil {
-			log.Printf("click track error service=%d profile=%s: %v", id, profile, err)
+			slog.Error("click track", "service", id, "profile", profile, "err", err)
 		}
 	}
 
@@ -51,7 +51,7 @@ func HandleSetCategorySortMode(w http.ResponseWriter, r *http.Request) {
 	}
 	mode := chi.URLParam(r, "mode")
 	if err := db.SetCategorySortMode(id, mode); err != nil {
-		log.Printf("SetCategorySortMode error: %v", err)
+		slog.Error("SetCategorySortMode", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -68,13 +68,13 @@ func HandleCategoryList(w http.ResponseWriter, r *http.Request) {
 	}
 	profiles, err := db.GetProfiles()
 	if err != nil {
-		log.Printf("GetProfiles: %v", err)
+		slog.Error("GetProfiles", "err", err)
 	}
 	data := struct {
 		Categories []db.Category
 		Profiles   []db.Profile
 	}{cats, profiles}
 	if err := ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
-		log.Printf("category_list render error: %v", err)
+		slog.Error("category_list render", "err", err)
 	}
 }

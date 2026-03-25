@@ -3,7 +3,7 @@ package i18n
 import (
 	"embed"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"strings"
 )
 
@@ -15,7 +15,7 @@ var translations = map[string]map[string]string{}
 func Load(fs embed.FS) {
 	entries, err := fs.ReadDir("i18n")
 	if err != nil {
-		log.Printf("i18n: cannot read i18n dir: %v", err)
+		slog.Error("i18n: cannot read i18n dir", "err", err)
 		return
 	}
 	for _, e := range entries {
@@ -25,16 +25,16 @@ func Load(fs embed.FS) {
 		lang := strings.TrimSuffix(e.Name(), ".json")
 		data, err := fs.ReadFile("i18n/" + e.Name())
 		if err != nil {
-			log.Printf("i18n: cannot read %s: %v", e.Name(), err)
+			slog.Error("i18n: cannot read file", "file", e.Name(), "err", err)
 			continue
 		}
 		var m map[string]string
 		if err := json.Unmarshal(data, &m); err != nil {
-			log.Printf("i18n: cannot parse %s: %v", e.Name(), err)
+			slog.Error("i18n: cannot parse file", "file", e.Name(), "err", err)
 			continue
 		}
 		translations[lang] = m
-		log.Printf("i18n: loaded %d strings for lang=%s", len(m), lang)
+		slog.Info("i18n: loaded strings", "count", len(m), "lang", lang)
 	}
 }
 

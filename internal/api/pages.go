@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -33,7 +33,7 @@ func HandleAddPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := db.AddPage(profile, name, icon); err != nil {
-		log.Printf("Error adding page: %v", err)
+		slog.Error("adding page", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -63,7 +63,7 @@ func HandleDeletePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.DeletePage(id); err != nil {
-		log.Printf("Error deleting page %d: %v", id, err)
+		slog.Error("deleting page", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -99,7 +99,7 @@ func HandleUpdatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.UpdatePage(id, name, icon); err != nil {
-		log.Printf("Error updating page %d: %v", id, err)
+		slog.Error("updating page", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -139,7 +139,7 @@ func HandleSetCategoryPage(w http.ResponseWriter, r *http.Request) {
 	catID, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	pageID, _ := strconv.Atoi(chi.URLParam(r, "pageID"))
 	if err := db.SetCategoryPage(catID, pageID); err != nil {
-		log.Printf("Error setting category page: %v", err)
+		slog.Error("setting category page", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -150,7 +150,7 @@ func HandleSetCategoryPage(w http.ResponseWriter, r *http.Request) {
 func renderPageList(w http.ResponseWriter, r *http.Request, profile string) {
 	pages, err := db.GetPages(profile)
 	if err != nil {
-		log.Printf("Error fetching pages: %v", err)
+		slog.Error("fetching pages", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -161,7 +161,7 @@ func renderPageList(w http.ResponseWriter, r *http.Request, profile string) {
 		Profile string
 	}{Translator: i18n.NewTranslator(lang), Pages: pages, Profile: profile}
 	if err := ManageTmpl.ExecuteTemplate(w, "page_list", data); err != nil {
-		log.Printf("Error executing page_list template: %v", err)
+		slog.Error("executing page_list template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

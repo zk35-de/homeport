@@ -2,7 +2,7 @@ package api
 
 import (
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"git.zk35.de/secalpha/homeport/internal/db"
@@ -27,21 +27,21 @@ func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 	filterProfile := r.URL.Query().Get("profile")
 	stats, err := db.GetTopClicks(filterProfile, 25)
 	if err != nil {
-		log.Printf("GetTopClicks error: %v", err)
+		slog.Error("GetTopClicks", "err", err)
 		stats = nil
 	}
 	profiles, err := db.GetProfiles()
 	if err != nil {
-		log.Printf("GetProfiles: %v", err)
+		slog.Error("GetProfiles", "err", err)
 	}
 	defaultProf, err := db.GetDefaultProfile()
 	if err != nil {
-		log.Printf("GetDefaultProfile: %v", err)
+		slog.Error("GetDefaultProfile", "err", err)
 	}
 	var prefs *db.UserPreferences
 	if defaultProf != nil {
 		if prefs, err = db.GetUserPreferences(defaultProf.Slug); err != nil {
-			log.Printf("GetUserPreferences(%s): %v", defaultProf.Slug, err)
+			slog.Error("GetUserPreferences", "profile", defaultProf.Slug, "err", err)
 		}
 	}
 	if prefs == nil {
@@ -60,7 +60,7 @@ func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 		Prefs:         prefs,
 	}
 	if err := AnalyticsTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
-		log.Printf("Analytics template error: %v", err)
+		slog.Error("analytics template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

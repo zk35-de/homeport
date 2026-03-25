@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -73,7 +73,7 @@ type serviceResult struct {
 func checkAllServices() {
 	services, err := db.GetAllServicesWithStatusCheck()
 	if err != nil {
-		log.Printf("Error fetching services for status check: %v", err)
+		slog.Error("fetching services for status check", "err", err)
 		return
 	}
 
@@ -87,7 +87,7 @@ func checkAllServices() {
 	for range services {
 		r := <-results
 		if err := db.UpdateServiceStatus(r.id, r.alive); err != nil {
-			log.Printf("Error updating status for service %d: %v", r.id, err)
+			slog.Error("updating service status", "id", r.id, "err", err)
 		}
 		update := StatusUpdate{ID: r.id, Alive: r.alive}
 		msg, _ := json.Marshal(update)

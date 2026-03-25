@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,7 +45,7 @@ func HandleAddDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := db.AddDiscoverySource(typ, name, url, token, interval); err != nil {
-		log.Printf("AddDiscoverySource error: %v", err)
+		slog.Error("AddDiscoverySource", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -61,7 +61,7 @@ func HandleDeleteDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := db.DeleteDiscoverySource(id); err != nil {
-		log.Printf("DeleteDiscoverySource error: %v", err)
+		slog.Error("DeleteDiscoverySource", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -78,7 +78,7 @@ func HandleToggleDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	}
 	sources, err := db.GetDiscoverySources()
 	if err != nil {
-		log.Printf("GetDiscoverySources: %v", err)
+		slog.Error("GetDiscoverySources", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -104,7 +104,7 @@ func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	}
 	sources, err := db.GetDiscoverySources()
 	if err != nil {
-		log.Printf("GetDiscoverySources: %v", err)
+		slog.Error("GetDiscoverySources", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -124,7 +124,7 @@ func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 func renderDiscoverySources(w http.ResponseWriter, r *http.Request) {
 	sources, err := db.GetDiscoverySources()
 	if err != nil {
-		log.Printf("GetDiscoverySources: %v", err)
+		slog.Error("GetDiscoverySources", "err", err)
 	}
 	lang := GetLang(r)
 	data := struct {
@@ -132,7 +132,7 @@ func renderDiscoverySources(w http.ResponseWriter, r *http.Request) {
 		Sources []db.DiscoverySource
 	}{Translator: i18n.NewTranslator(lang), Sources: sources}
 	if err := ManageTmpl.ExecuteTemplate(w, "discovery_sources", data); err != nil {
-		log.Printf("discovery_sources template error: %v", err)
+		slog.Error("discovery_sources template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
