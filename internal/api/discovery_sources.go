@@ -13,12 +13,12 @@ import (
 )
 
 // HandleGetDiscoverySources GET /manage/discovery/sources – returns rendered source list partial
-func HandleGetDiscoverySources(w http.ResponseWriter, r *http.Request) {
-	renderDiscoverySources(w, r)
+func (s *Server) HandleGetDiscoverySources(w http.ResponseWriter, r *http.Request) {
+	s.renderDiscoverySources(w, r)
 }
 
 // HandleAddDiscoverySource POST /manage/discovery/sources
-func HandleAddDiscoverySource(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleAddDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -50,11 +50,11 @@ func HandleAddDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	discovery.Global.Reload()
-	renderDiscoverySources(w, r)
+	s.renderDiscoverySources(w, r)
 }
 
 // HandleDeleteDiscoverySource DELETE /manage/discovery/sources/{id}
-func HandleDeleteDiscoverySource(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDeleteDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -66,11 +66,11 @@ func HandleDeleteDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	discovery.Global.Reload()
-	renderDiscoverySources(w, r)
+	s.renderDiscoverySources(w, r)
 }
 
 // HandleToggleDiscoverySource POST /manage/discovery/sources/{id}/toggle
-func HandleToggleDiscoverySource(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleToggleDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -82,9 +82,9 @@ func HandleToggleDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	for _, s := range sources {
-		if s.ID == id {
-			if err := db.SetDiscoverySourceEnabled(id, !s.Enabled); err != nil {
+	for _, src := range sources {
+		if src.ID == id {
+			if err := db.SetDiscoverySourceEnabled(id, !src.Enabled); err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -92,11 +92,11 @@ func HandleToggleDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	discovery.Global.Reload()
-	renderDiscoverySources(w, r)
+	s.renderDiscoverySources(w, r)
 }
 
 // HandleScanDiscoverySource POST /manage/discovery/sources/{id}/scan – manual immediate scan
-func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -108,11 +108,8 @@ func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	for _, s := range sources {
-		if s.ID == id {
-			// Reload triggers an immediate scan via new goroutine restart
-			// For a real immediate scan we'd need a trigger channel, but
-			// simply stopping+restarting is sufficient for manual use.
+	for _, src := range sources {
+		if src.ID == id {
 			_ = db.SetDiscoverySourceEnabled(id, true)
 			discovery.Global.Reload()
 			break
@@ -121,7 +118,7 @@ func HandleScanDiscoverySource(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func renderDiscoverySources(w http.ResponseWriter, r *http.Request) {
+func (s *Server) renderDiscoverySources(w http.ResponseWriter, r *http.Request) {
 	sources, err := db.GetDiscoverySources()
 	if err != nil {
 		slog.Error("GetDiscoverySources", "err", err)
@@ -131,7 +128,7 @@ func renderDiscoverySources(w http.ResponseWriter, r *http.Request) {
 		i18n.Translator
 		Sources []db.DiscoverySource
 	}{Translator: i18n.NewTranslator(lang), Sources: sources}
-	if err := ManageTmpl.ExecuteTemplate(w, "discovery_sources", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "discovery_sources", data); err != nil {
 		slog.Error("discovery_sources template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

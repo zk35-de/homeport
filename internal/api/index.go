@@ -1,10 +1,8 @@
 package api
 
 import (
-	"embed"
 	"fmt"
 	"html/template"
-	"log"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -41,51 +39,6 @@ var tmplFuncs = template.FuncMap{
 	"inc":      func(i int) int { return i + 1 },
 }
 
-// Separate template sets per page to avoid {{define "content"}} conflicts.
-var IndexTmpl *template.Template
-var ManageTmpl *template.Template
-
-func InitTemplates(fs embed.FS) {
-	i18n.Load(fs)
-	var err error
-
-	// Index templates: base + index.html + partials
-	IndexTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs,
-		"templates/base.html",
-		"templates/index.html",
-		"templates/partials/*.html",
-	)
-	if err != nil {
-		log.Fatalf("Error parsing index templates: %v", err)
-	}
-
-	// Manage templates: base + manage.html + partials
-	ManageTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs,
-		"templates/base.html",
-		"templates/manage.html",
-		"templates/partials/*.html",
-	)
-	if err != nil {
-		log.Fatalf("Error parsing manage templates: %v", err)
-	}
-
-	// Analytics template
-	AnalyticsTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs,
-		"templates/base.html",
-		"templates/analytics.html",
-		"templates/partials/*.html",
-	)
-	if err != nil {
-		log.Fatalf("Error parsing analytics templates: %v", err)
-	}
-
-	// Login template (standalone, no base.html)
-	LoginTmpl, err = template.New("").Funcs(tmplFuncs).ParseFS(fs, "templates/login.html")
-	if err != nil {
-		log.Fatalf("Error parsing login template: %v", err)
-	}
-}
-
 type IndexData struct {
 	i18n.Translator
 	Categories   []db.Category
@@ -97,7 +50,7 @@ type IndexData struct {
 	Profiles     []db.Profile
 }
 
-func HandleIndex(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	// Slug aus URL-Param (chi) oder URL-Pfad als Fallback (Tests ohne chi-Kontext)
 	slug := chi.URLParam(r, "slug")
 	if slug == "" {
@@ -154,7 +107,7 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 		Profiles:     allProfiles,
 	}
 
-	if err := IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+	if err := s.IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
 		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

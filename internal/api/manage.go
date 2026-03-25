@@ -23,7 +23,7 @@ type ManageData struct {
 	DefaultProfile string
 }
 
-func HandleManage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
 		slog.Error("fetching categories", "err", err)
@@ -67,14 +67,13 @@ func HandleManage(w http.ResponseWriter, r *http.Request) {
 		DefaultProfile: defaultSlug,
 	}
 
-	if err := ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
 		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-
-func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -90,10 +89,10 @@ func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleAddService(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleAddService(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -115,10 +114,10 @@ func HandleAddService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -134,10 +133,10 @@ func HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -153,10 +152,10 @@ func HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleGetService(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleGetService(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -191,13 +190,13 @@ func HandleGetService(w http.ResponseWriter, r *http.Request) {
 		Profiles:   profiles,
 	}
 
-	if err := ManageTmpl.ExecuteTemplate(w, "service_edit_form", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "service_edit_form", data); err != nil {
 		slog.Error("executing service_edit_form", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -227,10 +226,10 @@ func HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleGetCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -251,13 +250,13 @@ func HandleGetCategory(w http.ResponseWriter, r *http.Request) {
 		Category:   cat,
 	}
 
-	if err := ManageTmpl.ExecuteTemplate(w, "category_edit_form", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "category_edit_form", data); err != nil {
 		slog.Error("executing category_edit_form", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -282,10 +281,10 @@ func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleUpdateCategorySpan(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUpdateCategorySpan(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	span, _ := strconv.Atoi(chi.URLParam(r, "span"))
 	if err := db.UpdateCategorySpan(id, span); err != nil {
@@ -294,10 +293,10 @@ func HandleUpdateCategorySpan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleReorderCategories(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleReorderCategories(w http.ResponseWriter, r *http.Request) {
 	var items []db.ReorderItem
 	if err := json.NewDecoder(r.Body).Decode(&items); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -310,7 +309,7 @@ func HandleReorderCategories(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func HandleReorderServices(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleReorderServices(w http.ResponseWriter, r *http.Request) {
 	var items []db.ReorderItem
 	if err := json.NewDecoder(r.Body).Decode(&items); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -332,12 +331,7 @@ func GetLang(r *http.Request) string {
 	return "de"
 }
 
-func HandleSortCategory(w http.ResponseWriter, r *http.Request) {
-	// Simple swap logic or full reorder logic.
-	// For simplicity, we assume we just swap with adjacent.
-	// But "Up/Down" requires knowing the adjacent ID or using sort_order.
-	// Better approach: Get all categories, find index, swap sort_order with prev/next, update both.
-	
+func (s *Server) HandleSortCategory(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	direction := chi.URLParam(r, "direction")
 
@@ -363,15 +357,13 @@ func HandleSortCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleSortService(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleSortService(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	direction := chi.URLParam(r, "direction")
 
-	// Need to find service and its siblings.
-	// We can fetch all categories (which include services sorted) and find the service.
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -380,16 +372,16 @@ func HandleSortService(w http.ResponseWriter, r *http.Request) {
 
 	found := false
 	for _, c := range categories {
-		for i, s := range c.Services {
-			if s.ID == id {
+		for i, sv := range c.Services {
+			if sv.ID == id {
 				if direction == "up" && i > 0 {
 					prev := c.Services[i-1]
-					db.UpdateServiceSort(s.ID, prev.SortOrder)
-					db.UpdateServiceSort(prev.ID, s.SortOrder)
+					db.UpdateServiceSort(sv.ID, prev.SortOrder)
+					db.UpdateServiceSort(prev.ID, sv.SortOrder)
 				} else if direction == "down" && i < len(c.Services)-1 {
 					next := c.Services[i+1]
-					db.UpdateServiceSort(s.ID, next.SortOrder)
-					db.UpdateServiceSort(next.ID, s.SortOrder)
+					db.UpdateServiceSort(sv.ID, next.SortOrder)
+					db.UpdateServiceSort(next.ID, sv.SortOrder)
 				}
 				found = true
 				break
@@ -401,10 +393,10 @@ func HandleSortService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
 	srcSlug := chi.URLParam(r, "slug")
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -441,10 +433,10 @@ func HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	slog.Info("CloneProfile", "src", srcSlug, "dst", dstSlug, "added", added, "skipped", skipped)
-	HandleManage(w, r)
+	s.HandleManage(w, r)
 }
 
-func renderCategoryList(w http.ResponseWriter, lang string) {
+func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
 		slog.Error("fetching categories", "err", err)
@@ -460,20 +452,20 @@ func renderCategoryList(w http.ResponseWriter, lang string) {
 		Categories: categories,
 	}
 
-	if err := ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
 		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
 // HandleDiscoveryInbox handles the GET request for the discovery inbox partial.
-func HandleDiscoveryInbox(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDiscoveryInbox(w http.ResponseWriter, r *http.Request) {
 	lang := GetLang(r)
-	renderDiscoveryInbox(w, lang)
+	s.renderDiscoveryInbox(w, lang)
 }
 
 // HandleAcceptDiscovery handles accepting a discovered service.
-func HandleAcceptDiscovery(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleAcceptDiscovery(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
@@ -486,11 +478,11 @@ func HandleAcceptDiscovery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderDiscoveryInbox(w, lang)
+	s.renderDiscoveryInbox(w, lang)
 }
 
 // HandleIgnoreDiscovery handles ignoring a discovered service.
-func HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
@@ -503,11 +495,11 @@ func HandleIgnoreDiscovery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderDiscoveryInbox(w, lang)
+	s.renderDiscoveryInbox(w, lang)
 }
 
 // renderDiscoveryInbox fetches discovery items and renders the discovery_inbox partial.
-func renderDiscoveryInbox(w http.ResponseWriter, lang string) {
+func (s *Server) renderDiscoveryInbox(w http.ResponseWriter, lang string) {
 	items, err := db.GetDiscoveryInbox()
 	if err != nil {
 		slog.Error("fetching discovery inbox items", "err", err)
@@ -523,14 +515,13 @@ func renderDiscoveryInbox(w http.ResponseWriter, lang string) {
 		Items:      items,
 	}
 
-	if err := ManageTmpl.ExecuteTemplate(w, "discovery_inbox", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "discovery_inbox", data); err != nil {
 		slog.Error("executing discovery_inbox template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-
-func renderProfileList(w http.ResponseWriter, lang string) {
+func (s *Server) renderProfileList(w http.ResponseWriter, lang string) {
 	profiles, err := db.GetProfiles()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -543,13 +534,13 @@ func renderProfileList(w http.ResponseWriter, lang string) {
 		Translator: i18n.NewTranslator(lang),
 		Profiles:   profiles,
 	}
-	if err := ManageTmpl.ExecuteTemplate(w, "profile_list", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "profile_list", data); err != nil {
 		slog.Error("executing profile_list", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-func HandleAddProfile(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleAddProfile(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -566,10 +557,10 @@ func HandleAddProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderProfileList(w, lang)
+	s.renderProfileList(w, lang)
 }
 
-func HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if err := db.DeleteProfile(slug); err != nil {
 		slog.Error("deleting profile", "slug", slug, "err", err)
@@ -577,10 +568,10 @@ func HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderProfileList(w, lang)
+	s.renderProfileList(w, lang)
 }
 
-func HandleSetDefaultProfile(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleSetDefaultProfile(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if err := db.SetDefaultProfile(slug); err != nil {
 		slog.Error("setting default profile", "slug", slug, "err", err)
@@ -588,5 +579,5 @@ func HandleSetDefaultProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderProfileList(w, lang)
+	s.renderProfileList(w, lang)
 }

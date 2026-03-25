@@ -11,13 +11,13 @@ import (
 )
 
 // HandleGetPageList GET /manage/page-list?profile=...
-func HandleGetPageList(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleGetPageList(w http.ResponseWriter, r *http.Request) {
 	profile := r.URL.Query().Get("profile")
-	renderPageList(w, r, profile)
+	s.renderPageList(w, r, profile)
 }
 
 // HandleAddPage POST /manage/page
-func HandleAddPage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleAddPage(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -37,11 +37,11 @@ func HandleAddPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderPageList(w, r, profile)
+	s.renderPageList(w, r, profile)
 }
 
 // HandleDeletePage DELETE /manage/page/{id}
-func HandleDeletePage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDeletePage(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -67,11 +67,11 @@ func HandleDeletePage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderPageList(w, r, profile)
+	s.renderPageList(w, r, profile)
 }
 
 // HandleUpdatePage PATCH /manage/page/{id}
-func HandleUpdatePage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUpdatePage(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -103,11 +103,11 @@ func HandleUpdatePage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	renderPageList(w, r, profile)
+	s.renderPageList(w, r, profile)
 }
 
 // HandleSortPage POST /manage/sort/page/{id}/{direction}
-func HandleSortPage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleSortPage(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	direction := chi.URLParam(r, "direction")
 	profile := r.URL.Query().Get("profile")
@@ -131,11 +131,11 @@ func HandleSortPage(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	renderPageList(w, r, profile)
+	s.renderPageList(w, r, profile)
 }
 
 // HandleSetCategoryPage POST /manage/category/{id}/page/{pageID}
-func HandleSetCategoryPage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleSetCategoryPage(w http.ResponseWriter, r *http.Request) {
 	catID, _ := strconv.Atoi(chi.URLParam(r, "id"))
 	pageID, _ := strconv.Atoi(chi.URLParam(r, "pageID"))
 	if err := db.SetCategoryPage(catID, pageID); err != nil {
@@ -144,10 +144,10 @@ func HandleSetCategoryPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lang := GetLang(r)
-	renderCategoryList(w, lang)
+	s.renderCategoryList(w, lang)
 }
 
-func renderPageList(w http.ResponseWriter, r *http.Request, profile string) {
+func (s *Server) renderPageList(w http.ResponseWriter, r *http.Request, profile string) {
 	pages, err := db.GetPages(profile)
 	if err != nil {
 		slog.Error("fetching pages", "err", err)
@@ -160,7 +160,7 @@ func renderPageList(w http.ResponseWriter, r *http.Request, profile string) {
 		Pages   []db.Page
 		Profile string
 	}{Translator: i18n.NewTranslator(lang), Pages: pages, Profile: profile}
-	if err := ManageTmpl.ExecuteTemplate(w, "page_list", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "page_list", data); err != nil {
 		slog.Error("executing page_list template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

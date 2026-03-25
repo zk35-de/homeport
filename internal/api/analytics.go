@@ -1,16 +1,12 @@
 package api
 
 import (
-	"html/template"
 	"log/slog"
 	"net/http"
 
 	"git.zk35.de/secalpha/homeport/internal/db"
 	"git.zk35.de/secalpha/homeport/internal/i18n"
 )
-
-// AnalyticsTmpl is initialized in InitTemplates.
-var AnalyticsTmpl *template.Template
 
 type AnalyticsData struct {
 	i18n.Translator
@@ -23,7 +19,7 @@ type AnalyticsData struct {
 
 // HandleAnalytics renders the analytics page.
 // GET /manage/analytics
-func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 	filterProfile := r.URL.Query().Get("profile")
 	stats, err := db.GetTopClicks(filterProfile, 25)
 	if err != nil {
@@ -59,7 +55,7 @@ func HandleAnalytics(w http.ResponseWriter, r *http.Request) {
 		Profiles:      profiles,
 		Prefs:         prefs,
 	}
-	if err := AnalyticsTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+	if err := s.AnalyticsTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
 		slog.Error("analytics template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

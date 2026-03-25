@@ -22,13 +22,6 @@ type Broker struct {
 	Messages chan string
 }
 
-var StatusBroker = &Broker{
-	Clients:  make(map[chan string]bool),
-	Add:      make(chan chan string),
-	Remove:   make(chan chan string),
-	Messages: make(chan string),
-}
-
 func (b *Broker) Start() {
 	for {
 		select {
@@ -49,18 +42,18 @@ func (b *Broker) Start() {
 	}
 }
 
-func StartStatusChecker() {
-	go StatusBroker.Start()
+func (s *Server) StartStatusChecker() {
+	go s.Broker.Start()
 
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 
 		// Initial check
-		checkAllServices()
+		s.checkAllServices()
 
 		for range ticker.C {
-			checkAllServices()
+			s.checkAllServices()
 		}
 	}()
 }
@@ -70,7 +63,7 @@ type serviceResult struct {
 	alive bool
 }
 
-func checkAllServices() {
+func (s *Server) checkAllServices() {
 	services, err := db.GetAllServicesWithStatusCheck()
 	if err != nil {
 		slog.Error("fetching services for status check", "err", err)
@@ -78,10 +71,10 @@ func checkAllServices() {
 	}
 
 	results := make(chan serviceResult, len(services))
-	for _, s := range services {
+	for _, svc := range services {
 		go func(svc db.Service) {
 			results <- serviceResult{id: svc.ID, alive: pingService(svc.StatusCheck)}
-		}(s)
+		}(svc)
 	}
 
 	for range services {
@@ -91,8 +84,8 @@ func checkAllServices() {
 		}
 		update := StatusUpdate{ID: r.id, Alive: r.alive}
 		msg, _ := json.Marshal(update)
-		StatusBroker.Messages <- string(msg)
-		DefaultHub.Broadcast(Message{Type: ServiceStatusMsg, Payload: update})
+		s.Broker.Messages <- string(msg)
+		s.Hub.Broadcast(Message{Type: ServiceStatusMsg, Payload: update})
 	}
 }
 
@@ -110,17 +103,17 @@ func pingService(url string) bool {
 	return err == nil
 }
 
-func HandleStatusStream(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleStatusStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	messageChan := make(chan string)
-	StatusBroker.Add <- messageChan
+	s.Broker.Add <- messageChan
 
 	defer func() {
-		StatusBroker.Remove <- messageChan
+		s.Broker.Remove <- messageChan
 	}()
 
 	notify := r.Context().Done()

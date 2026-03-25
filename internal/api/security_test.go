@@ -17,7 +17,7 @@ import (
 // ── Feature Tests: Analytics ─────────────────────────────────────────────────
 
 func TestHandleAnalytics(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	// Set up AnalyticsTmpl using the analytics_content template
@@ -28,13 +28,12 @@ func TestHandleAnalytics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse analytics templates: %v", err)
 	}
-	api.AnalyticsTmpl = analyticsTmpl
-	defer func() { api.AnalyticsTmpl = nil }()
+	srv.AnalyticsTmpl = analyticsTmpl
 
 	t.Run("200 OK – empty stats", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/manage/analytics", nil)
 		rr := httptest.NewRecorder()
-		api.HandleAnalytics(rr, req)
+		srv.HandleAnalytics(rr, req)
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 		}
@@ -54,7 +53,7 @@ func TestHandleAnalytics(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/manage/analytics?profile=markus", nil)
 		rr := httptest.NewRecorder()
-		api.HandleAnalytics(rr, req)
+		srv.HandleAnalytics(rr, req)
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected 200 with profile filter, got %d", rr.Code)
 		}
@@ -71,7 +70,7 @@ func TestHandleAnalytics(t *testing.T) {
 // ── Security Tests: Input Validation / Boundary ───────────────────────────────
 
 func TestInputValidationBoundary(t *testing.T) {
-	cleanup := setupTest(t)
+	_, cleanup := setupTest(t)
 	defer cleanup()
 
 	t.Run("service URL 10000 chars → no panic", func(t *testing.T) {
@@ -93,7 +92,7 @@ func TestInputValidationBoundary(t *testing.T) {
 // ── Security Tests: Open Redirect ────────────────────────────────────────────
 
 func TestOpenRedirect(t *testing.T) {
-	cleanup := setupTest(t)
+	_, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("Cat", "blue")
@@ -238,7 +237,7 @@ func TestHandleHealth(t *testing.T) {
 }
 
 func TestHandleSearch(t *testing.T) {
-	cleanup := setupTest(t)
+	_, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("Work", "blue")
@@ -325,7 +324,7 @@ func TestXSSTemplateEscaping(t *testing.T) {
 	}
 
 	t.Run("category name with XSS payload escaped in category_list template", func(t *testing.T) {
-		cleanup := setupTest(t)
+		srv, cleanup := setupTest(t)
 		defer cleanup()
 
 		xssName := `<script>alert(1)</script>`
@@ -339,7 +338,7 @@ func TestXSSTemplateEscaping(t *testing.T) {
 		}{cats, profiles}
 
 		var buf strings.Builder
-		if err := api.ManageTmpl.ExecuteTemplate(&buf, "category_list", data); err != nil {
+		if err := srv.ManageTmpl.ExecuteTemplate(&buf, "category_list", data); err != nil {
 			t.Fatalf("ExecuteTemplate: %v", err)
 		}
 		out := buf.String()
@@ -355,16 +354,16 @@ func TestXSSTemplateEscaping(t *testing.T) {
 // ── Security Tests: IDOR – Page Ownership ────────────────────────────────────
 
 func TestPageIDORProtection(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	pageTmpl := `{{define "page_list"}}<div id="page-list">{{range .Pages}}{{.Name}}{{end}}</div>{{end}}`
-	api.ManageTmpl, _ = api.ManageTmpl.New("").Parse(pageTmpl)
+	srv.ManageTmpl, _ = srv.ManageTmpl.New("").Parse(pageTmpl)
 
 	router := chi.NewRouter()
-	router.Post("/manage/page", api.HandleAddPage)
-	router.Delete("/manage/page/{id}", api.HandleDeletePage)
-	router.Patch("/manage/page/{id}", api.HandleUpdatePage)
+	router.Post("/manage/page", srv.HandleAddPage)
+	router.Delete("/manage/page/{id}", srv.HandleDeletePage)
+	router.Patch("/manage/page/{id}", srv.HandleUpdatePage)
 
 	// Create page owned by "markus"
 	form := url.Values{"profile": {"markus"}, "name": {"Markus-Page"}, "icon": {"📄"}}
@@ -445,17 +444,17 @@ func TestPageIDORProtection(t *testing.T) {
 }
 
 func TestHandleAddAndDeletePage(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	// Inject minimal page_list template so ManageTmpl can render it
 	pageTmpl := `{{define "page_list"}}<div id="page-list">{{range .Pages}}{{.Name}}{{end}}</div>{{end}}`
-	api.ManageTmpl, _ = api.ManageTmpl.New("").Parse(pageTmpl)
+	srv.ManageTmpl, _ = srv.ManageTmpl.New("").Parse(pageTmpl)
 
 	router := chi.NewRouter()
-	router.Post("/manage/page", api.HandleAddPage)
-	router.Delete("/manage/page/{id}", api.HandleDeletePage)
-	router.Get("/manage/page-list", api.HandleGetPageList)
+	router.Post("/manage/page", srv.HandleAddPage)
+	router.Delete("/manage/page/{id}", srv.HandleDeletePage)
+	router.Get("/manage/page-list", srv.HandleGetPageList)
 
 	// Add a page
 	form := url.Values{"profile": {"markus"}, "name": {"Work"}, "icon": {"💼"}}

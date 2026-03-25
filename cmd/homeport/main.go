@@ -66,31 +66,28 @@ func main() {
 
 	slog.Info("homeport starting", "port", cfg.Port, "db", cfg.DBPath)
 
-	// Pass config to API handlers
-	api.SetConfig(cfg)
-
 	// Init DB
 	if err := db.InitDB(cfg.DBPath); err != nil {
-	        slog.Error("failed to init db", "err", err)
-	        os.Exit(1)
+		slog.Error("failed to init db", "err", err)
+		os.Exit(1)
 	}
 
 	// Scheduled Backups
 	if cfg.BackupInterval != "" {
-	        if d, err := time.ParseDuration(cfg.BackupInterval); err == nil && d > 0 {
-	                slog.Info("scheduled backups enabled", "interval", d, "dir", cfg.BackupDir, "max_keep", cfg.BackupMaxKeep)
-	                backup.ScheduledBackup(cfg.DBPath, cfg.BackupDir, d, cfg.BackupMaxKeep)
-	        } else if err != nil {
-	                slog.Error("failed to parse backup interval", "val", cfg.BackupInterval, "err", err)
-	        }
+		if d, err := time.ParseDuration(cfg.BackupInterval); err == nil && d > 0 {
+			slog.Info("scheduled backups enabled", "interval", d, "dir", cfg.BackupDir, "max_keep", cfg.BackupMaxKeep)
+			backup.ScheduledBackup(cfg.DBPath, cfg.BackupDir, d, cfg.BackupMaxKeep)
+		} else if err != nil {
+			slog.Error("failed to parse backup interval", "val", cfg.BackupInterval, "err", err)
+		}
 	}
 
-	// Init Templates (uses embedded FS from assets package)
-
-	api.InitTemplates(assets.FS)
+	// Create Server with config and init templates
+	srv := api.New(cfg)
+	srv.InitTemplates(assets.FS)
 
 	// Start Background Tasks
-	api.StartStatusChecker()
+	srv.StartStatusChecker()
 	go runPodmanScanner()
 	go runSessionPurger()
 
@@ -115,73 +112,72 @@ func main() {
 	}))
 
 	// Auth routes
-	r.Get("/login", api.HandleLogin)
-	r.Post("/login", api.HandleLogin)
-	r.Post("/logout", api.HandleLogout)
+	r.Get("/login", srv.HandleLogin)
+	r.Post("/login", srv.HandleLogin)
+	r.Post("/logout", srv.HandleLogout)
 
 	// HTML Routes – / = default profile, /{slug} = profile by slug
-	// /{slug} muss NACH allen statischen Routen stehen (chi priorisiert statische)
-	r.Get("/", api.HandleIndex)
+	r.Get("/", srv.HandleIndex)
 
-	r.Get("/status/stream", api.HandleStatusStream)
+	r.Get("/status/stream", srv.HandleStatusStream)
 
 	// Service click-tracking redirect
 	r.Get("/r/{id}", api.HandleServiceRedirect)
 
 	r.Route("/manage", func(r chi.Router) {
-		r.Use(api.RequireAdmin)
-	        r.Post("/profile/{slug}/clone", api.HandleCloneProfile)
-	        r.Get("/", api.HandleManage)
-		r.Get("/analytics", api.HandleAnalytics)
+		r.Use(srv.RequireAdmin)
+		r.Post("/profile/{slug}/clone", srv.HandleCloneProfile)
+		r.Get("/", srv.HandleManage)
+		r.Get("/analytics", srv.HandleAnalytics)
 
-	        // Backup & Restore
-	        r.Get("/backup", api.HandleBackupDownload)
-	        r.Post("/restore", api.HandleRestore)
+		// Backup & Restore
+		r.Get("/backup", srv.HandleBackupDownload)
+		r.Post("/restore", srv.HandleRestore)
 
-	        r.Post("/category", api.HandleAddCategory)
+		r.Post("/category", srv.HandleAddCategory)
 
-		r.Post("/service", api.HandleAddService)
-		r.Delete("/category/{id}", api.HandleDeleteCategory)
-		r.Delete("/service/{id}", api.HandleDeleteService)
-		r.Get("/category/{id}/edit", api.HandleGetCategory)
-		r.Patch("/category/{id}", api.HandleUpdateCategory)
-		r.Post("/category/{id}/span/{span}", api.HandleUpdateCategorySpan)
-		r.Get("/service/{id}/edit", api.HandleGetService)
-		r.Patch("/service/{id}", api.HandleUpdateService)
-		r.Post("/sort/category/{id}/{direction}", api.HandleSortCategory)
-		r.Post("/sort/service/{id}/{direction}", api.HandleSortService)
-		r.Post("/sort/category/reorder", api.HandleReorderCategories)
-		r.Post("/sort/service/reorder", api.HandleReorderServices)
+		r.Post("/service", srv.HandleAddService)
+		r.Delete("/category/{id}", srv.HandleDeleteCategory)
+		r.Delete("/service/{id}", srv.HandleDeleteService)
+		r.Get("/category/{id}/edit", srv.HandleGetCategory)
+		r.Patch("/category/{id}", srv.HandleUpdateCategory)
+		r.Post("/category/{id}/span/{span}", srv.HandleUpdateCategorySpan)
+		r.Get("/service/{id}/edit", srv.HandleGetService)
+		r.Patch("/service/{id}", srv.HandleUpdateService)
+		r.Post("/sort/category/{id}/{direction}", srv.HandleSortCategory)
+		r.Post("/sort/service/{id}/{direction}", srv.HandleSortService)
+		r.Post("/sort/category/reorder", srv.HandleReorderCategories)
+		r.Post("/sort/service/reorder", srv.HandleReorderServices)
 
-		r.Get("/discovery", api.HandleDiscoveryInbox)
-		r.Post("/discovery/{id}/accept", api.HandleAcceptDiscovery)
-		r.Post("/discovery/{id}/ignore", api.HandleIgnoreDiscovery)
+		r.Get("/discovery", srv.HandleDiscoveryInbox)
+		r.Post("/discovery/{id}/accept", srv.HandleAcceptDiscovery)
+		r.Post("/discovery/{id}/ignore", srv.HandleIgnoreDiscovery)
 
 		// Discovery Sources
-		r.Get("/discovery/sources", api.HandleGetDiscoverySources)
-		r.Post("/discovery/sources", api.HandleAddDiscoverySource)
-		r.Delete("/discovery/sources/{id}", api.HandleDeleteDiscoverySource)
-		r.Post("/discovery/sources/{id}/toggle", api.HandleToggleDiscoverySource)
-		r.Post("/discovery/sources/{id}/scan", api.HandleScanDiscoverySource)
+		r.Get("/discovery/sources", srv.HandleGetDiscoverySources)
+		r.Post("/discovery/sources", srv.HandleAddDiscoverySource)
+		r.Delete("/discovery/sources/{id}", srv.HandleDeleteDiscoverySource)
+		r.Post("/discovery/sources/{id}/toggle", srv.HandleToggleDiscoverySource)
+		r.Post("/discovery/sources/{id}/scan", srv.HandleScanDiscoverySource)
 
 		// Auth management
-		r.Get("/auth", api.HandleManageAuth)
-		r.Post("/auth/password", api.HandleSetPassword)
-		r.Post("/auth/password/delete", api.HandleDeletePassword)
+		r.Get("/auth", srv.HandleManageAuth)
+		r.Post("/auth/password", srv.HandleSetPassword)
+		r.Post("/auth/password/delete", srv.HandleDeletePassword)
 
 		// Profile management
-		r.Post("/profile", api.HandleAddProfile)
-		r.Delete("/profile/{slug}", api.HandleDeleteProfile)
-		r.Post("/profile/{slug}/default", api.HandleSetDefaultProfile)
-		r.Post("/category/{id}/sortmode/{mode}", api.HandleSetCategorySortMode)
+		r.Post("/profile", srv.HandleAddProfile)
+		r.Delete("/profile/{slug}", srv.HandleDeleteProfile)
+		r.Post("/profile/{slug}/default", srv.HandleSetDefaultProfile)
+		r.Post("/category/{id}/sortmode/{mode}", srv.HandleSetCategorySortMode)
 
 		// Page management
-		r.Get("/page-list", api.HandleGetPageList)
-		r.Post("/page", api.HandleAddPage)
-		r.Delete("/page/{id}", api.HandleDeletePage)
-		r.Patch("/page/{id}", api.HandleUpdatePage)
-		r.Post("/sort/page/{id}/{direction}", api.HandleSortPage)
-		r.Post("/category/{id}/page/{pageID}", api.HandleSetCategoryPage)
+		r.Get("/page-list", srv.HandleGetPageList)
+		r.Post("/page", srv.HandleAddPage)
+		r.Delete("/page/{id}", srv.HandleDeletePage)
+		r.Patch("/page/{id}", srv.HandleUpdatePage)
+		r.Post("/sort/page/{id}/{direction}", srv.HandleSortPage)
+		r.Post("/category/{id}/page/{pageID}", srv.HandleSetCategoryPage)
 	})
 
 	// REST API Routes
@@ -200,12 +196,12 @@ func main() {
 	})
 
 	// /{slug} nach allen statischen Routen – chi priorisiert diese automatisch
-	r.Get("/{slug}", api.HandleIndex)
+	r.Get("/{slug}", srv.HandleIndex)
 
 	// Custom 404
 	r.NotFound(api.Handle404)
 
-	srv := &http.Server{
+	httpSrv := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: r,
 	}
@@ -215,8 +211,8 @@ func main() {
 	defer stop()
 
 	go func() {
-		slog.Info("server listening", "addr", srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		slog.Info("server listening", "addr", httpSrv.Addr)
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "err", err)
 			os.Exit(1)
 		}
@@ -227,7 +223,7 @@ func main() {
 
 	shutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(shutCtx); err != nil {
+	if err := httpSrv.Shutdown(shutCtx); err != nil {
 		slog.Error("shutdown error", "err", err)
 	}
 	slog.Info("shutdown complete")

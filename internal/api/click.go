@@ -43,7 +43,7 @@ func HandleServiceRedirect(w http.ResponseWriter, r *http.Request) {
 
 // HandleSetCategorySortMode sets the sort mode for a category.
 // POST /manage/category/{id}/sortmode/{mode}
-func HandleSetCategorySortMode(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleSetCategorySortMode(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)
@@ -56,11 +56,11 @@ func HandleSetCategorySortMode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Re-render category list
-	HandleCategoryList(w, r)
+	s.HandleCategoryList(w, r)
 }
 
 // HandleCategoryList renders the category_list partial (shared helper).
-func HandleCategoryList(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleCategoryList(w http.ResponseWriter, r *http.Request) {
 	cats, err := db.GetCategoriesWithServices("")
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -74,7 +74,7 @@ func HandleCategoryList(w http.ResponseWriter, r *http.Request) {
 		Categories []db.Category
 		Profiles   []db.Profile
 	}{cats, profiles}
-	if err := ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
 		slog.Error("category_list render", "err", err)
 	}
 }

@@ -19,32 +19,29 @@ import (
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
-// setupTestWithLogin extends setupTest to also initialize api.LoginTmpl.
-func setupTestWithLogin(t *testing.T) func() {
+// setupTestWithLogin extends setupTest to also initialize srv.LoginTmpl.
+func setupTestWithLogin(t *testing.T) (*api.Server, func()) {
 	t.Helper()
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	loginTmpl, err := template.ParseFS(testTemplateFS, "testdata/login.html")
 	if err != nil {
 		cleanup()
 		t.Fatalf("Failed to parse login template: %v", err)
 	}
-	api.LoginTmpl = loginTmpl
-	return func() {
-		cleanup()
-		api.LoginTmpl = nil
-	}
+	srv.LoginTmpl = loginTmpl
+	return srv, cleanup
 }
 
 
 // --- Auth ---
 
 func TestHandleLoginGET(t *testing.T) {
-	cleanup := setupTestWithLogin(t)
+	srv, cleanup := setupTestWithLogin(t)
 	defer cleanup()
 
 	req := httptest.NewRequest("GET", "/login", nil)
 	rr := httptest.NewRecorder()
-	api.HandleLogin(rr, req)
+	srv.HandleLogin(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
@@ -55,7 +52,7 @@ func TestHandleLoginGET(t *testing.T) {
 }
 
 func TestHandleLoginPOST_WrongPassword(t *testing.T) {
-	cleanup := setupTestWithLogin(t)
+	srv, cleanup := setupTestWithLogin(t)
 	defer cleanup()
 
 	formData := url.Values{}
@@ -65,7 +62,7 @@ func TestHandleLoginPOST_WrongPassword(t *testing.T) {
 	req := httptest.NewRequest("POST", "/login", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	api.HandleLogin(rr, req)
+	srv.HandleLogin(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200 with error, got %d", rr.Code)
@@ -78,12 +75,12 @@ func TestHandleLoginPOST_WrongPassword(t *testing.T) {
 }
 
 func TestHandleLogout(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	req := httptest.NewRequest("POST", "/logout", nil)
 	rr := httptest.NewRecorder()
-	api.HandleLogout(rr, req)
+	srv.HandleLogout(rr, req)
 
 	if rr.Code != http.StatusSeeOther {
 		t.Errorf("expected redirect, got %d", rr.Code)
@@ -146,7 +143,7 @@ func TestRequireAuth_Enabled_Whitelist(t *testing.T) {
 // --- ServiceRedirect ---
 
 func TestHandleServiceRedirect(t *testing.T) {
-	cleanup := setupTest(t)
+	_, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("Cat", "blue")
@@ -185,14 +182,14 @@ func TestHandleServiceRedirect(t *testing.T) {
 // --- CategoryList / SetCategorySortMode ---
 
 func TestHandleCategoryList(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("ListCat", "green")
 
 	req := httptest.NewRequest("GET", "/category-list", nil)
 	rr := httptest.NewRecorder()
-	api.HandleCategoryList(rr, req)
+	srv.HandleCategoryList(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
@@ -203,7 +200,7 @@ func TestHandleCategoryList(t *testing.T) {
 }
 
 func TestHandleSetCategorySortMode(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("SortCat", "red")
@@ -211,7 +208,7 @@ func TestHandleSetCategorySortMode(t *testing.T) {
 	catID := cats[0].ID
 
 	r := chi.NewRouter()
-	r.Post("/manage/category/{id}/sortmode/{mode}", api.HandleSetCategorySortMode)
+	r.Post("/manage/category/{id}/sortmode/{mode}", srv.HandleSetCategorySortMode)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/manage/category/%d/sortmode/manual", catID), nil)
 	rr := httptest.NewRecorder()
@@ -225,7 +222,7 @@ func TestHandleSetCategorySortMode(t *testing.T) {
 // --- GetService / UpdateService ---
 
 func TestHandleGetService(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("Cat", "blue")
@@ -235,7 +232,7 @@ func TestHandleGetService(t *testing.T) {
 	svcID := catsWithSvc[0].Services[0].ID
 
 	r := chi.NewRouter()
-	r.Get("/manage/service/{id}", api.HandleGetService)
+	r.Get("/manage/service/{id}", srv.HandleGetService)
 
 	t.Run("found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/manage/service/%d", svcID), nil)
@@ -262,7 +259,7 @@ func TestHandleGetService(t *testing.T) {
 }
 
 func TestHandleUpdateService(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("Cat", "blue")
@@ -272,7 +269,7 @@ func TestHandleUpdateService(t *testing.T) {
 	svcID := catsWithSvc[0].Services[0].ID
 
 	r := chi.NewRouter()
-	r.Post("/manage/service/{id}", api.HandleUpdateService)
+	r.Post("/manage/service/{id}", srv.HandleUpdateService)
 
 	formData := url.Values{}
 	formData.Set("name", "NewName")
@@ -296,7 +293,7 @@ func TestHandleUpdateService(t *testing.T) {
 // --- GetCategory / UpdateCategory / UpdateCategorySpan ---
 
 func TestHandleGetCategory(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("EditCat", "purple")
@@ -304,7 +301,7 @@ func TestHandleGetCategory(t *testing.T) {
 	catID := cats[0].ID
 
 	r := chi.NewRouter()
-	r.Get("/manage/category/{id}", api.HandleGetCategory)
+	r.Get("/manage/category/{id}", srv.HandleGetCategory)
 
 	t.Run("found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/manage/category/%d", catID), nil)
@@ -331,7 +328,7 @@ func TestHandleGetCategory(t *testing.T) {
 }
 
 func TestHandleUpdateCategory(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("OldCat", "red")
@@ -339,7 +336,7 @@ func TestHandleUpdateCategory(t *testing.T) {
 	catID := cats[0].ID
 
 	r := chi.NewRouter()
-	r.Post("/manage/category/{id}", api.HandleUpdateCategory)
+	r.Post("/manage/category/{id}", srv.HandleUpdateCategory)
 
 	formData := url.Values{}
 	formData.Set("name", "UpdatedCat")
@@ -357,7 +354,7 @@ func TestHandleUpdateCategory(t *testing.T) {
 }
 
 func TestHandleUpdateCategorySpan(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("SpanCat", "blue")
@@ -365,7 +362,7 @@ func TestHandleUpdateCategorySpan(t *testing.T) {
 	catID := cats[0].ID
 
 	r := chi.NewRouter()
-	r.Post("/manage/category/{id}/span/{span}", api.HandleUpdateCategorySpan)
+	r.Post("/manage/category/{id}/span/{span}", srv.HandleUpdateCategorySpan)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/manage/category/%d/span/2", catID), nil)
 	rr := httptest.NewRecorder()
@@ -379,7 +376,7 @@ func TestHandleUpdateCategorySpan(t *testing.T) {
 // --- ReorderCategories / ReorderServices ---
 
 func TestHandleReorderCategories(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("CatA", "red")
@@ -395,7 +392,7 @@ func TestHandleReorderCategories(t *testing.T) {
 	req := httptest.NewRequest("POST", "/manage/categories/reorder", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
-	api.HandleReorderCategories(rr, req)
+	srv.HandleReorderCategories(rr, req)
 
 	if rr.Code != http.StatusNoContent {
 		t.Errorf("expected 204, got %d", rr.Code)
@@ -403,7 +400,7 @@ func TestHandleReorderCategories(t *testing.T) {
 }
 
 func TestHandleReorderServices(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("Cat", "blue")
@@ -422,7 +419,7 @@ func TestHandleReorderServices(t *testing.T) {
 	req := httptest.NewRequest("POST", "/manage/services/reorder", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
-	api.HandleReorderServices(rr, req)
+	srv.HandleReorderServices(rr, req)
 
 	if rr.Code != http.StatusNoContent {
 		t.Errorf("expected 204, got %d", rr.Code)
@@ -432,7 +429,7 @@ func TestHandleReorderServices(t *testing.T) {
 // --- Profiles ---
 
 func TestHandleAddProfile(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	t.Run("success", func(t *testing.T) {
@@ -443,7 +440,7 @@ func TestHandleAddProfile(t *testing.T) {
 		req := httptest.NewRequest("POST", "/manage/profiles", strings.NewReader(formData.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rr := httptest.NewRecorder()
-		api.HandleAddProfile(rr, req)
+		srv.HandleAddProfile(rr, req)
 
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected 200, got %d", rr.Code)
@@ -460,7 +457,7 @@ func TestHandleAddProfile(t *testing.T) {
 		req := httptest.NewRequest("POST", "/manage/profiles", strings.NewReader(formData.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rr := httptest.NewRecorder()
-		api.HandleAddProfile(rr, req)
+		srv.HandleAddProfile(rr, req)
 
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("expected 400, got %d", rr.Code)
@@ -469,13 +466,13 @@ func TestHandleAddProfile(t *testing.T) {
 }
 
 func TestHandleDeleteProfile(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddProfile("Temp", "temp")
 
 	r := chi.NewRouter()
-	r.Delete("/manage/profiles/{slug}", api.HandleDeleteProfile)
+	r.Delete("/manage/profiles/{slug}", srv.HandleDeleteProfile)
 
 	req := httptest.NewRequest("DELETE", "/manage/profiles/temp", nil)
 	rr := httptest.NewRecorder()
@@ -487,13 +484,13 @@ func TestHandleDeleteProfile(t *testing.T) {
 }
 
 func TestHandleSetDefaultProfile(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddProfile("Extra", "extra")
 
 	r := chi.NewRouter()
-	r.Post("/manage/profiles/{slug}/default", api.HandleSetDefaultProfile)
+	r.Post("/manage/profiles/{slug}/default", srv.HandleSetDefaultProfile)
 
 	req := httptest.NewRequest("POST", "/manage/profiles/extra/default", nil)
 	rr := httptest.NewRecorder()
@@ -507,7 +504,7 @@ func TestHandleSetDefaultProfile(t *testing.T) {
 // --- Preferences ---
 
 func TestHandleGetPreferences(t *testing.T) {
-	cleanup := setupTest(t)
+	_, cleanup := setupTest(t)
 	defer cleanup()
 
 	t.Run("default profile", func(t *testing.T) {
@@ -535,7 +532,7 @@ func TestHandleGetPreferences(t *testing.T) {
 }
 
 func TestHandleSetPreferences(t *testing.T) {
-	cleanup := setupTest(t)
+	_, cleanup := setupTest(t)
 	defer cleanup()
 
 	patch := map[string]string{
@@ -678,13 +675,13 @@ func TestCSRFMiddleware_InvalidToken(t *testing.T) {
 // --- Pages ---
 
 func TestHandleUpdatePage(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	pageID, _ := db.AddPage("markus", "OldPage", "📄")
 
 	r := chi.NewRouter()
-	r.Patch("/manage/page/{id}", api.HandleUpdatePage)
+	r.Patch("/manage/page/{id}", srv.HandleUpdatePage)
 
 	formData := url.Values{}
 	formData.Set("name", "UpdatedPage")
@@ -702,7 +699,7 @@ func TestHandleUpdatePage(t *testing.T) {
 }
 
 func TestHandleSortPage(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddPage("markus", "Page1", "📄")
@@ -710,7 +707,7 @@ func TestHandleSortPage(t *testing.T) {
 	pages, _ := db.GetPages("markus")
 
 	r := chi.NewRouter()
-	r.Post("/manage/sort/page/{id}/{direction}", api.HandleSortPage)
+	r.Post("/manage/sort/page/{id}/{direction}", srv.HandleSortPage)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/manage/sort/page/%d/down?profile=markus", pages[0].ID), nil)
 	rr := httptest.NewRecorder()
@@ -722,7 +719,7 @@ func TestHandleSortPage(t *testing.T) {
 }
 
 func TestHandleSetCategoryPage(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	db.AddCategory("Cat", "blue")
@@ -732,7 +729,7 @@ func TestHandleSetCategoryPage(t *testing.T) {
 	pageID, _ := db.AddPage("markus", "MyPage", "📄")
 
 	r := chi.NewRouter()
-	r.Post("/manage/category/{id}/page/{pageID}", api.HandleSetCategoryPage)
+	r.Post("/manage/category/{id}/page/{pageID}", srv.HandleSetCategoryPage)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/manage/category/%d/page/%d", catID, pageID), nil)
 	rr := httptest.NewRecorder()
@@ -746,12 +743,12 @@ func TestHandleSetCategoryPage(t *testing.T) {
 // --- Discovery Sources ---
 
 func TestHandleGetDiscoverySources(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	req := httptest.NewRequest("GET", "/manage/discovery/sources", nil)
 	rr := httptest.NewRecorder()
-	api.HandleGetDiscoverySources(rr, req)
+	srv.HandleGetDiscoverySources(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
@@ -762,7 +759,7 @@ func TestHandleGetDiscoverySources(t *testing.T) {
 }
 
 func TestHandleAddDiscoverySource_Validation(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	t.Run("missing fields", func(t *testing.T) {
@@ -773,7 +770,7 @@ func TestHandleAddDiscoverySource_Validation(t *testing.T) {
 		req := httptest.NewRequest("POST", "/manage/discovery/sources", strings.NewReader(formData.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rr := httptest.NewRecorder()
-		api.HandleAddDiscoverySource(rr, req)
+		srv.HandleAddDiscoverySource(rr, req)
 
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("expected 400 for missing fields, got %d", rr.Code)
@@ -789,7 +786,7 @@ func TestHandleAddDiscoverySource_Validation(t *testing.T) {
 		req := httptest.NewRequest("POST", "/manage/discovery/sources", strings.NewReader(formData.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rr := httptest.NewRecorder()
-		api.HandleAddDiscoverySource(rr, req)
+		srv.HandleAddDiscoverySource(rr, req)
 
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("expected 400 for invalid URL, got %d", rr.Code)
@@ -798,11 +795,11 @@ func TestHandleAddDiscoverySource_Validation(t *testing.T) {
 }
 
 func TestHandleDeleteDiscoverySource_BadID(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	r := chi.NewRouter()
-	r.Delete("/manage/discovery/sources/{id}", api.HandleDeleteDiscoverySource)
+	r.Delete("/manage/discovery/sources/{id}", srv.HandleDeleteDiscoverySource)
 
 	req := httptest.NewRequest("DELETE", "/manage/discovery/sources/not-a-number", nil)
 	rr := httptest.NewRecorder()
@@ -814,11 +811,11 @@ func TestHandleDeleteDiscoverySource_BadID(t *testing.T) {
 }
 
 func TestHandleToggleDiscoverySource_BadID(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	r := chi.NewRouter()
-	r.Post("/manage/discovery/sources/{id}/toggle", api.HandleToggleDiscoverySource)
+	r.Post("/manage/discovery/sources/{id}/toggle", srv.HandleToggleDiscoverySource)
 
 	req := httptest.NewRequest("POST", "/manage/discovery/sources/not-a-number/toggle", nil)
 	rr := httptest.NewRecorder()
@@ -830,14 +827,14 @@ func TestHandleToggleDiscoverySource_BadID(t *testing.T) {
 }
 
 func TestHandleDeleteDiscoverySource_Success(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	// Add a source directly via DB (no goroutine started)
 	srcID, _ := db.AddDiscoverySource("npm", "TestSource", "http://localhost:19999", "", 3600)
 
 	r := chi.NewRouter()
-	r.Delete("/manage/discovery/sources/{id}", api.HandleDeleteDiscoverySource)
+	r.Delete("/manage/discovery/sources/{id}", srv.HandleDeleteDiscoverySource)
 
 	req := httptest.NewRequest("DELETE", fmt.Sprintf("/manage/discovery/sources/%d", srcID), nil)
 	rr := httptest.NewRecorder()
@@ -849,7 +846,7 @@ func TestHandleDeleteDiscoverySource_Success(t *testing.T) {
 }
 
 func TestHandleToggleDiscoverySource_Success(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	// Add a disabled source so Reload doesn't start a goroutine
@@ -858,7 +855,7 @@ func TestHandleToggleDiscoverySource_Success(t *testing.T) {
 	db.SetDiscoverySourceEnabled(int(srcID), false)
 
 	r := chi.NewRouter()
-	r.Post("/manage/discovery/sources/{id}/toggle", api.HandleToggleDiscoverySource)
+	r.Post("/manage/discovery/sources/{id}/toggle", srv.HandleToggleDiscoverySource)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/manage/discovery/sources/%d/toggle", srcID), nil)
 	rr := httptest.NewRecorder()
@@ -870,13 +867,13 @@ func TestHandleToggleDiscoverySource_Success(t *testing.T) {
 }
 
 func TestHandleScanDiscoverySource_Success(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	srcID, _ := db.AddDiscoverySource("npm", "ScanSource", "http://localhost:19999", "", 3600)
 
 	r := chi.NewRouter()
-	r.Post("/manage/discovery/sources/{id}/scan", api.HandleScanDiscoverySource)
+	r.Post("/manage/discovery/sources/{id}/scan", srv.HandleScanDiscoverySource)
 
 	req := httptest.NewRequest("POST", fmt.Sprintf("/manage/discovery/sources/%d/scan", srcID), nil)
 	rr := httptest.NewRecorder()
@@ -888,11 +885,11 @@ func TestHandleScanDiscoverySource_Success(t *testing.T) {
 }
 
 func TestHandleScanDiscoverySource_BadID(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	r := chi.NewRouter()
-	r.Post("/manage/discovery/sources/{id}/scan", api.HandleScanDiscoverySource)
+	r.Post("/manage/discovery/sources/{id}/scan", srv.HandleScanDiscoverySource)
 
 	req := httptest.NewRequest("POST", "/manage/discovery/sources/not-a-number/scan", nil)
 	rr := httptest.NewRecorder()
@@ -906,12 +903,12 @@ func TestHandleScanDiscoverySource_BadID(t *testing.T) {
 // --- Auth Management ---
 
 func TestHandleManageAuth(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	req := httptest.NewRequest("GET", "/manage/auth", nil)
 	rr := httptest.NewRecorder()
-	api.HandleManageAuth(rr, req)
+	srv.HandleManageAuth(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
@@ -922,7 +919,7 @@ func TestHandleManageAuth(t *testing.T) {
 }
 
 func TestHandleSetPassword(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	formData := url.Values{}
@@ -932,7 +929,7 @@ func TestHandleSetPassword(t *testing.T) {
 	req := httptest.NewRequest("POST", "/manage/auth/password", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	api.HandleSetPassword(rr, req)
+	srv.HandleSetPassword(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
@@ -940,7 +937,7 @@ func TestHandleSetPassword(t *testing.T) {
 }
 
 func TestHandleSetPassword_BadRequest(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	// Missing password
@@ -950,7 +947,7 @@ func TestHandleSetPassword_BadRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/manage/auth/password", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	api.HandleSetPassword(rr, req)
+	srv.HandleSetPassword(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for missing password, got %d", rr.Code)
@@ -958,7 +955,7 @@ func TestHandleSetPassword_BadRequest(t *testing.T) {
 }
 
 func TestHandleDeletePassword(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	// Set a password first
@@ -967,14 +964,14 @@ func TestHandleDeletePassword(t *testing.T) {
 	req := httptest.NewRequest("DELETE", "/manage/auth/password", strings.NewReader(url.Values{"profile": {"markus"}}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	api.HandleDeletePassword(rr, req)
+	srv.HandleDeletePassword(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
 	}
 }
 
-// --- Handle404 / SetConfig / Backup nil ---
+// --- Handle404 / Backup nil config ---
 
 func TestHandle404(t *testing.T) {
 	req := httptest.NewRequest("GET", "/nonexistent", nil)
@@ -986,17 +983,11 @@ func TestHandle404(t *testing.T) {
 	}
 }
 
-func TestSetConfig(t *testing.T) {
-	cfg := &config.Config{DBPath: "/tmp/test.db"}
-	api.SetConfig(cfg)
-	defer api.SetConfig(nil)
-}
-
 func TestHandleBackupDownload_NilConfig(t *testing.T) {
-	api.SetConfig(nil)
+	srv := api.New(nil)
 	req := httptest.NewRequest("GET", "/manage/backup", nil)
 	rr := httptest.NewRecorder()
-	api.HandleBackupDownload(rr, req)
+	srv.HandleBackupDownload(rr, req)
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("expected 500 with nil config, got %d", rr.Code)
@@ -1004,10 +995,10 @@ func TestHandleBackupDownload_NilConfig(t *testing.T) {
 }
 
 func TestHandleRestore_NilConfig(t *testing.T) {
-	api.SetConfig(nil)
+	srv := api.New(nil)
 	req := httptest.NewRequest("POST", "/manage/restore", nil)
 	rr := httptest.NewRecorder()
-	api.HandleRestore(rr, req)
+	srv.HandleRestore(rr, req)
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("expected 500 with nil config, got %d", rr.Code)
@@ -1036,12 +1027,12 @@ func TestCSRFToken(t *testing.T) {
 // --- ReorderCategories / ReorderServices bad JSON ---
 
 func TestHandleReorderCategories_BadJSON(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	req := httptest.NewRequest("POST", "/manage/categories/reorder", strings.NewReader("not-json"))
 	rr := httptest.NewRecorder()
-	api.HandleReorderCategories(rr, req)
+	srv.HandleReorderCategories(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for bad JSON, got %d", rr.Code)
@@ -1049,12 +1040,12 @@ func TestHandleReorderCategories_BadJSON(t *testing.T) {
 }
 
 func TestHandleReorderServices_BadJSON(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	req := httptest.NewRequest("POST", "/manage/services/reorder", strings.NewReader("not-json"))
 	rr := httptest.NewRecorder()
-	api.HandleReorderServices(rr, req)
+	srv.HandleReorderServices(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for bad JSON, got %d", rr.Code)
@@ -1064,7 +1055,7 @@ func TestHandleReorderServices_BadJSON(t *testing.T) {
 // --- HandleAddPage bad request ---
 
 func TestHandleAddPage_BadRequest(t *testing.T) {
-	cleanup := setupTest(t)
+	srv, cleanup := setupTest(t)
 	defer cleanup()
 
 	formData := url.Values{}
@@ -1074,7 +1065,7 @@ func TestHandleAddPage_BadRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/manage/page", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
-	api.HandleAddPage(rr, req)
+	srv.HandleAddPage(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for missing name, got %d", rr.Code)
@@ -1088,5 +1079,3 @@ func TestUpdateHub_Broadcast_NoClients(t *testing.T) {
 	// Should not panic or block with no clients
 	hub.Broadcast(api.Message{Type: api.ServiceStatusMsg, Payload: "test"})
 }
-
-

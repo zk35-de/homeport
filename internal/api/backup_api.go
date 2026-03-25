@@ -9,25 +9,17 @@ import (
 	"path/filepath"
 
 	"git.zk35.de/secalpha/homeport/internal/backup"
-	"git.zk35.de/secalpha/homeport/internal/config"
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
-var appConfig *config.Config
-
-func SetConfig(c *config.Config) {
-	appConfig = c
-}
-
 // HandleBackupDownload triggers a manual backup and streams it.
 // GET /manage/backup
-func HandleBackupDownload(w http.ResponseWriter, r *http.Request) {
-	if appConfig == nil {
-		http.Error(w, "Configuration not initialized", http.StatusInternalServerError)
+func (s *Server) HandleBackupDownload(w http.ResponseWriter, r *http.Request) {
+	if s.Config == nil {
+		http.Error(w, "Server not configured", http.StatusInternalServerError)
 		return
 	}
-
-	path, err := backup.CreateSnapshot(appConfig.DBPath, appConfig.BackupDir)
+	path, err := backup.CreateSnapshot(s.Config.DBPath, s.Config.BackupDir)
 	if err != nil {
 		slog.Error("creating backup", "err", err)
 		http.Error(w, "Failed to create backup", http.StatusInternalServerError)
@@ -35,7 +27,7 @@ func HandleBackupDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Also perform rotation
-	_ = backup.Rotate(appConfig.BackupDir, appConfig.BackupMaxKeep)
+	_ = backup.Rotate(s.Config.BackupDir, s.Config.BackupMaxKeep)
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -54,12 +46,11 @@ func HandleBackupDownload(w http.ResponseWriter, r *http.Request) {
 
 // HandleRestore restores a database from an uploaded file.
 // POST /manage/restore
-func HandleRestore(w http.ResponseWriter, r *http.Request) {
-	if appConfig == nil {
-		http.Error(w, "Configuration not initialized", http.StatusInternalServerError)
+func (s *Server) HandleRestore(w http.ResponseWriter, r *http.Request) {
+	if s.Config == nil {
+		http.Error(w, "Server not configured", http.StatusInternalServerError)
 		return
 	}
-
 	// Max 100MB
 	if err := r.ParseMultipartForm(100 << 20); err != nil {
 		http.Error(w, "File too large", http.StatusBadRequest)
@@ -96,26 +87,24 @@ func HandleRestore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Atomic swap: move old DB to .bak, move new DB to DBPath
-	bakPath := appConfig.DBPath + ".bak"
-	if err := os.Rename(appConfig.DBPath, bakPath); err != nil {
+	bakPath := s.Config.DBPath + ".bak"
+	if err := os.Rename(s.Config.DBPath, bakPath); err != nil {
 		slog.Error("backup old DB during restore", "err", err)
 		http.Error(w, "Failed to swap database", http.StatusInternalServerError)
 		return
 	}
 
-	if err := os.Rename(tempPath, appConfig.DBPath); err != nil {
+	if err := os.Rename(tempPath, s.Config.DBPath); err != nil {
 		slog.Error("move restored DB", "err", err)
 		// Try to restore the backup
-		_ = os.Rename(bakPath, appConfig.DBPath)
+		_ = os.Rename(bakPath, s.Config.DBPath)
 		http.Error(w, "Failed to restore database", http.StatusInternalServerError)
 		return
 	}
 
 	// Reinit DB
-	if err := db.ReinitDB(appConfig.DBPath); err != nil {
+	if err := db.ReinitDB(s.Config.DBPath); err != nil {
 		slog.Error("reinit DB after restore", "err", err)
-		// This is bad, the file is there but we can't open it.
-		// A server restart might be needed.
 		http.Error(w, "Database restored but failed to re-initialize. Please restart the server.", http.StatusInternalServerError)
 		return
 	}

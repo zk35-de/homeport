@@ -55,6 +55,3 @@ func (h *UpdateHub) remove(ch chan Message) {
 	delete(h.clients, ch)
 	h.mu.Unlock()
 }
-
-// DefaultHub is the package-level hub used by the status checker to broadcast.
-var DefaultHub = NewUpdateHub()

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,8 +12,6 @@ import (
 )
 
 const sessionCookie = "hp_session"
-
-var LoginTmpl *template.Template
 
 // SessionProfile extracts the authenticated profile from the request cookie.
 // Returns "" if not authenticated or auth is disabled.
@@ -28,9 +25,9 @@ func SessionProfile(r *http.Request) string {
 
 // RequireAdmin middleware: if auth is enabled, only admin profiles may proceed.
 // Must run after RequireAuth (assumes valid session already verified).
-func RequireAdmin(next http.Handler) http.Handler {
+func (s *Server) RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if appConfig != nil && appConfig.AuthEnabled {
+		if s.Config != nil && s.Config.AuthEnabled {
 			profile := SessionProfile(r)
 			a, err := db.GetUserAuth(profile)
 			if err != nil || a == nil || !a.IsAdmin {
@@ -101,10 +98,10 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 }
 
 // HandleLogin GET/POST /login
-func HandleLogin(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	t := i18n.T("de")
 	if r.Method == http.MethodGet {
-		renderLogin(w, "", "de")
+		s.renderLogin(w, "", "de")
 		return
 	}
 
@@ -117,19 +114,19 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if !LoginRateLimit(r) {
 		time.Sleep(loginDelay)
-		renderLogin(w, t("login.error.ratelimit"), "de")
+		s.renderLogin(w, t("login.error.ratelimit"), "de")
 		return
 	}
 
 	if !db.CheckPassword(profile, password) {
-		renderLogin(w, t("login.error.invalid"), "de")
+		s.renderLogin(w, t("login.error.invalid"), "de")
 		return
 	}
 	LoginReset(r)
 
 	sessionDays := 30
-	if appConfig != nil {
-		sessionDays = appConfig.SessionDays
+	if s.Config != nil {
+		sessionDays = s.Config.SessionDays
 	}
 	token, err := db.CreateSession(profile, sessionDays)
 	if err != nil {
@@ -152,7 +149,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleLogout POST /logout
-func HandleLogout(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(sessionCookie); err == nil {
 		db.DeleteSession(c.Value)
 	}
@@ -167,7 +164,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
+func (s *Server) renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 	data := struct {
 		i18n.Translator
 		Error    string
@@ -191,14 +188,14 @@ func renderLogin(w http.ResponseWriter, errMsg string, lang string) {
 			data.Profiles = append(data.Profiles, p)
 		}
 	}
-	if err := LoginTmpl.ExecuteTemplate(w, "login.html", data); err != nil {
+	if err := s.LoginTmpl.ExecuteTemplate(w, "login.html", data); err != nil {
 		slog.Error("login template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
 // HandleManageAuth GET /manage/auth – Passwörter verwalten (Admin only via RequireAdmin middleware)
-func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 	profiles, err := db.GetProfiles()
 	if err != nil {
 		slog.Error("GetProfiles", "err", err)
@@ -225,14 +222,14 @@ func HandleManageAuth(w http.ResponseWriter, r *http.Request) {
 		AuthMap  map[string]db.UserAuth
 	}{Translator: i18n.NewTranslator(lang), Profiles: profiles, AuthMap: authMap}
 
-	if err := ManageTmpl.ExecuteTemplate(w, "auth_list", data); err != nil {
+	if err := s.ManageTmpl.ExecuteTemplate(w, "auth_list", data); err != nil {
 		slog.Error("auth_list template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
 // HandleSetPassword POST /manage/auth/password
-func HandleSetPassword(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleSetPassword(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -248,11 +245,11 @@ func HandleSetPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	HandleManageAuth(w, r)
+	s.HandleManageAuth(w, r)
 }
 
 // HandleDeletePassword DELETE /manage/auth/password/{profile}
-func HandleDeletePassword(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDeletePassword(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -263,5 +260,5 @@ func HandleDeletePassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	HandleManageAuth(w, r)
+	s.HandleManageAuth(w, r)
 }
