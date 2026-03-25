@@ -5,7 +5,7 @@ import (
 )
 
 func GetCategoriesWithServices(profile string) ([]Category, error) {
-	rows, err := DB.Query(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1), COALESCE(sort_mode,'manual'), COALESCE(page_id,0) FROM categories ORDER BY sort_order ASC`)
+	rows, err := DB.Query(`SELECT id, name, color, sort_order, COALESCE(col_span,1), COALESCE(sort_mode,'manual'), COALESCE(page_id,0) FROM categories ORDER BY sort_order ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -14,7 +14,7 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 	var categories []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan, &c.SortMode, &c.PageID); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Color, &c.SortOrder, &c.ColSpan, &c.SortMode, &c.PageID); err != nil {
 			return nil, err
 		}
 		if c.ColSpan < 1 || c.ColSpan > 3 {
@@ -74,8 +74,8 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 	return categories, nil
 }
 
-func AddCategory(name, layout, color string) (int64, error) {
-	res, err := DB.Exec(`INSERT INTO categories (name, layout, color, sort_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM categories))`, name, layout, color)
+func AddCategory(name, color string) (int64, error) {
+	res, err := DB.Exec(`INSERT INTO categories (name, color, sort_order) VALUES (?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM categories))`, name, color)
 	if err != nil {
 		return 0, err
 	}
@@ -87,15 +87,15 @@ func DeleteCategory(id int) error {
 	return err
 }
 
-func UpdateCategory(id int, name, layout, color string) error {
-	_, err := DB.Exec(`UPDATE categories SET name=?, layout=?, color=? WHERE id=?`, name, layout, color, id)
+func UpdateCategory(id int, name, color string) error {
+	_, err := DB.Exec(`UPDATE categories SET name=?, color=? WHERE id=?`, name, color, id)
 	return err
 }
 
 func GetCategory(id int) (*Category, error) {
-	row := DB.QueryRow(`SELECT id, name, layout, color, sort_order, COALESCE(col_span,1) FROM categories WHERE id=?`, id)
+	row := DB.QueryRow(`SELECT id, name, color, sort_order, COALESCE(col_span,1) FROM categories WHERE id=?`, id)
 	var c Category
-	if err := row.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan); err != nil {
+	if err := row.Scan(&c.ID, &c.Name, &c.Color, &c.SortOrder, &c.ColSpan); err != nil {
 		return nil, err
 	}
 	return &c, nil

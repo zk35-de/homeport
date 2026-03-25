@@ -75,9 +75,7 @@ func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
 	if v, ok := patch["language"]; ok {
 		current.Language = v
 	}
-	if v, ok := patch["layout"]; ok {
-		current.Layout = v
-	}
+
 	if v, ok := patch["custom_css"]; ok {
 		current.CustomCSS = v
 	}

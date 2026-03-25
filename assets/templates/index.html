@@ -69,7 +69,7 @@
             <span class="category-title" style="color: var(--{{.Color}})">{{.Name}}</span>
         </div>
         <div class="category-body" id="cat-body-{{.ID}}">
-            <div class="grid-{{.Layout}}">
+            <div class="category-grid">
                 {{range .Services}}
                 <a href="/r/{{.ID}}?p={{$.Profile}}" target="_blank" class="service-card{{if .URL}} {{if .Alive}}status-alive{{else}}status-dead{{end}}{{end}}" id="service-{{.ID}}">
                     {{if .Icon}}

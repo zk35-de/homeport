@@ -60,11 +60,11 @@ func TestAddCategoryAndGetCategoriesWithServices(t *testing.T) {
 	defer cleanup()
 
 	// Add categories
-	_, err := db.AddCategory("Work", "tiles", "blue")
+	_, err := db.AddCategory("Work", "blue")
 	if err != nil {
 		t.Fatalf("Failed to add category Work: %v", err)
 	}
-	_, err = db.AddCategory("Social", "list", "green")
+	_, err = db.AddCategory("Social", "green")
 	if err != nil {
 		t.Fatalf("Failed to add category Social: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestDeleteCategory(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
-	db.AddCategory("TestCat", "tiles", "red")
+	db.AddCategory("TestCat", "red")
 	categories, _ := db.GetCategoriesWithServices("")
 	catID := categories[0].ID
 
@@ -204,7 +204,7 @@ func TestDeleteService(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
-	db.AddCategory("TestCat", "tiles", "red")
+	db.AddCategory("TestCat", "red")
 	categories, _ := db.GetCategoriesWithServices("")
 	catID := categories[0].ID
 
@@ -377,9 +377,9 @@ func TestCloneServicesToProfile(t *testing.T) {
 	// Category 3: Personal (green) - service4 (markus)
 
 	// Add categories
-	db.AddCategory("Work", "tiles", "blue")
-	db.AddCategory("IT", "tiles", "cyan")
-	db.AddCategory("Personal", "tiles", "green")
+	db.AddCategory("Work", "blue")
+	db.AddCategory("IT", "cyan")
+	db.AddCategory("Personal", "green")
 
 	cats, _ := db.GetCategoriesWithServices("")
 	workCatID := cats[0].ID
@@ -487,7 +487,7 @@ func TestDiscoveryInbox(t *testing.T) {
 
 	// Accept an item
 	// Need to ensure category exists for AcceptDiscoveryItem to work, or it will create it
-	db.AddCategory("Discovered", "tiles", "orange")
+	db.AddCategory("Discovered", "orange")
 	categories, _ := db.GetCategoriesWithServices("")
 	if len(categories) != 1 || categories[0].Name != "Discovered" {
 		t.Fatalf("Expected 'Discovered' category to exist for testing AcceptDiscoveryItem")
@@ -530,9 +530,9 @@ func TestUpdateCategorySort(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
-	db.AddCategory("CatA", "tiles", "red") // ID 1, SortOrder 0
-	db.AddCategory("CatB", "tiles", "blue") // ID 2, SortOrder 1
-	db.AddCategory("CatC", "tiles", "green") // ID 3, SortOrder 2
+	db.AddCategory("CatA", "red") // ID 1, SortOrder 0
+	db.AddCategory("CatB", "blue") // ID 2, SortOrder 1
+	db.AddCategory("CatC", "green") // ID 3, SortOrder 2
 
 	categories, _ := db.GetCategoriesWithServices("")
 	if len(categories) != 3 {
@@ -566,7 +566,7 @@ func TestUpdateServiceSort(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
-	db.AddCategory("MainCat", "tiles", "red")
+	db.AddCategory("MainCat", "red")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -604,7 +604,7 @@ func TestUpdateServiceStatus(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
-	db.AddCategory("TestCat", "tiles", "red")
+	db.AddCategory("TestCat", "red")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 	db.AddService(catID, "MonitorMe", "http://monitor.me", "", "", "http://status.me", []string{"markus"})
@@ -768,7 +768,7 @@ func TestGetTopClicks(t *testing.T) {
 	}
 
 	// Setup services
-	db.AddCategory("TestCat", "tiles", "blue")
+	db.AddCategory("TestCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 	db.AddService(catID, "Service A", "http://a.local", "", "", "", []string{"markus"})
@@ -913,7 +913,7 @@ func TestSQLInjection(t *testing.T) {
 
 	// Category name with SQL injection payload – parametrized queries must store it safely
 	injName := `'; DROP TABLE categories; --`
-	if _, err := db.AddCategory(injName, "tiles", "red"); err != nil {
+	if _, err := db.AddCategory(injName, "red"); err != nil {
 		t.Fatalf("AddCategory with injection payload failed (should succeed with parametrized queries): %v", err)
 	}
 	cats, err := db.GetCategoriesWithServices("")

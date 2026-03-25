@@ -104,8 +104,8 @@ func TestHandleIndex(t *testing.T) {
 	defer cleanup()
 
 	// Add some data to the in-memory DB
-	db.AddCategory("Personal", "tiles", "blue")
-	db.AddCategory("Work", "tiles", "indigo")
+	db.AddCategory("Personal", "blue")
+	db.AddCategory("Work", "indigo")
 	cats, _ := db.GetCategoriesWithServices("")
 	db.AddService(cats[0].ID, "MyBlog", "http://blog.me", "", "", "", []string{"markus"})
 	db.AddService(cats[1].ID, "Jira", "http://jira.work", "", "", "", []string{"markus", "andrea"})
@@ -172,7 +172,7 @@ func TestHandleManage(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("ManageMe", "tiles", "red")
+	db.AddCategory("ManageMe", "red")
 	db.SetSearchEngine("markus", "https://google.com/")
 
 	req := httptest.NewRequest("GET", "/manage", nil)
@@ -260,7 +260,7 @@ func TestHandleAddService(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("TestCat", "tiles", "blue")
+	db.AddCategory("TestCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -297,7 +297,7 @@ func TestHandleDeleteCategory(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("ToDelete", "tiles", "red")
+	db.AddCategory("ToDelete", "red")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -325,7 +325,7 @@ func TestHandleDeleteService(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("TestCat", "tiles", "blue")
+	db.AddCategory("TestCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 	db.AddService(catID, "SvcToDelete", "http://todelete.me", "", "", "", []string{"markus"})
@@ -357,9 +357,9 @@ func TestHandleSortCategory(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("CatA", "tiles", "red")
-	db.AddCategory("CatB", "tiles", "blue")
-	db.AddCategory("CatC", "tiles", "green")
+	db.AddCategory("CatA", "red")
+	db.AddCategory("CatB", "blue")
+	db.AddCategory("CatC", "green")
 	cats, _ := db.GetCategoriesWithServices("")
 	catBID := cats[1].ID // SO 1
 
@@ -388,7 +388,7 @@ func TestHandleSortService(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("TestCat", "tiles", "blue")
+	db.AddCategory("TestCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 	db.AddService(catID, "Svc1", "url1", "", "", "", []string{"markus"}) // SO 0
@@ -472,7 +472,7 @@ func TestHandleCloneProfile(t *testing.T) {
 	defer cleanup()
 
 	// Initial setup with a service for 'markus'
-	db.AddCategory("Work", "tiles", "blue")
+	db.AddCategory("Work", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	workCatID := cats[0].ID
 	db.AddService(workCatID, "MarkusOnly", "url1", "", "", "", []string{"markus"})
@@ -538,7 +538,7 @@ func TestHandleAcceptDiscovery(t *testing.T) {
 	itemID := items[0].ID
 
 	// Need "Discovered" category to exist for db.AcceptDiscoveryItem
-	db.AddCategory("Discovered", "tiles", "orange")
+	db.AddCategory("Discovered", "orange")
 
 	r := chi.NewRouter()
 	r.Post("/accept-discovery/{id}", api.HandleAcceptDiscovery)

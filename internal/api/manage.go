@@ -111,10 +111,9 @@ func HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := r.FormValue("name")
-	layout := r.FormValue("layout")
 	color := r.FormValue("color")
 
-	if _, err := db.AddCategory(name, layout, color); err != nil {
+	if _, err := db.AddCategory(name, color); err != nil {
 		log.Printf("Error adding category: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -262,10 +261,9 @@ func HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := r.FormValue("name")
-	layout := r.FormValue("layout")
 	color := r.FormValue("color")
 
-	if err := db.UpdateCategory(id, name, layout, color); err != nil {
+	if err := db.UpdateCategory(id, name, color); err != nil {
 		log.Printf("Error updating category %d: %v", id, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

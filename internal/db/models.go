@@ -20,7 +20,7 @@ type Page struct {
 type Category struct {
 	ID        int
 	Name      string
-	Layout    string
+
 	Color     string
 	SortOrder int
 	ColSpan   int
@@ -112,7 +112,7 @@ type UserPreferences struct {
 	AccentColor    string `json:"accent_color"`
 	SearchEngine   string `json:"search_engine"`
 	Language       string `json:"language"`
-	Layout         string `json:"layout"`
+
 	CustomCSS      string `json:"custom_css"`
 
 }

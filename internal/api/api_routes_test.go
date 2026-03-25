@@ -149,7 +149,7 @@ func TestHandleServiceRedirect(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("Cat", "tiles", "blue")
+	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	db.AddService(cats[0].ID, "MySvc", "http://my.service", "", "", "", []string{"markus"})
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
@@ -188,7 +188,7 @@ func TestHandleCategoryList(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("ListCat", "tiles", "green")
+	db.AddCategory("ListCat", "green")
 
 	req := httptest.NewRequest("GET", "/category-list", nil)
 	rr := httptest.NewRecorder()
@@ -206,7 +206,7 @@ func TestHandleSetCategorySortMode(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("SortCat", "tiles", "red")
+	db.AddCategory("SortCat", "red")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -228,7 +228,7 @@ func TestHandleGetService(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("Cat", "tiles", "blue")
+	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	db.AddService(cats[0].ID, "EditSvc", "http://edit.svc", "", "", "", []string{"markus"})
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
@@ -265,7 +265,7 @@ func TestHandleUpdateService(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("Cat", "tiles", "blue")
+	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	db.AddService(cats[0].ID, "OldName", "http://old.url", "", "", "", []string{"markus"})
 	catsWithSvc, _ := db.GetCategoriesWithServices("")
@@ -299,7 +299,7 @@ func TestHandleGetCategory(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("EditCat", "tiles", "purple")
+	db.AddCategory("EditCat", "purple")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -334,7 +334,7 @@ func TestHandleUpdateCategory(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("OldCat", "tiles", "red")
+	db.AddCategory("OldCat", "red")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -360,7 +360,7 @@ func TestHandleUpdateCategorySpan(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("SpanCat", "tiles", "blue")
+	db.AddCategory("SpanCat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -382,8 +382,8 @@ func TestHandleReorderCategories(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("CatA", "tiles", "red")
-	db.AddCategory("CatB", "tiles", "blue")
+	db.AddCategory("CatA", "red")
+	db.AddCategory("CatB", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 
 	items := []map[string]int{
@@ -406,7 +406,7 @@ func TestHandleReorderServices(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("Cat", "tiles", "blue")
+	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	db.AddService(cats[0].ID, "Svc1", "url1", "", "", "", []string{"markus"})
 	db.AddService(cats[0].ID, "Svc2", "url2", "", "", "", []string{"markus"})
@@ -902,7 +902,7 @@ func TestHandleSetCategoryPage(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("Cat", "tiles", "blue")
+	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 

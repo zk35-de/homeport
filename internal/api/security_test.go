@@ -222,7 +222,7 @@ func TestHandleAnalytics(t *testing.T) {
 
 	t.Run("profile filter via query param", func(t *testing.T) {
 		// Add service and record a click for markus
-		db.AddCategory("Cat", "tiles", "blue")
+		db.AddCategory("Cat", "blue")
 		cats, _ := db.GetCategoriesWithServices("")
 		db.AddService(cats[0].ID, "MySvc", "http://my.svc", "", "", "", []string{"markus"})
 		allCats, _ := db.GetCategoriesWithServices("")
@@ -377,7 +377,7 @@ func TestInputValidationBoundary(t *testing.T) {
 
 	t.Run("service URL 10000 chars → no panic", func(t *testing.T) {
 		longURL := "http://x.com/" + strings.Repeat("a", 10000)
-		db.AddCategory("BoundaryTest", "tiles", "blue")
+		db.AddCategory("BoundaryTest", "blue")
 		cats, _ := db.GetCategoriesWithServices("")
 		var catID int
 		for _, c := range cats {
@@ -397,7 +397,7 @@ func TestOpenRedirect(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("Cat", "tiles", "blue")
+	db.AddCategory("Cat", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	catID := cats[0].ID
 
@@ -635,7 +635,7 @@ func TestHandleSearch(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	db.AddCategory("Work", "tiles", "blue")
+	db.AddCategory("Work", "blue")
 	cats, _ := db.GetCategoriesWithServices("")
 	db.AddService(cats[0].ID, "Jira", "http://jira.local", "", "Project tracking", "", []string{"markus"})
 
@@ -723,7 +723,7 @@ func TestXSSTemplateEscaping(t *testing.T) {
 		defer cleanup()
 
 		xssName := `<script>alert(1)</script>`
-		db.AddCategory(xssName, "tiles", "blue")
+		db.AddCategory(xssName, "blue")
 		cats, _ := db.GetCategoriesWithServices("")
 		profiles, _ := db.GetProfiles()
 

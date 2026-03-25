@@ -165,12 +165,12 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 		AccentColor:    "#6366f1",
 		SearchEngine:   "https://duckduckgo.com/",
 		Language:       "de",
-		Layout:         "grid",
+
 
 	}
-	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, language, layout, COALESCE(custom_css,'')
+	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, language, COALESCE(custom_css,'')
 		FROM user_preferences WHERE profile = ?`, profile)
-	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Language, &p.Layout, &p.CustomCSS)
+	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Language, &p.CustomCSS)
 	if err == sql.ErrNoRows {
 		return p, nil
 	}
@@ -181,17 +181,16 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 }
 
 func SetUserPreferences(profile string, prefs UserPreferences) error {
-	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, language, layout, custom_css)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, language, custom_css)
+		VALUES (?, ?, ?, ?, ?, ?)
 		ON CONFLICT(profile) DO UPDATE SET
 			theme = excluded.theme,
 			accent_color = excluded.accent_color,
 			search_engine = excluded.search_engine,
 			language = excluded.language,
-			layout = excluded.layout,
 			custom_css = excluded.custom_css`,
 		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
-		prefs.Language, prefs.Layout, prefs.CustomCSS)
+		prefs.Language, prefs.CustomCSS)
 	return err
 }
 
