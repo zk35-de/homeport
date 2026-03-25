@@ -7,12 +7,28 @@ import (
 	"git.zk35.de/secalpha/homeport/internal/db"
 )
 
+// resolvePrefsProfile determines the target profile for preferences endpoints.
+// Priority: ?profile= query param → session cookie → default profile.
+func resolvePrefsProfile(r *http.Request) string {
+	if p := r.URL.Query().Get("profile"); p != "" {
+		return p
+	}
+	if p := SessionProfile(r); p != "" {
+		return p
+	}
+	if def, err := db.GetDefaultProfile(); err == nil && def != nil {
+		return def.Slug
+	}
+	return ""
+}
+
 // HandleGetPreferences returns user preferences for a profile.
-// GET /api/user/preferences?profile=markus
+// GET /api/user/preferences[?profile=slug]
 func HandleGetPreferences(w http.ResponseWriter, r *http.Request) {
-	profile := r.URL.Query().Get("profile")
+	profile := resolvePrefsProfile(r)
 	if profile == "" {
-		profile = "markus"
+		http.Error(w, "no profile", http.StatusBadRequest)
+		return
 	}
 	prefs, err := db.GetUserPreferences(profile)
 	if err != nil {
@@ -24,11 +40,12 @@ func HandleGetPreferences(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleSetPreferences partially updates user preferences for a profile.
-// PATCH /api/user/preferences?profile=markus  (JSON body with optional fields)
+// PATCH /api/user/preferences[?profile=slug]  (JSON body with optional fields)
 func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
-	profile := r.URL.Query().Get("profile")
+	profile := resolvePrefsProfile(r)
 	if profile == "" {
-		profile = "markus"
+		http.Error(w, "no profile", http.StatusBadRequest)
+		return
 	}
 
 	// Load current preferences as base
@@ -56,6 +73,9 @@ func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
 	}
 	if v, ok := patch["background"]; ok {
 		current.Background = v
+	}
+	if v, ok := patch["background_mode"]; ok {
+		current.BackgroundMode = v
 	}
 	if v, ok := patch["language"]; ok {
 		current.Language = v

@@ -200,12 +200,16 @@ func main() {
 
 	// REST API Routes
 	r.Route("/api", func(r chi.Router) {
-		// Health + Favicon + Search: no auth
+		// Health + Favicon + Search + Preferences: no Bearer auth required
 		r.Get("/health", api.HandleHealth)
 		r.Get("/favicon", api.HandleFavicon)
 		r.Get("/search", api.HandleSearch)
 
-		// Protected API routes
+		// Preferences: accessible via session cookie (browser) or Bearer token (API clients)
+		r.Get("/user/preferences", api.HandleGetPreferences)
+		r.Patch("/user/preferences", api.HandleSetPreferences)
+
+		// Protected API routes (Bearer token required)
 		r.Group(func(r chi.Router) {
 			r.Use(api.AuthMiddleware(cfg.Token))
 
@@ -216,10 +220,6 @@ func main() {
 			r.Get("/widgets/{id}", api.HandleGetWidget)
 			r.Patch("/widgets/{id}", api.HandleUpdateWidget)
 			r.Delete("/widgets/{id}", api.HandleDeleteWidgetAPI)
-
-			// Preferences
-			r.Get("/user/preferences", api.HandleGetPreferences)
-			r.Patch("/user/preferences", api.HandleSetPreferences)
 
 			// SSE Live Updates
 			r.Get("/updates", api.DefaultHub.HandleUpdates)
