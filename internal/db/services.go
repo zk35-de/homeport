@@ -5,7 +5,7 @@ import (
 )
 
 func GetCategoriesWithServices(profile string) ([]Category, error) {
-	rows, err := DB.Query(`SELECT id, name, color, sort_order, COALESCE(col_span,1), COALESCE(sort_mode,'manual'), COALESCE(page_id,0) FROM categories ORDER BY sort_order ASC`)
+	rows, err := DB.Query(`SELECT id, name, COALESCE(layout,'tiles'), color, sort_order, COALESCE(col_span,1), COALESCE(sort_mode,'manual'), COALESCE(page_id,0) FROM categories ORDER BY sort_order ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -14,7 +14,7 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 	var categories []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.Color, &c.SortOrder, &c.ColSpan, &c.SortMode, &c.PageID); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Layout, &c.Color, &c.SortOrder, &c.ColSpan, &c.SortMode, &c.PageID); err != nil {
 			return nil, err
 		}
 		if c.ColSpan < 1 || c.ColSpan > 3 {

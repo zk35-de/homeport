@@ -20,7 +20,7 @@ type Page struct {
 type Category struct {
 	ID        int
 	Name      string
-
+	Layout    string
 	Color     string
 	SortOrder int
 	ColSpan   int
