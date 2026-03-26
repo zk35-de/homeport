@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); submitSearch(query);
     });
 
-    if (spotlight.innerHTML.trim()) spotlight.style.display = '';
+    if (spotlight.innerHTML.trim()) spotlight.style.display = 'block';
     else spotlight.style.display = 'none';
   }
 
