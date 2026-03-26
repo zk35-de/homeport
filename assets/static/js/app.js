@@ -101,6 +101,20 @@ if ('serviceWorker' in navigator) {
   document.addEventListener('DOMContentLoaded', initClocks);
 })();
 
+// Language toggle (nav button)
+function toggleLang() {
+  var cur = localStorage.getItem('hp-lang') || 'de';
+  var next = cur === 'de' ? 'en' : 'de';
+  localStorage.setItem('hp-lang', next);
+  document.querySelectorAll('.nav-lang-toggle').forEach(function(b) { b.textContent = next.toUpperCase(); });
+  try {
+    fetch('/api/user/preferences', {
+      method: 'PATCH', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({language: next})
+    }).then(function() { window.location.reload(); });
+  } catch(e) { window.location.reload(); }
+}
+
 // Theme toggle (nav button)
 function cycleTheme() {
   var cur = localStorage.getItem('hp-theme') || 'dark';
@@ -121,13 +135,21 @@ function cycleTheme() {
   } catch(e) {}
 }
 
-// Init nav toggle icon + attach click listener
+// Init nav toggle icons + attach click listeners
 document.addEventListener('DOMContentLoaded', function() {
   var t = localStorage.getItem('hp-theme') || 'dark';
   var icons = {'dark':'🌙','light':'☀️','system':'💻'};
   document.querySelectorAll('.nav-theme-toggle').forEach(function(b) {
     b.textContent = icons[t] || '🌙';
     b.addEventListener('click', cycleTheme);
+  });
+
+  document.querySelectorAll('.nav-lang-toggle').forEach(function(b) {
+    var serverLang = b.dataset.lang || '';
+    var lang = serverLang || localStorage.getItem('hp-lang') || 'de';
+    if (serverLang) localStorage.setItem('hp-lang', serverLang);
+    b.textContent = lang.toUpperCase();
+    b.addEventListener('click', toggleLang);
   });
 });
 
