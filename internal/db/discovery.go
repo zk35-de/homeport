@@ -43,7 +43,9 @@ func IgnoreDiscoveryItem(id int) error {
 }
 
 // AcceptDiscoveryItem reads an item, creates a service from it, then deletes the item.
-func AcceptDiscoveryItem(id int) error {
+// categoryID=0 means use the suggested category name (find or create it).
+// noCheck=true sets no_check=1 on the created service.
+func AcceptDiscoveryItem(id int, categoryID int, noCheck bool) error {
 	tx, err := DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -71,34 +73,45 @@ func AcceptDiscoveryItem(id int) error {
 		return fmt.Errorf("failed to unmarshal suggested service for item %d: %w", id, err)
 	}
 
-	categoryID := 1
 	profs, _ := GetProfiles()
 	profiles := make([]string, len(profs))
 	for i, p := range profs {
 		profiles[i] = p.Slug
 	}
 
-	var catID int
-	err = tx.QueryRow(`SELECT id FROM categories WHERE name = ?`, svc.Category).Scan(&catID)
-	if err == sql.ErrNoRows {
-		res, err := tx.Exec(`INSERT INTO categories (name, layout, color) VALUES (?, ?, ?)`, svc.Category, "tiles", "indigo")
-		if err != nil {
-			return fmt.Errorf("failed to create category %s: %w", svc.Category, err)
+	if categoryID <= 0 {
+		var catID int
+		err = tx.QueryRow(`SELECT id FROM categories WHERE name = ?`, svc.Category).Scan(&catID)
+		if err == sql.ErrNoRows {
+			res, err := tx.Exec(`INSERT INTO categories (name, layout, color) VALUES (?, ?, ?)`, svc.Category, "tiles", "indigo")
+			if err != nil {
+				return fmt.Errorf("failed to create category %s: %w", svc.Category, err)
+			}
+			lastID, err := res.LastInsertId()
+			if err != nil {
+				return fmt.Errorf("failed to get last insert ID for category: %w", err)
+			}
+			categoryID = int(lastID)
+		} else if err != nil {
+			return fmt.Errorf("failed to query category %s: %w", svc.Category, err)
+		} else {
+			categoryID = catID
 		}
-		lastID, err := res.LastInsertId()
-		if err != nil {
-			return fmt.Errorf("failed to get last insert ID for category: %w", err)
-		}
-		categoryID = int(lastID)
-	} else if err != nil {
-		return fmt.Errorf("failed to query category %s: %w", svc.Category, err)
-	} else {
-		categoryID = catID
 	}
 
-	res, err := tx.Exec(`INSERT INTO services (category_id, name, url, icon, description, status_check, sort_order)
-		VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM services WHERE category_id = ?))`,
-		categoryID, svc.Name, svc.URL, svc.Icon, svc.Description, svc.StatusCheck, categoryID)
+	icon := svc.Icon
+	if icon == "" && svc.URL != "" {
+		icon = "/api/favicon?url=" + svc.URL
+	}
+
+	nc := 0
+	if noCheck {
+		nc = 1
+	}
+
+	res, err := tx.Exec(`INSERT INTO services (category_id, name, url, icon, description, status_check, no_check, sort_order)
+		VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM services WHERE category_id = ?))`,
+		categoryID, svc.Name, svc.URL, icon, svc.Description, svc.StatusCheck, nc, categoryID)
 	if err != nil {
 		return fmt.Errorf("failed to add service from discovery item %d: %w", id, err)
 	}

@@ -129,12 +129,21 @@ function initSortable() {
   catList.querySelectorAll('.sortable-services').forEach(function(svcList) {
     Sortable.create(svcList, {
       handle: '.drag-handle',
+      group: 'services',
       animation: 150,
-      onEnd: function() {
-        var items = svcList.querySelectorAll('.manage-service-item[data-id]');
-        var payload = Array.from(items).map(function(el, idx) {
-          return {id: parseInt(el.dataset.id), sort_order: idx};
+      onEnd: function(evt) {
+        var destList = evt.to;
+        var destCatId = parseInt(destList.dataset.cat);
+        var payload = Array.from(destList.querySelectorAll('.manage-service-item[data-id]')).map(function(el, idx) {
+          return {id: parseInt(el.dataset.id), sort_order: idx, category_id: destCatId};
         });
+        if (evt.from !== evt.to) {
+          var srcList = evt.from;
+          var srcCatId = parseInt(srcList.dataset.cat);
+          Array.from(srcList.querySelectorAll('.manage-service-item[data-id]')).forEach(function(el, idx) {
+            payload.push({id: parseInt(el.dataset.id), sort_order: idx, category_id: srcCatId});
+          });
+        }
         fetch('/manage/sort/service/reorder', {
           method: 'POST',
           headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (window._getCookie || function(n){return ''})('hp_csrf')},

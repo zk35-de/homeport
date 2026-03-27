@@ -472,7 +472,11 @@ func (s *Server) HandleAcceptDiscovery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.AcceptDiscoveryItem(id); err != nil {
+	r.ParseForm()
+	categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
+	noCheck := r.FormValue("no_check") == "1"
+
+	if err := db.AcceptDiscoveryItem(id, categoryID, noCheck); err != nil {
 		slog.Error("accepting discovery item", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -507,12 +511,21 @@ func (s *Server) renderDiscoveryInbox(w http.ResponseWriter, lang string) {
 		return
 	}
 
+	categories, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		slog.Error("fetching categories for discovery inbox", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	data := struct {
 		i18n.Translator
-		Items []db.DiscoveryItem
+		Items      []db.DiscoveryItem
+		Categories []db.Category
 	}{
 		Translator: i18n.NewTranslator(lang),
 		Items:      items,
+		Categories: categories,
 	}
 
 	if err := s.ManageTmpl.ExecuteTemplate(w, "discovery_inbox", data); err != nil {

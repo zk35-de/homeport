@@ -56,8 +56,9 @@ type ClickStat struct {
 
 // ReorderItem is used for batch reorder operations.
 type ReorderItem struct {
-	ID        int `json:"id"`
-	SortOrder int `json:"sort_order"`
+	ID         int `json:"id"`
+	SortOrder  int `json:"sort_order"`
+	CategoryID int `json:"category_id,omitempty"`
 }
 
 // UserPreferences holds per-profile UI preferences.

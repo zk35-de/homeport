@@ -3,17 +3,35 @@
   {{if .Items}}
   <div class="inbox-badge">{{len .Items}} neue Dienste gefunden</div>
   {{range .Items}}
+  {{$item := .}}
   <div class="inbox-item">
     <div class="inbox-info">
-      <strong>{{.Suggested.Name}}</strong> – {{.Suggested.URL}}
+      {{if .Suggested.URL}}<img src="/api/favicon?url={{.Suggested.URL}}" alt="" class="inbox-favicon" onerror="this.style.display='none'">{{end}}
+      <strong>{{.Suggested.Name}}</strong><br>
+      <span class="text-muted">{{.Suggested.URL}}</span>
+    </div>
+    <form class="inbox-accept-form"
+          hx-post="/manage/discovery/{{.ID}}/accept"
+          hx-target="#discovery-inbox" hx-swap="outerHTML">
+      {{if $.Categories}}
+      <select name="category_id" class="inbox-cat-select">
+        {{range $.Categories}}
+        <option value="{{.ID}}" {{if eq .Name $item.Suggested.Category}}selected{{end}}>{{.Name}}</option>
+        {{end}}
+      </select>
+      {{else}}
       <span class="tag">{{.Suggested.Category}}</span>
-    </div>
-    <div class="inbox-actions">
-      <button hx-post="/manage/discovery/{{.ID}}/accept"
-              hx-target="#discovery-inbox" hx-swap="outerHTML">{{$.T "manage.discovery.add"}}</button>
-      <button hx-post="/manage/discovery/{{.ID}}/ignore"
-              hx-target="#discovery-inbox" hx-swap="outerHTML">{{$.T "manage.discovery.ignore"}}</button>
-    </div>
+      {{end}}
+      <label class="checkbox-label inbox-nocheck">
+        <input type="checkbox" name="no_check" value="1"> Kein Check
+      </label>
+      <div class="inbox-actions">
+        <button type="submit">{{$.T "manage.discovery.add"}}</button>
+        <button type="button"
+                hx-post="/manage/discovery/{{$item.ID}}/ignore"
+                hx-target="#discovery-inbox" hx-swap="outerHTML">{{$.T "manage.discovery.ignore"}}</button>
+      </div>
+    </form>
   </div>
   {{end}}
   {{else}}

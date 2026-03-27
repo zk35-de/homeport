@@ -235,8 +235,14 @@ func ReorderServices(items []ReorderItem) error {
 	}
 	defer tx.Rollback()
 	for _, it := range items {
-		if _, err := tx.Exec(`UPDATE services SET sort_order = ? WHERE id = ?`, it.SortOrder, it.ID); err != nil {
-			return err
+		if it.CategoryID > 0 {
+			if _, err := tx.Exec(`UPDATE services SET sort_order = ?, category_id = ? WHERE id = ?`, it.SortOrder, it.CategoryID, it.ID); err != nil {
+				return err
+			}
+		} else {
+			if _, err := tx.Exec(`UPDATE services SET sort_order = ? WHERE id = ?`, it.SortOrder, it.ID); err != nil {
+				return err
+			}
 		}
 	}
 	return tx.Commit()

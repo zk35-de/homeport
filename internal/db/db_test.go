@@ -364,7 +364,7 @@ func TestDiscoveryInbox(t *testing.T) {
 	}
 
 	itemToAccept := itemsAfterIgnore[0]
-	err = db.AcceptDiscoveryItem(itemToAccept.ID)
+	err = db.AcceptDiscoveryItem(itemToAccept.ID, 0, false)
 	if err != nil {
 		t.Fatalf("Failed to accept discovery item: %v", err)
 	}

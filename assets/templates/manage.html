@@ -106,14 +106,14 @@
                 </select>
             </div>
         </div>
+
+        <div id="discovery-inbox-wrapper"
+             hx-get="/manage/discovery" hx-trigger="load" hx-swap="innerHTML">
+        </div>
     </div>
 
     <div id="category-list">
         {{template "category_list" .}}
-    </div>
-
-    <div id="discovery-inbox-wrapper"
-         hx-get="/manage/discovery" hx-trigger="load" hx-swap="innerHTML">
     </div>
 </div>
 </div>{{/* end panel-services */}}
