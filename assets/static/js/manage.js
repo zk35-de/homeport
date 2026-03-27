@@ -184,7 +184,7 @@ async function savePrefs(patch) {
   try {
     await fetch('/api/user/preferences', {
       method: 'PATCH',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (window._getCookie || function(){return '';})('hp_csrf')},
       body: JSON.stringify(patch)
     });
   } catch(e) { console.warn('prefs save failed', e); }

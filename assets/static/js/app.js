@@ -109,7 +109,8 @@ function toggleLang() {
   document.querySelectorAll('.nav-lang-toggle').forEach(function(b) { b.textContent = next.toUpperCase(); });
   try {
     fetch('/api/user/preferences', {
-      method: 'PATCH', headers: {'Content-Type': 'application/json'},
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window._getCookie('hp_csrf')},
       body: JSON.stringify({language: next})
     }).then(function() { window.location.reload(); });
   } catch(e) { window.location.reload(); }
@@ -129,7 +130,8 @@ function cycleTheme() {
   document.querySelectorAll('.nav-theme-toggle').forEach(function(b) { b.textContent = icons[next]; });
   try {
     fetch('/api/user/preferences', {
-      method:'PATCH', headers:{'Content-Type':'application/json'},
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window._getCookie('hp_csrf')},
       body: JSON.stringify({theme: next})
     });
   } catch(e) {}

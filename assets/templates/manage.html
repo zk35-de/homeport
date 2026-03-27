@@ -94,10 +94,7 @@
             <div class="form-group form-group-xs">
                 <label>Suchmaschine</label>
                 <select name="search_engine"
-                        hx-patch="/api/user/preferences"
-                        hx-ext="json-enc"
-                        hx-trigger="change"
-                        hx-swap="none">
+                        onchange="savePrefs({search_engine: this.value})">
                     <option value="https://duckduckgo.com/" {{if eq .Prefs.SearchEngine "https://duckduckgo.com/"}}selected{{end}}>DuckDuckGo</option>
                     <option value="https://www.google.com/search" {{if eq .Prefs.SearchEngine "https://www.google.com/search"}}selected{{end}}>Google</option>
                     <option value="https://search.brave.com/search" {{if eq .Prefs.SearchEngine "https://search.brave.com/search"}}selected{{end}}>Brave</option>
@@ -205,7 +202,7 @@
     <div class="form-group flex-no-shrink">
       <label>{{.T "manage.language"}}</label>
       <div class="mt-xs">
-        <select name="language" hx-patch="/api/user/preferences" hx-ext="json-enc" hx-trigger="change" hx-swap="none">
+        <select name="language" onchange="savePrefs({language: this.value}).then(function(){ window.location.reload(); })">
           <option value="de" {{if eq .Prefs.Language "de"}}selected{{end}}>{{.T "pref.language.de"}}</option>
           <option value="en" {{if eq .Prefs.Language "en"}}selected{{end}}>{{.T "pref.language.en"}}</option>
         </select>
