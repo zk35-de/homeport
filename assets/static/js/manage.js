@@ -181,12 +181,15 @@ async function fetchFaviconEdit(svcId, btn) {
 
 // ── Theme Engine ──────────────────────────────────────────────────
 async function savePrefs(patch) {
+  var profile = document.body.dataset.profile || '';
+  var url = '/api/user/preferences' + (profile ? '?profile=' + encodeURIComponent(profile) : '');
   try {
-    await fetch('/api/user/preferences', {
+    var resp = await fetch(url, {
       method: 'PATCH',
       headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (window._getCookie || function(){return '';})('hp_csrf')},
       body: JSON.stringify(patch)
     });
+    if (!resp.ok) { console.warn('prefs save failed', resp.status); }
   } catch(e) { console.warn('prefs save failed', e); }
 }
 
