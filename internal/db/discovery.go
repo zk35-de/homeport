@@ -6,9 +6,14 @@ import (
 	"fmt"
 )
 
-// GetDiscoveryInbox returns all non-ignored discovery items.
+// GetDiscoveryInbox returns non-ignored discovery items whose URL is not already in services.
 func GetDiscoveryInbox() ([]DiscoveryItem, error) {
-	rows, err := DB.Query(`SELECT id, container_id, suggested, seen_at FROM discovery_inbox WHERE ignored = 0 ORDER BY seen_at DESC`)
+	rows, err := DB.Query(`
+		SELECT id, container_id, suggested, seen_at
+		FROM discovery_inbox
+		WHERE ignored = 0
+		  AND json_extract(suggested, '$.url') NOT IN (SELECT url FROM services)
+		ORDER BY seen_at DESC`)
 	if err != nil {
 		return nil, err
 	}

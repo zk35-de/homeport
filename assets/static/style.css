@@ -272,9 +272,16 @@
 /* Management UI */
 .manage-grid {
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 300px 1fr 280px;
     gap: 2rem;
     align-items: start;
+}
+
+@media (max-width: 1200px) {
+    .manage-grid {
+        grid-template-columns: 300px 1fr;
+    }
+    #discovery-inbox-wrapper { display: none; }
 }
 
 @media (max-width: 900px) {
