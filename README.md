@@ -127,7 +127,7 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 ### Service Dashboard
 - Categories with layout (tiles / list / icons), color, collapsible, grid span (full / half / third)
 - Per-service visibility per profile
-- Service status dots (health checks every 30s, rendered server-side)
+- Service status glow (green/red icon glow, health checks every 30s)
 - Click-tracking per profile; 📊 toggle per category = sort by usage
 - Podman container auto-discovery inbox
 - **Auto-Discovery Sources:** NPM, Traefik, and Docker TCP backends, configurable per source
@@ -166,7 +166,8 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 - No page reload – client-side show/hide
 
 ### Appearance
-- Themes: dark / light / system
+- Themes: dark / light / system (toggle in navbar or Settings tab)
+- Language: DE / EN (toggle in navbar or Settings tab)
 - Accent color picker
 - Custom CSS override
 
