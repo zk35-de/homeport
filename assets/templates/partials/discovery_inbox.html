@@ -12,7 +12,8 @@
     </div>
     <form class="inbox-accept-form"
           hx-post="/manage/discovery/{{.ID}}/accept"
-          hx-target="#discovery-inbox" hx-swap="outerHTML">
+          hx-target="#discovery-inbox" hx-swap="outerHTML"
+          hx-on::after-request="if(event.detail.successful) window.location.reload()">
       {{if $.Categories}}
       <select name="category_id" class="inbox-cat-select">
         {{range $.Categories}}
