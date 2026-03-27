@@ -8,30 +8,29 @@ const BASE = 'http://localhost:8855';
 (async () => {
   const browser = await chromium.launch();
 
-  async function shot(name, fn, viewport) {
+  async function shot(name, fn, viewport, fullPage) {
     const ctx = await browser.newContext({
-      viewport: viewport || { width: 1280, height: 800 },
+      viewport: viewport || { width: 1280, height: 900 },
     });
     const page = await ctx.newPage();
     await fn(page);
-    await page.screenshot({ path: path.join(OUT, name), fullPage: false });
+    await page.screenshot({ path: path.join(OUT, name), fullPage: !!fullPage });
     await ctx.close();
     console.log('✓', name);
   }
 
-  // ── Dashboard dark ────────────────────────────────────────────────
+  // ── Dashboard dark (full page to show all categories incl. status glows) ─
   await shot('dashboard-dark.png', async (page) => {
     await page.goto(BASE);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(800);
-    // ensure dark theme
     await page.evaluate(() => {
       document.documentElement.dataset.theme = 'dark';
     });
     await page.waitForTimeout(300);
-  });
+  }, { width: 1280, height: 900 }, true);
 
-  // ── Dashboard light ───────────────────────────────────────────────
+  // ── Dashboard light (full page) ────────────────────────────────────────
   await shot('dashboard-light.png', async (page) => {
     await page.goto(BASE);
     await page.waitForLoadState('domcontentloaded');
@@ -40,9 +39,9 @@ const BASE = 'http://localhost:8855';
       document.documentElement.dataset.theme = 'light';
     });
     await page.waitForTimeout(300);
-  });
+  }, { width: 1280, height: 900 }, true);
 
-  // ── Search spotlight ──────────────────────────────────────────────
+  // ── Search spotlight ───────────────────────────────────────────────────
   await shot('search-spotlight.png', async (page) => {
     await page.goto(BASE);
     await page.waitForLoadState('domcontentloaded');
@@ -50,13 +49,12 @@ const BASE = 'http://localhost:8855';
     await page.evaluate(() => {
       document.documentElement.dataset.theme = 'dark';
     });
-    // focus search bar
     await page.click('#search-input');
     await page.type('#search-input', 'gra', { delay: 80 });
     await page.waitForTimeout(400);
   });
 
-  // ── Manage UI ─────────────────────────────────────────────────────
+  // ── Manage UI ──────────────────────────────────────────────────────────
   await shot('manage.png', async (page) => {
     await page.goto(BASE + '/manage');
     await page.waitForLoadState('domcontentloaded');
@@ -67,7 +65,7 @@ const BASE = 'http://localhost:8855';
     await page.waitForTimeout(500);
   });
 
-  // ── Mobile ────────────────────────────────────────────────────────
+  // ── Mobile ─────────────────────────────────────────────────────────────
   await shot('mobile.png', async (page) => {
     await page.goto(BASE);
     await page.waitForLoadState('domcontentloaded');
