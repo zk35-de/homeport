@@ -12,9 +12,9 @@ Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
 |---|---|
 | ![Search](docs/screenshots/search-spotlight.png) | ![Manage](docs/screenshots/manage.png) |
 
-<p align="center">
-  <img src="docs/screenshots/mobile.png" alt="Mobile view" width="300">
-</p>
+| Service status glow | Mobile |
+|---|---|
+| ![Status glow](docs/screenshots/status-glow.png) | ![Mobile](docs/screenshots/mobile.png) |
 
 **Why homeport?**
 - No config file editing – everything via management Web-UI

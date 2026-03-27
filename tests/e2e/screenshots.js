@@ -65,6 +65,21 @@ const BASE = 'http://localhost:8855';
     await page.waitForTimeout(500);
   });
 
+  // ── Status glow (zoom in on External category) ─────────────────────────
+  await shot('status-glow.png', async (page) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(800);
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = 'dark';
+    });
+    await page.waitForTimeout(300);
+    // scroll to External category
+    const section = page.locator('.category').last();
+    await section.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+  }, { width: 900, height: 500 });
+
   // ── Mobile ─────────────────────────────────────────────────────────────
   await shot('mobile.png', async (page) => {
     await page.goto(BASE);
