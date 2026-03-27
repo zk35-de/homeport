@@ -30,7 +30,6 @@ func main() {
 			log.Printf("warn: clear %s: %v", t, err)
 		}
 	}
-	// keep profiles, just reset to one default
 	db.DB.Exec("DELETE FROM profiles")
 
 	// ── Profile ────────────────────────────────────────────────────────
@@ -63,45 +62,59 @@ func main() {
 	}
 
 	// ── Services ───────────────────────────────────────────────────────
+	// alive: 1=green glow, 0=red glow, -1=no_check (no glow)
 	type svc struct {
-		cat  string
-		name string
-		url  string
-		icon string
-		desc string
+		cat   string
+		name  string
+		url   string
+		icon  string
+		desc  string
+		alive int // 1=up, 0=down, -1=no_check
 	}
 	services := []svc{
-		{"Media", "Jellyfin", "http://jellyfin.home:8096", "/api/favicon?url=http://jellyfin.home:8096", "Media server"},
-		{"Media", "Navidrome", "http://navidrome.home:4533", "/api/favicon?url=http://navidrome.home:4533", "Music streaming"},
-		{"Media", "Kavita", "http://kavita.home:5000", "/api/favicon?url=http://kavita.home:5000", "Comics & books"},
-		{"Media", "Immich", "http://immich.home:2283", "/api/favicon?url=http://immich.home:2283", "Photo backup"},
-		{"Infrastructure", "Nginx Proxy Manager", "http://npm.home:81", "/api/favicon?url=http://npm.home:81", "Reverse proxy"},
-		{"Infrastructure", "Portainer", "http://portainer.home:9000", "/api/favicon?url=http://portainer.home:9000", "Container management"},
-		{"Infrastructure", "Pi-hole", "http://pihole.home/admin", "/api/favicon?url=http://pihole.home/admin", "DNS & ad blocking"},
-		{"Infrastructure", "Vaultwarden", "http://vault.home:8080", "/api/favicon?url=http://vault.home:8080", "Password manager"},
-		{"Home Automation", "Home Assistant", "http://homeassistant.home:8123", "/api/favicon?url=http://homeassistant.home:8123", "Smart home"},
-		{"Home Automation", "Zigbee2MQTT", "http://zigbee.home:8080", "/api/favicon?url=http://zigbee.home:8080", "Zigbee bridge"},
-		{"Home Automation", "Node-RED", "http://nodered.home:1880", "/api/favicon?url=http://nodered.home:1880", "Automation flows"},
-		{"Development", "Gitea", "http://git.home:3000", "/api/favicon?url=http://git.home:3000", "Git hosting"},
-		{"Development", "Drone CI", "http://ci.home:8000", "/api/favicon?url=http://ci.home:8000", "CI/CD"},
-		{"Development", "VS Code Server", "http://code.home:8443", "/api/favicon?url=http://code.home:8443", "Browser IDE"},
-		{"Monitoring", "Grafana", "http://grafana.home:3000", "/api/favicon?url=http://grafana.home:3000", "Dashboards"},
-		{"Monitoring", "Prometheus", "http://prometheus.home:9090", "/api/favicon?url=http://prometheus.home:9090", "Metrics"},
-		{"Monitoring", "Uptime Kuma", "http://uptime.home:3001", "/api/favicon?url=http://uptime.home:3001", "Status monitoring"},
+		{"Media", "Jellyfin", "http://jellyfin.home:8096", "🎬", "Media server", 1},
+		{"Media", "Navidrome", "http://navidrome.home:4533", "🎵", "Music streaming", 1},
+		{"Media", "Kavita", "http://kavita.home:5000", "📚", "Comics & books", 1},
+		{"Media", "Immich", "http://immich.home:2283", "📷", "Photo backup", 0},
+		{"Infrastructure", "Nginx Proxy Manager", "http://npm.home:81", "🔀", "Reverse proxy", 1},
+		{"Infrastructure", "Portainer", "http://portainer.home:9000", "🐳", "Container management", 1},
+		{"Infrastructure", "Pi-hole", "http://pihole.home/admin", "🕳️", "DNS & ad blocking", 1},
+		{"Infrastructure", "Vaultwarden", "http://vault.home:8080", "🔐", "Password manager", 0},
+		{"Home Automation", "Home Assistant", "http://homeassistant.home:8123", "🏠", "Smart home", 1},
+		{"Home Automation", "Zigbee2MQTT", "http://zigbee.home:8080", "📡", "Zigbee bridge", 1},
+		{"Home Automation", "Node-RED", "http://nodered.home:1880", "🔴", "Automation flows", 0},
+		{"Development", "Gitea", "http://git.home:3000", "🐙", "Git hosting", 1},
+		{"Development", "Drone CI", "http://ci.home:8000", "⚙️", "CI/CD", 1},
+		{"Development", "VS Code Server", "http://code.home:8443", "💻", "Browser IDE", -1},
+		{"Monitoring", "Grafana", "http://grafana.home:3000", "📊", "Dashboards", 1},
+		{"Monitoring", "Prometheus", "http://prometheus.home:9090", "🔥", "Metrics", 1},
+		{"Monitoring", "Uptime Kuma", "http://uptime.home:3001", "📈", "Status monitoring", 1},
 	}
 
 	for i, s := range services {
 		catID := catIDs[s.cat]
+		noCheck := 0
+		if s.alive == -1 {
+			noCheck = 1
+		}
 		res, err := db.DB.Exec(
-			`INSERT INTO services (category_id, name, url, icon, description, sort_order, no_check) VALUES (?,?,?,?,?,?,1)`,
-			catID, s.name, s.url, s.icon, s.desc, i,
+			`INSERT INTO services (category_id, name, url, icon, description, sort_order, no_check) VALUES (?,?,?,?,?,?,?)`,
+			catID, s.name, s.url, s.icon, s.desc, i, noCheck,
 		)
 		if err != nil {
 			log.Fatalf("insert service %s: %v", s.name, err)
 		}
 		svcID, _ := res.LastInsertId()
-		// visibility for default profile
+
 		db.DB.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?,?)`, svcID, "default")
+
+		// insert status so glow renders immediately
+		if s.alive >= 0 {
+			db.DB.Exec(
+				`INSERT INTO service_status (service_id, alive, last_check) VALUES (?, ?, datetime('now'))`,
+				svcID, s.alive,
+			)
+		}
 	}
 
 	// ── Preferences ────────────────────────────────────────────────────
