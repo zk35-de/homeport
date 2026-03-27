@@ -1,6 +1,7 @@
 homeport
 data/
 *.db
+.env
 
 # Playwright E2E tests
 tests/e2e/node_modules/

@@ -38,7 +38,7 @@ Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
 ## Quick Start
 
 ```bash
-git clone https://git.zk35.de/secalpha/homeport
+git clone https://github.com/secalpha/homeport
 cd homeport
 go build -o homeport ./cmd/homeport
 ./homeport
@@ -52,7 +52,6 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 |-----|---------|-------------|
 | `HOMEPORT_PORT` | `8855` | Listen port |
 | `HOMEPORT_DB` | `./data/homeport.db` | SQLite DB path |
-| `HOMEPORT_TOKEN` | auto-generated | Bearer token for API auth (logged on first start) |
 | `HOMEPORT_CORS` | `*` | Comma-separated allowed CORS origins |
 | `HOMEPORT_BACKUP_DIR` | `./backups` | Directory for scheduled backups |
 | `HOMEPORT_BACKUP_INTERVAL` | `` | Go duration, e.g. `24h` (empty = disabled) |
@@ -103,7 +102,7 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 | `POST /manage/restore` | Upload & restore backup |
 | `GET /manage/analytics` | Click analytics (top-25 per profile) |
 
-### API (Bearer token required, except `/api/health` and `/api/search`)
+### API
 | Route | Description |
 |-------|-------------|
 | `GET /api/health` | `{"status":"ok"}` |
@@ -217,20 +216,14 @@ sessions          → token, profile, expires_at, created_at
 
 ## CI/CD
 
-Gitea Actions workflows in `.gitea/workflows/`:
+CI workflows in `.gitea/workflows/`:
 - `ci.yml` – build + test + vet + govulncheck on every push to `main`
 - `release.yml` – linux/amd64 + linux/arm64 binaries + container image on `v*` tags
-- Container image: `git.zk35.de/secalpha/homeport:latest` (and `:<tag>`)
+- Container image: `ghcr.io/secalpha/homeport:latest` (and `:<tag>`)
 
 ## Deploy
 
-Container images are published to `git.zk35.de/secalpha/homeport` on every release.
-
-### Registry login (once)
-
-```bash
-podman login git.zk35.de   # or: docker login git.zk35.de
-```
+Container images are published to `ghcr.io/secalpha/homeport` on every release.
 
 ### Podman Quadlet (systemd, recommended)
 
@@ -247,7 +240,6 @@ The container file mounts `~/homeport-data` for persistent storage. Adjust
 
 ```bash
 cp deploy/docker-compose.yml .
-echo "HOMEPORT_TOKEN=your-secret" > .env
 docker compose up -d          # or: podman compose up -d
 ```
 
@@ -255,7 +247,7 @@ docker compose up -d          # or: podman compose up -d
 
 ```bash
 go build -o homeport ./cmd/homeport
-HOMEPORT_TOKEN=your-secret ./homeport
+./homeport
 ```
 
 ### First start
@@ -284,9 +276,7 @@ named volume (Compose).
 ## Security
 
 - **Open Redirect** protection on `/r/{id}`: non-http(s) target URLs (e.g. `javascript:`, `data:`) → 404
-- **SSRF** protection on `/api/favicon`: private/loopback IPs (RFC1918, 127.x, 169.254.x) blocked via DNS resolution → 403
 - **XSS**: Go `html/template` auto-escaping enforced; `javascript:` href sanitized to `#ZgotmplZ`
-- API routes under `/api/*` require Bearer token auth (except `/api/health`, `/api/search`, `/api/favicon`)
 - **Session auth** (`HOMEPORT_AUTH=true`): bcrypt + secure cookie; no session → redirect to `/login`
 - **CSRF**: Double-Submit Cookie (`hp_csrf`); all POST/PATCH/DELETE without valid token → 403; HTMX injects token automatically
 - **Rate-limiting** on `/login`: 5 attempts / 5 min per IP, then 2s delay; X-Forwarded-For aware
@@ -296,7 +286,7 @@ named volume (Compose).
   - `Referrer-Policy: strict-origin-when-cross-origin`
   - `Content-Security-Policy`: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'self'`
   - No `unsafe-inline` – all templates use CSS classes, no inline `style=""` attributes
-- **SSRF** protection on `/api/favicon`: scheme validation (http/https only); private IPs allowed for homelab targets
+- **Note on `/api/favicon`**: proxies favicon fetches server-side; intended for homelab use behind auth or a trusted network
 - **Supply chain**: `go.sum` pinned, `govulncheck` in CI, embedded JS assets (htmx, sse.js) served locally
 
 ## Dev

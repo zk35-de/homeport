@@ -1,44 +1,44 @@
 # Contributing
 
-Go-Kenntnisse werden vorausgesetzt. Kein CLA, kein Overhead.
+Go knowledge assumed. No CLA, no overhead.
 
 ## Dev Setup
 
 ```bash
-git clone https://git.zk35.de/secalpha/homeport
+git clone https://github.com/secalpha/homeport
 cd homeport
 go mod download
 go build -o homeport ./cmd/homeport
 ./homeport
 ```
 
-Open http://localhost:8855 – SQLite DB wird automatisch in `./data/` angelegt.
+Open http://localhost:8855 – SQLite DB is created automatically in `./data/`.
 
-## CI lokal ausführen
+## Run CI Locally
 
 ```bash
 go build ./...
 go test ./...
 go vet ./...
 
-# Vulnerability check (einmalig installieren):
+# Vulnerability check (install once):
 go install golang.org/x/vuln/cmd/govulncheck@latest
 govulncheck ./...
 ```
 
-CI läuft auf jedem Push zu `main` und auf PRs – dieselben Schritte.
+CI runs on every push to `main` and on PRs – same steps.
 
 ## Branches & Commits
 
-Branch vom `main` abzweigen:
+Branch off `main`:
 
 ```
-fix/kurze-beschreibung
-feat/kurze-beschreibung
-docs/kurze-beschreibung
+fix/short-description
+feat/short-description
+docs/short-description
 ```
 
-Commit-Format: `<typ>: <was>` – Beispiele:
+Commit format: `<type>: <what>` – examples:
 
 ```
 fix: correct status check timeout
@@ -46,21 +46,21 @@ feat: add rss widget
 docs: extend deploy section
 ```
 
-Kein Ticket-Prefix nötig, aber ein Issue-Verweis in der PR-Beschreibung hilft.
+No ticket prefix required, but an issue reference in the PR description helps.
 
 ## Pull Requests
 
-- PR gegen `main`
-- Beschreibung: was und warum, kein Roman
-- Tests für neue Funktionalität; bestehende Tests dürfen nicht brechen
-- `go vet` + `govulncheck` müssen sauber sein
+- PR against `main`
+- Description: what and why, no novel
+- Tests for new functionality; existing tests must not break
+- `go vet` + `govulncheck` must be clean
 
 ## Issue Labels
 
-| Label | Bedeutung |
-|-------|-----------|
-| `bug` | Etwas funktioniert nicht wie erwartet |
-| `feat` | Neues Feature oder Erweiterung |
-| `docs` | Dokumentation |
-| `refactor` | Code-Änderung ohne Verhaltensänderung |
-| `security` | Sicherheitsrelevant |
+| Label | Meaning |
+|-------|---------|
+| `bug` | Something doesn't work as expected |
+| `feat` | New feature or enhancement |
+| `docs` | Documentation |
+| `refactor` | Code change without behaviour change |
+| `security` | Security-relevant |
