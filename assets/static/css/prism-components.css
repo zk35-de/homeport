@@ -136,6 +136,11 @@ input:focus, select:focus, textarea:focus {
 }
 .form-row label { min-width: 90px; color: var(--sub); font-size: 0.78rem; letter-spacing: 0.05em; }
 
+.checkbox-label {
+  display: flex; align-items: center; gap: 0.4rem;
+  color: var(--text); font-size: 0.82rem; cursor: pointer;
+}
+
 /* ── Details/Accordion ── */
 details {
   background: linear-gradient(135deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%);

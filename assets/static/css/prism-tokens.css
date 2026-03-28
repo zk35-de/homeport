@@ -1,4 +1,4 @@
-/* PRISM Design Tokens v1.1 – secalpha/prism-ui */
+/* PRISM Design Tokens v1.2 – secalpha/prism-ui */
 /* Light/Dark Mode + Per-App Accent Override */
 
 /* ── Dark Mode (Default) ── */
@@ -33,13 +33,12 @@
   --shadow-card: 0 2px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
   --shadow-btn:  0 4px 16px rgba(var(--accent-rgb),0.28), inset 0 1px 0 rgba(255,255,255,0.14);
 
+  /* Aurora blob colors – überschreibbar per App */
   --aurora-1: rgba(var(--accent-rgb), 0.18);
   --aurora-2: rgba(6,182,212,0.11);
   --aurora-3: rgba(139,92,246,0.08);
 
-  color-scheme: dark;
-
-  /* Category color palette */
+  /* Semantische Farbpalette */
   --indigo: #818cf8;
   --blue:   #60a5fa;
   --cyan:   #22d3ee;
@@ -50,6 +49,8 @@
   --pink:   #f472b6;
   --purple: #c084fc;
   --gray:   #94a3b8;
+
+  color-scheme: dark;
 }
 
 /* ── Light Mode ── */
@@ -78,9 +79,7 @@
   --aurora-2: rgba(6,182,212,0.07);
   --aurora-3: rgba(139,92,246,0.05);
 
-  color-scheme: light;
-
-  /* Category color palette (slightly darker for light mode) */
+  /* Semantische Farbpalette (light) */
   --indigo: #4f46e5;
   --blue:   #2563eb;
   --cyan:   #0891b2;
@@ -91,8 +90,11 @@
   --pink:   #db2777;
   --purple: #9333ea;
   --gray:   #64748b;
+
+  color-scheme: light;
 }
 
+/* Auto-detect wenn kein data-theme gesetzt */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
     --bg:    #f0f2f8;
@@ -118,15 +120,9 @@
 }
 
 /* ── Per-App Accent Overrides ── */
+/* Default: Indigo (zk35-MAP) */
 :root {
   --accent-rgb: 99,102,241;
-}
-
-/* homeport: Indigo (default) */
-.app-homeport {
-  --accent:       #6366f1;
-  --accent-hover: #818cf8;
-  --accent-rgb:   99,102,241;
 }
 
 /* elplan: Amber */
@@ -134,6 +130,7 @@
   --accent:       #f59e0b;
   --accent-hover: #fbbf24;
   --accent-rgb:   245,158,11;
+  --aurora-2: rgba(245,158,11,0.08);
 }
 
 /* itmap: Cyan */
@@ -141,6 +138,7 @@
   --accent:       #06b6d4;
   --accent-hover: #22d3ee;
   --accent-rgb:   6,182,212;
+  --aurora-2: rgba(6,182,212,0.12);
 }
 
 /* panelforge: Violet */
@@ -148,6 +146,8 @@
   --accent:       #8b5cf6;
   --accent-hover: #a78bfa;
   --accent-rgb:   139,92,246;
+  --aurora-1: rgba(139,92,246,0.20);
+  --aurora-2: rgba(99,102,241,0.10);
 }
 
 /* ── Typography + Spacing ── */
@@ -161,10 +161,10 @@
   --space-md:  1rem;
   --space-lg:  1.5rem;
   --space-xl:  2rem;
-  --radius:     10px;
   --radius-sm:  4px;
   --radius-md:  8px;
   --radius-lg:  10px;
+  --radius:     10px;
   --radius-xl:  14px;
   --radius-2xl: 16px;
   --nav-height: 44px;
