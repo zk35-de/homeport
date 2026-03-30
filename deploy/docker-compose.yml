@@ -23,6 +23,27 @@ services:
       # - HOMEPORT_CORS=https://homeport.example.com
       # - HOMEPORT_TRUSTED_PROXIES=172.16.0.0/12
     restart: unless-stopped
+    # Macvlan: Container bekommt eigene IP im Heimnetz (ports-Abschnitt dann weglassen)
+    # networks:
+    #   macvlan:
+    #     ipv4_address: 192.168.1.10
 
 volumes:
   homeport-data:
+    # Bind-Mount statt named volume (optional):
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /opt/homeport/data
+
+# Macvlan-Netzwerk (optional – Container erhält eigene IP im Heimnetz)
+# Voraussetzung: macvlan-Netzwerk einmalig anlegen:
+#   docker network create -d macvlan \
+#     --subnet=192.168.1.0/24 \
+#     --gateway=192.168.1.1 \
+#     -o parent=eth0 \
+#     macvlan
+# networks:
+#   macvlan:
+#     external: true
