@@ -30,6 +30,20 @@ func setupTestDB(t *testing.T) func() {
 		t.Fatalf("Failed to initialize database schema: %v", err)
 	}
 
+	// Seed test profiles (formerly done by InitDB, now test-only)
+	if err := db.AddProfile("Markus", "markus"); err != nil {
+		os.Remove(dbPath)
+		t.Fatalf("Failed to seed markus profile: %v", err)
+	}
+	if err := db.SetDefaultProfile("markus"); err != nil {
+		os.Remove(dbPath)
+		t.Fatalf("Failed to set default profile: %v", err)
+	}
+	if err := db.AddProfile("Andrea", "andrea"); err != nil {
+		os.Remove(dbPath)
+		t.Fatalf("Failed to seed andrea profile: %v", err)
+	}
+
 	return func() {
 		if db.DB != nil {
 			db.DB.Close()
@@ -592,13 +606,13 @@ func TestProfiles(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
-	// InitDB seeds "markus" and "andrea" profiles
+	// setupTestDB seeds "markus" and "andrea" as test profiles
 	profiles, err := db.GetProfiles()
 	if err != nil {
 		t.Fatalf("GetProfiles: %v", err)
 	}
 	if len(profiles) < 2 {
-		t.Fatalf("Expected at least 2 seeded profiles, got %d", len(profiles))
+		t.Fatalf("Expected at least 2 test profiles, got %d", len(profiles))
 	}
 
 	// GetDefaultProfile

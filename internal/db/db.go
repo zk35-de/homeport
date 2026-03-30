@@ -40,14 +40,6 @@ func InitDB(dbPath string) error {
 		return fmt.Errorf("failed to migrate db: %w", err)
 	}
 
-	// Seed default profiles if table is empty
-	var count int
-	DB.QueryRow(`SELECT COUNT(*) FROM profiles`).Scan(&count)
-	if count == 0 {
-		DB.Exec(`INSERT INTO profiles (slug, name, is_default, sort_order) VALUES ('markus', 'Markus', 1, 0)`)
-		DB.Exec(`INSERT INTO profiles (slug, name, is_default, sort_order) VALUES ('andrea', 'Andrea', 0, 1)`)
-	}
-
 	return nil
 }
 

@@ -65,6 +65,20 @@ func setupTest(t *testing.T) (*api.Server, func()) {
 		t.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	// Seed test profiles (formerly done by InitDB, now test-only)
+	if err := db.AddProfile("Markus", "markus"); err != nil {
+		os.Remove(dbPath)
+		t.Fatalf("Failed to seed markus profile: %v", err)
+	}
+	if err := db.SetDefaultProfile("markus"); err != nil {
+		os.Remove(dbPath)
+		t.Fatalf("Failed to set default profile: %v", err)
+	}
+	if err := db.AddProfile("Andrea", "andrea"); err != nil {
+		os.Remove(dbPath)
+		t.Fatalf("Failed to seed andrea profile: %v", err)
+	}
+
 	// Parse test templates directly — InitTemplates hardcodes "templates/*" paths
 	// which don't match our testdata/ structure.
 	indexTmpl, err := template.ParseFS(testTemplateFS,
