@@ -9,7 +9,7 @@
 
 services:
   homeport:
-    image: git.zk35.de/secalpha/homeport:latest
+    image: ghcr.io/secalpha/homeport:latest
     ports:
       - "8855:8855"
     volumes:
