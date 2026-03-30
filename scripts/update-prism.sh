@@ -38,5 +38,13 @@ curl -fsSL "${BASE_URL}/prism.js" -o "${JS_DIR}/prism.js"
 echo "${TAG}" > "${CSS_DIR}/.prism-version"
 
 echo ""
-echo "Fertig. Aktive Version: ${TAG}"
-echo "Commit: git add ${CSS_DIR}/prism.css ${JS_DIR}/prism.js ${CSS_DIR}/.prism-version"
+echo "Validierung…"
+if bash "$(dirname "$0")/validate-prism.sh"; then
+  echo ""
+  echo "Fertig. Aktive Version: ${TAG}"
+  echo "Commit: git add ${CSS_DIR}/prism.css ${JS_DIR}/prism.js ${CSS_DIR}/.prism-version"
+else
+  echo ""
+  echo "Contract-Test fehlgeschlagen – Änderungen rückgängig machen oder style.css anpassen."
+  exit 1
+fi
