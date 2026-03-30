@@ -2,6 +2,10 @@
 #   docker compose up -d
 # oder podman:
 #   podman compose up -d
+#
+# Bei Bind-Mount (device: /your/path) Verzeichnis vorher anlegen:
+#   mkdir -p /your/path && chown 1000:1000 /your/path
+# Der Container läuft als uid 1000 (non-root).
 
 services:
   homeport:
