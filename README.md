@@ -203,11 +203,11 @@ sessions         → token, profile, expires_at, created_at
 CI workflows in `.gitea/workflows/`:
 - `ci.yml` – build + test + vet + govulncheck on every push to `main`
 - `release.yml` – linux/amd64 + linux/arm64 binaries + container image on `v*` tags
-- Container image: `ghcr.io/secalpha/homeport:latest` (and `:<tag>`)
+- Container image: `git.zk35.de/secalpha/homeport:latest` (and `:<tag>`)
 
 ## Deploy
 
-Container images are published to `ghcr.io/secalpha/homeport` on every release.
+Container images are published to `git.zk35.de/secalpha/homeport` on every release.
 
 ### Podman Quadlet (systemd, recommended)
 
