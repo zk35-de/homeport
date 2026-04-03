@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"git.zk35.de/secalpha/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/db"
 )
 
 // HandleProfileThemeCSS serves a profile's accent color + custom CSS as a stylesheet.

@@ -9,7 +9,7 @@
 
 services:
   homeport:
-    image: git.zk35.de/secalpha/homeport:latest
+    image: ghcr.io/zk35-de/homeport:latest
     ports:
       # Alle Interfaces (Standard):
       - "8855:8855"

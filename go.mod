@@ -1,4 +1,4 @@
-module git.zk35.de/secalpha/homeport
+module github.com/zk35-de/homeport
 
 go 1.25.8
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.zk35.de/secalpha/homeport/core"
+	"github.com/zk35-de/homeport/core"
 )
 
 func TestScanPodmanContainers_PodmanNotAvailable(t *testing.T) {

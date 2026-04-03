@@ -106,6 +106,9 @@ func DeleteUserAuth(profile string) error {
 
 // HasAnyPassword returns true if at least one profile has a password set.
 func HasAnyPassword() bool {
+	if DB == nil {
+		return false
+	}
 	var count int
 	DB.QueryRow(`SELECT COUNT(*) FROM user_auth`).Scan(&count)
 	return count > 0

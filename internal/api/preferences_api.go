@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"git.zk35.de/secalpha/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/db"
 )
 
 // resolvePrefsProfile determines the target profile for preferences endpoints.

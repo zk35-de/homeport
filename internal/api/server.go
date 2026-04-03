@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"log"
 
-	"git.zk35.de/secalpha/homeport/internal/config"
-	"git.zk35.de/secalpha/homeport/internal/i18n"
+	"github.com/zk35-de/homeport/internal/config"
+	"github.com/zk35-de/homeport/internal/i18n"
 )
 
 // Server holds all shared dependencies for the API handlers.

@@ -14,9 +14,9 @@ import (
 
 
 	"github.com/go-chi/chi/v5"
-	"git.zk35.de/secalpha/homeport/internal/api"
-	"git.zk35.de/secalpha/homeport/internal/config"
-	"git.zk35.de/secalpha/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/api"
+	"github.com/zk35-de/homeport/internal/config"
+	"github.com/zk35-de/homeport/internal/db"
 )
 
 // setupTestWithLogin extends setupTest to also initialize srv.LoginTmpl.

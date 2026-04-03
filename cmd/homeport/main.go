@@ -16,14 +16,14 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/term"
 
-	"git.zk35.de/secalpha/homeport/assets"
-	"git.zk35.de/secalpha/homeport/core"
-	"git.zk35.de/secalpha/homeport/internal/api"
-	"git.zk35.de/secalpha/homeport/internal/backup"
-	"git.zk35.de/secalpha/homeport/internal/config"
-	"git.zk35.de/secalpha/homeport/internal/discovery"
+	"github.com/zk35-de/homeport/assets"
+	"github.com/zk35-de/homeport/core"
+	"github.com/zk35-de/homeport/internal/api"
+	"github.com/zk35-de/homeport/internal/backup"
+	"github.com/zk35-de/homeport/internal/config"
+	"github.com/zk35-de/homeport/internal/discovery"
 
-	"git.zk35.de/secalpha/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/db"
 )
 
 func main() {

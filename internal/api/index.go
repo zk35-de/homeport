@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"git.zk35.de/secalpha/homeport/internal/db"
-	"git.zk35.de/secalpha/homeport/internal/i18n"
+	"github.com/zk35-de/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/i18n"
 )
 
 // isImgURL returns true if the icon value is a URL (should be rendered as <img>).

@@ -5,7 +5,7 @@ Go knowledge assumed. No CLA, no overhead.
 ## Dev Setup
 
 ```bash
-git clone https://github.com/secalpha/homeport
+git clone https://github.com/zk35-de/homeport
 cd homeport
 go mod download
 go build -o homeport ./cmd/homeport

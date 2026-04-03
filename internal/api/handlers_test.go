@@ -15,9 +15,9 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"git.zk35.de/secalpha/homeport/internal/db"
-	"git.zk35.de/secalpha/homeport/internal/api"
-	"git.zk35.de/secalpha/homeport/internal/config"
+	"github.com/zk35-de/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/api"
+	"github.com/zk35-de/homeport/internal/config"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 

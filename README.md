@@ -38,7 +38,7 @@ Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
 ## Quick Start
 
 ```bash
-git clone https://github.com/secalpha/homeport
+git clone https://github.com/zk35-de/homeport
 cd homeport
 go build -o homeport ./cmd/homeport
 ./homeport
@@ -203,11 +203,11 @@ sessions         → token, profile, expires_at, created_at
 CI workflows in `.gitea/workflows/`:
 - `ci.yml` – build + test + vet + govulncheck on every push to `main`
 - `release.yml` – linux/amd64 + linux/arm64 binaries + container image on `v*` tags
-- Container image: `git.zk35.de/secalpha/homeport:latest` (and `:<tag>`)
+- Container image: `ghcr.io/zk35-de/homeport:latest` (and `:<tag>`)
 
 ## Deploy
 
-Container images are published to `git.zk35.de/secalpha/homeport` on every release.
+Container images are published to `ghcr.io/zk35-de/homeport` on every release.
 
 ### Podman Quadlet (systemd, recommended)
 

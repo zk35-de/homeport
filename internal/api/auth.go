@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"git.zk35.de/secalpha/homeport/internal/config"
-	"git.zk35.de/secalpha/homeport/internal/db"
-	"git.zk35.de/secalpha/homeport/internal/i18n"
+	"github.com/zk35-de/homeport/internal/config"
+	"github.com/zk35-de/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/i18n"
 )
 
 const sessionCookie = "hp_session"
@@ -25,9 +25,21 @@ func SessionProfile(r *http.Request) string {
 
 // RequireAdmin middleware: if auth is enabled, only admin profiles may proceed.
 // Must run after RequireAuth (assumes valid session already verified).
+// Exception: when auth is enabled but no password exists yet (setup mode),
+// only /manage/auth routes are accessible to allow initial password setup.
 func (s *Server) RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if s.Config != nil && s.Config.AuthEnabled {
+			// Setup mode: no passwords set yet → only allow auth management routes
+			if !db.HasAnyPassword() {
+				path := r.URL.Path
+				if path == "/manage/auth" || path == "/manage/auth/password" {
+					next.ServeHTTP(w, r)
+					return
+				}
+				http.Redirect(w, r, "/manage/auth", http.StatusSeeOther)
+				return
+			}
 			profile := SessionProfile(r)
 			a, err := db.GetUserAuth(profile)
 			if err != nil || a == nil || !a.IsAdmin {
@@ -56,6 +68,13 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 			if path == "/login" || path == "/logout" ||
 				strings.HasPrefix(path, "/static/") ||
 				path == "/api/health" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Setup mode: auth enabled but no password set yet → allow /manage/auth
+			if !db.HasAnyPassword() &&
+				(path == "/manage/auth" || path == "/manage/auth/password") {
 				next.ServeHTTP(w, r)
 				return
 			}

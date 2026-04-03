@@ -3,6 +3,10 @@
 # Usage: ./scripts/update-prism.sh [TAG]
 # Beispiel: ./scripts/update-prism.sh v2.0.0
 # Ohne Argument: fragt Gitea nach dem neuesten Release-Tag
+#
+# NOTE: Internal maintainer script – requires access to the private git.zk35.de
+# registry. External contributors can update prism-ui files directly in
+# assets/static/css/ and assets/static/js/.
 
 set -euo pipefail
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"git.zk35.de/secalpha/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/db"
 )
 
 type SearchResult struct {

@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"git.zk35.de/secalpha/homeport/internal/backup"
-	"git.zk35.de/secalpha/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/backup"
+	"github.com/zk35-de/homeport/internal/db"
 )
 
 // HandleBackupDownload triggers a manual backup and streams it.

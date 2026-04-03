@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"git.zk35.de/secalpha/homeport/internal/db"
+	"github.com/zk35-de/homeport/internal/db"
 )
 
 // OnNewDiscovery is called when a new item is added to the inbox.
