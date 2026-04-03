@@ -38,14 +38,13 @@ document.addEventListener('DOMContentLoaded', function() {
       currentEngineURL = url;
       if (engineLabel) engineLabel.textContent = label + '▾';
       engineMenu.classList.add('hidden');
-      const formData = new FormData();
-      formData.append('profile', document.body.dataset.profile || '');
-      formData.append('engine', url.replace('?q=','').replace('&q=',''));
-      const csrf = document.cookie.match('(^|;)\\s*hp_csrf\\s*=\\s*([^;]+)');
-      fetch('/manage/settings/search', {
-        method: 'POST',
-        headers: csrf ? {'X-CSRF-Token': csrf.pop()} : {},
-        body: formData
+      const profile = document.body.dataset.profile || '';
+      const apiUrl  = '/api/user/preferences' + (profile ? '?profile=' + encodeURIComponent(profile) : '');
+      const csrf    = document.cookie.match('(^|;)\\s*hp_csrf\\s*=\\s*([^;]+)');
+      fetch(apiUrl, {
+        method: 'PATCH',
+        headers: Object.assign({'Content-Type': 'application/json'}, csrf ? {'X-CSRF-Token': csrf.pop()} : {}),
+        body: JSON.stringify({search_engine: url.replace('?q=', '').replace('&q=', '')})
       }).catch(function() {});
     });
   });
