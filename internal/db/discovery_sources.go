@@ -46,18 +46,6 @@ func AddDiscoverySource(typ, name, url, token string, interval int) (int64, erro
 	return res.LastInsertId()
 }
 
-func UpdateDiscoverySource(id int, name, url, token string, interval int, enabled bool) error {
-	en := 0
-	if enabled {
-		en = 1
-	}
-	_, err := DB.Exec(
-		`UPDATE discovery_sources SET name=?, url=?, token=?, interval=?, enabled=? WHERE id=?`,
-		name, url, token, interval, en, id,
-	)
-	return err
-}
-
 func DeleteDiscoverySource(id int) error {
 	_, err := DB.Exec(`DELETE FROM discovery_sources WHERE id=?`, id)
 	return err

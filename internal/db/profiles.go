@@ -203,12 +203,3 @@ func SetUserPreferences(profile string, prefs UserPreferences) error {
 	return err
 }
 
-func GetSearchEngine(profile string) string {
-	var url string
-	err := DB.QueryRow(`SELECT search_engine FROM user_settings WHERE profile = ?`, profile).Scan(&url)
-	if err != nil || url == "" {
-		return "https://duckduckgo.com/"
-	}
-	return url
-}
-
