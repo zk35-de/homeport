@@ -40,7 +40,22 @@ func InitDB(dbPath string) error {
 		return fmt.Errorf("failed to migrate db: %w", err)
 	}
 
+	if err := seedDefaultProfile(); err != nil {
+		return fmt.Errorf("failed to seed default profile: %w", err)
+	}
+
 	return nil
+}
+
+// seedDefaultProfile creates a "home" profile on first start if no profiles exist.
+func seedDefaultProfile() error {
+	var count int
+	DB.QueryRow(`SELECT COUNT(*) FROM profiles`).Scan(&count)
+	if count > 0 {
+		return nil
+	}
+	_, err := DB.Exec(`INSERT INTO profiles (slug, name, is_default, sort_order) VALUES ('home', 'Home', 1, 1)`)
+	return err
 }
 
 func ReinitDB(dbPath string) error {
