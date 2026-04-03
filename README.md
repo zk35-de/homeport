@@ -209,6 +209,10 @@ CI workflows in `.gitea/workflows/`:
 
 Container images are published to `ghcr.io/zk35-de/homeport` on every release.
 
+> **Security note:** homeport is designed for trusted networks (home lab, private LAN).
+> Do not expose it directly to the internet. If remote access is needed, place it
+> behind a reverse proxy (Caddy, nginx) with TLS and enable `HOMEPORT_AUTH=true`.
+
 ### Podman Quadlet (systemd, recommended)
 
 ```bash

@@ -24,8 +24,6 @@ services:
       # - HOMEPORT_PUBLIC_PROFILE=public
       # - HOMEPORT_BACKUP_INTERVAL=24h
       # - HOMEPORT_BACKUP_MAX_KEEP=7
-      # - HOMEPORT_CORS=https://homeport.example.com
-      # - HOMEPORT_TRUSTED_PROXIES=172.16.0.0/12
     restart: unless-stopped
     # Macvlan: Container bekommt eigene IP im Heimnetz (ports-Abschnitt dann weglassen)
     # networks:
