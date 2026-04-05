@@ -77,7 +77,7 @@ jobs:
           REGISTRY: git.zk35.de
           IMAGE: git.zk35.de/secalpha/homeport
           TAG: ${{ github.ref_name }}
-          GITEA_TOKEN: ${{ secrets.homeportci }}
+          GITEA_TOKEN: ${{ secrets.HOMEPORTCI }}
         run: |
           podman login ${REGISTRY} -u secalpha -p ${GITEA_TOKEN}
           podman build -f Containerfile -t ${IMAGE}:${TAG} -t ${IMAGE}:latest .
