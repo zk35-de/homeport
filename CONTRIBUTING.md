@@ -28,6 +28,14 @@ govulncheck ./...
 
 CI runs on every push to `main` and on PRs – same steps.
 
+### Test structure
+
+`internal/api/handlers_test.go` – unit tests with stub templates (fast, logic-focused).
+
+`internal/api/smoke_test.go` – render tests using the **real** embedded templates via `assets.FS`. These catch struct/template mismatches (e.g. a template field that exists in the partial but not in the handler's data struct). **If you add a field to any template partial, add it to the corresponding handler data struct and to the smoke test assertions.**
+
+`tests/e2e/` – Playwright end-to-end tests against a running server (`npx playwright test`).
+
 ## Branches & Commits
 
 Branch off `main`:
