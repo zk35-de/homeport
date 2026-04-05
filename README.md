@@ -167,7 +167,7 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 
 ### Appearance
 - Themes: dark / light / system (toggle in navbar or Settings tab)
-- Language: DE / EN (toggle in navbar or Settings tab)
+- Language: DE / EN / ES / SK / FR (toggle in navbar or Settings tab)
 - Accent color picker
 - Custom CSS override
 
