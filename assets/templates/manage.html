@@ -45,12 +45,13 @@
                     <label>{{.T "manage.category"}}</label>
                     <select id="cat-select" name="category_id" required
                             hx-get="/manage/category-options"
-                            hx-trigger="categoryAdded from:body"
+                            hx-trigger="load, categoryAdded from:body"
                             hx-swap="innerHTML">
                         {{range .Categories}}
                         <option value="{{.ID}}">{{.Name}}</option>
                         {{end}}
                     </select>
+                    {{if not .Categories}}<p class="hint-inline">{{.T "manage.hint.create_category_first"}}</p>{{end}}
                 </div>
                 <div class="form-group">
                     <label>{{.T "manage.name"}}</label>

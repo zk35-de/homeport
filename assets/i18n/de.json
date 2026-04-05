@@ -90,5 +90,6 @@
   "common.error": "Fehler",
   "common.confirm_delete": "Wirklich löschen?",
   "onboarding.title": "Willkommen bei homeport",
-  "onboarding.desc": "Noch keine Dienste konfiguriert."
+  "onboarding.desc": "Noch keine Dienste konfiguriert.",
+  "manage.hint.create_category_first": "Zuerst eine Kategorie anlegen (links)."
 }

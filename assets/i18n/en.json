@@ -90,5 +90,6 @@
   "common.error": "Error",
   "common.confirm_delete": "Really delete?",
   "onboarding.title": "Welcome to homeport",
-  "onboarding.desc": "No services configured yet."
+  "onboarding.desc": "No services configured yet.",
+  "manage.hint.create_category_first": "Create a category first (on the left)."
 }

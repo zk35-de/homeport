@@ -911,6 +911,7 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
 .form-row-wrap-sm { display: flex; gap: 0.5rem; margin-top: 0.4rem; flex-wrap: wrap; }
 .icon-input-sm { width: 3rem; }
 .hint-block { margin-top: 1rem; font-size: 0.85rem; color: var(--muted); }
+.hint-inline { margin: 0.3rem 0 0; font-size: 0.8rem; color: var(--accent); }
 .form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 
 /* Discovery Sources table */
