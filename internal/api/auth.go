@@ -23,13 +23,19 @@ func SessionProfile(r *http.Request) string {
 	return db.GetSession(c.Value)
 }
 
+// authActive returns true if auth should be enforced: either explicitly enabled
+// via HOMEPORT_AUTH=true, or implicitly because at least one password is set.
+func authActive(cfg *config.Config) bool {
+	return (cfg != nil && cfg.AuthEnabled) || db.HasAnyPassword()
+}
+
 // RequireAdmin middleware: if auth is enabled, only admin profiles may proceed.
 // Must run after RequireAuth (assumes valid session already verified).
 // Exception: when auth is enabled but no password exists yet (setup mode),
 // only /manage/auth routes are accessible to allow initial password setup.
 func (s *Server) RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.Config != nil && s.Config.AuthEnabled {
+		if authActive(s.Config) {
 			// Setup mode: no passwords set yet → only allow auth management routes
 			if !db.HasAnyPassword() {
 				path := r.URL.Path
@@ -58,7 +64,7 @@ func (s *Server) RequireAdmin(next http.Handler) http.Handler {
 func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !cfg.AuthEnabled {
+			if !authActive(cfg) {
 				next.ServeHTTP(w, r)
 				return
 			}
