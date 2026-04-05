@@ -38,8 +38,8 @@
     {{if not .Categories}}
     <div class="onboarding-hint">
         <div class="onboarding-icon">🚀</div>
-        <h2 class="onboarding-title">Willkommen bei homeport</h2>
-        <p class="onboarding-desc">Noch keine Dienste konfiguriert.</p>
+        <h2 class="onboarding-title">{{.T "onboarding.title"}}</h2>
+        <p class="onboarding-desc">{{.T "onboarding.desc"}}</p>
         <a href="/manage" class="btn-primary">{{.T "manage.title"}} →</a>
     </div>
     {{end}}

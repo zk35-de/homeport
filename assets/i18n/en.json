@@ -88,5 +88,7 @@
 
   "common.loading": "Loading…",
   "common.error": "Error",
-  "common.confirm_delete": "Really delete?"
+  "common.confirm_delete": "Really delete?",
+  "onboarding.title": "Welcome to homeport",
+  "onboarding.desc": "No services configured yet."
 }
