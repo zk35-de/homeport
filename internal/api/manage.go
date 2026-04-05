@@ -492,7 +492,20 @@ func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
 	if err := s.ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
 		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
+
+	// OOB-swap: update the category select in the service-add form directly,
+	// so the new option appears without relying on the categoryAdded event.
+	fmt.Fprintf(w, `<select id="cat-select" name="category_id" required`+
+		` hx-get="/manage/category-options"`+
+		` hx-trigger="load, categoryAdded from:body"`+
+		` hx-swap="innerHTML"`+
+		` hx-swap-oob="true">`)
+	for _, c := range categories {
+		fmt.Fprintf(w, `<option value="%d">%s</option>`, c.ID, c.Name)
+	}
+	fmt.Fprintf(w, `</select>`)
 }
 
 // HandleGetCategoryVisibility returns the inline visibility form for a category.
