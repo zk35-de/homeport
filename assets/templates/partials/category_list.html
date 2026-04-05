@@ -4,19 +4,19 @@
     {{$catID := .ID}}
     <div class="manage-category" id="cat-{{.ID}}" data-id="{{.ID}}">
         <div class="manage-header">
-            <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
-            <span class="cat-arrow" data-cat-toggle="{{.ID}}" title="Ein-/Ausklappen">▾</span>
+            <span class="drag-handle" title="{{$.T "manage.drag_to_sort"}}">⠿</span>
+            <span class="cat-arrow" data-cat-toggle="{{.ID}}" title="{{$.T "manage.category.collapse"}}">▾</span>
             <span class="category-title color-{{.Color}}">{{.Name}} ({{.Layout}})</span>
             <div class="actions">
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/down" hx-target="#category-list" hx-swap="innerHTML">⬇️</button>
-                <button class="btn-icon {{if eq .ColSpan 1}}span-active{{end}}" title="Volle Breite"
+                <button class="btn-icon {{if eq .ColSpan 1}}span-active{{end}}" title="{{$.T "manage.category.span_full"}}"
                     hx-post="/manage/category/{{.ID}}/span/1" hx-target="#category-list" hx-swap="innerHTML">▦</button>
-                <button class="btn-icon {{if eq .ColSpan 2}}span-active{{end}}" title="Halbe Breite"
+                <button class="btn-icon {{if eq .ColSpan 2}}span-active{{end}}" title="{{$.T "manage.category.span_half"}}"
                     hx-post="/manage/category/{{.ID}}/span/2" hx-target="#category-list" hx-swap="innerHTML">▥</button>
-                <button class="btn-icon {{if eq .ColSpan 3}}span-active{{end}}" title="Drittel"
+                <button class="btn-icon {{if eq .ColSpan 3}}span-active{{end}}" title="{{$.T "manage.category.span_third"}}"
                     hx-post="/manage/category/{{.ID}}/span/3" hx-target="#category-list" hx-swap="innerHTML">▤</button>
-                <button class="btn-icon {{if eq .SortMode "usage"}}span-active{{end}}" title="Nach Nutzung sortieren"
+                <button class="btn-icon {{if eq .SortMode "usage"}}span-active{{end}}" title="{{$.T "manage.category.sort_usage"}}"
                     hx-post="/manage/category/{{.ID}}/sortmode/{{if eq .SortMode "usage"}}manual{{else}}usage{{end}}"
                     hx-target="#category-list" hx-swap="innerHTML">📊</button>
                 <button class="btn-icon"
@@ -36,7 +36,7 @@
         <div class="manage-service-list sortable-services" data-cat="{{$catID}}">
             {{range .Services}}
             <div class="manage-service-item" id="svc-row-{{.ID}}" data-id="{{.ID}}">
-                <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
+                <span class="drag-handle" title="{{$.T "manage.drag_to_sort"}}">⠿</span>
                 <div class="service-info">
                     <strong>{{.Name}}</strong>
                     <span class="text-muted"> - {{.URL}}</span>
@@ -63,7 +63,7 @@
     {{if .DiscoveryItems}}
     <div class="manage-category manage-category-discovery" id="cat-discovery">
         <div class="manage-header">
-            <span class="cat-arrow" data-cat-toggle="discovery" title="Ein-/Ausklappen">▾</span>
+            <span class="cat-arrow" data-cat-toggle="discovery" title="{{$.T "manage.category.collapse"}}">▾</span>
             <span class="category-title color-indigo">🔍 Discovery ({{len .DiscoveryItems}})</span>
         </div>
         <div class="manage-service-list" id="discovery-service-list">
@@ -120,19 +120,19 @@
         <div class="form-group">
             <label>{{.T "manage.icon"}}</label>
             <div class="icon-input-row">
-                <input type="text" name="icon" id="edit-icon-{{.Service.ID}}" value="{{.Service.Icon}}" placeholder="🏠 oder leer">
-                <button type="button" class="btn-sm fetch-favicon-btn" data-svc-id="{{.Service.ID}}" title="Favicon laden">🌐</button>
+                <input type="text" name="icon" id="edit-icon-{{.Service.ID}}" value="{{.Service.Icon}}" placeholder="{{.T "manage.icon_placeholder"}}">
+                <button type="button" class="btn-sm fetch-favicon-btn" data-svc-id="{{.Service.ID}}" title="{{.T "manage.fetch_favicon"}}">🌐</button>
                 <img id="edit-favicon-preview-{{.Service.ID}}" src="{{if .Service.Icon}}{{.Service.Icon}}{{end}}"
                     alt="" class="favicon-preview{{if not .Service.Icon}} hidden{{end}}"
                     onerror="this.classList.add('hidden')">
             </div>
         </div>
         <div class="form-group">
-            <label>Description</label>
+            <label>{{.T "manage.description"}}</label>
             <input type="text" name="description" value="{{.Service.Description}}">
         </div>
         <div class="form-group">
-            <label>Status Check URL</label>
+            <label>{{.T "manage.status_check_url"}}</label>
             <input type="url" name="status_check" value="{{.Service.StatusCheck}}">
         </div>
         <div class="form-group">
@@ -175,7 +175,7 @@
             <input type="text" name="name" value="{{.Category.Name}}" required>
         </div>
         <div class="form-group">
-            <label>Layout</label>
+            <label>{{.T "manage.layout"}}</label>
             <select name="layout">
                 <option value="tiles" {{if eq .Category.Layout "tiles"}}selected{{end}}>Tiles</option>
                 <option value="list" {{if eq .Category.Layout "list"}}selected{{end}}>List</option>
@@ -183,7 +183,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Color</label>
+            <label>{{.T "manage.color"}}</label>
             <select name="color">
                 <option value="indigo" {{if eq .Category.Color "indigo"}}selected{{end}}>Indigo</option>
                 <option value="blue" {{if eq .Category.Color "blue"}}selected{{end}}>Blue</option>

@@ -1,13 +1,13 @@
 {{define "content"}}
 <div class="manage-nav" role="tablist">
-    <button class="manage-tab" data-panel="panel-services"    role="tab">⊞ Services</button>
-    <button class="manage-tab" data-panel="discovery-sources" role="tab">🔌 Discovery</button>
-    <button class="manage-tab" data-panel="analytics-link"    role="tab">📊 Analytics</button>
-    <button class="manage-tab" data-panel="backup"            role="tab">💾 Backup</button>
-    <button class="manage-tab" data-panel="appearance"        role="tab">⚙️ Settings</button>
-    <button class="manage-tab" data-panel="auth"              role="tab">🔐 Auth</button>
-    <button class="manage-tab" data-panel="profiles"          role="tab">👤 Profile</button>
-    <button class="manage-tab" data-panel="pages"             role="tab">📄 Pages</button>
+    <button class="manage-tab" data-panel="panel-services"    role="tab">⊞ {{.T "manage.services"}}</button>
+    <button class="manage-tab" data-panel="discovery-sources" role="tab">🔌 {{.T "manage.discovery"}}</button>
+    <button class="manage-tab" data-panel="analytics-link"    role="tab">📊 {{.T "analytics.title"}}</button>
+    <button class="manage-tab" data-panel="backup"            role="tab">💾 {{.T "manage.backup"}}</button>
+    <button class="manage-tab" data-panel="appearance"        role="tab">⚙️ {{.T "manage.settings"}}</button>
+    <button class="manage-tab" data-panel="auth"              role="tab">🔐 {{.T "manage.auth"}}</button>
+    <button class="manage-tab" data-panel="profiles"          role="tab">👤 {{.T "manage.profiles"}}</button>
+    <button class="manage-tab" data-panel="pages"             role="tab">📄 {{.T "manage.pages"}}</button>
 </div>
 <div class="manage-panel" id="panel-services">
 <div class="manage-grid">
@@ -21,7 +21,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Color</label>
+                    <label>{{.T "manage.color"}}</label>
                     <select name="color">
                         <option value="indigo">Indigo</option>
                         <option value="blue">Blue</option>
@@ -64,17 +64,17 @@
                 <div class="form-group">
                     <label>{{.T "manage.icon"}}</label>
                     <div class="icon-input-row">
-                        <input type="text" name="icon" id="svc-icon-input" placeholder="🏠 oder leer lassen">
-                        <button type="button" class="btn-sm" id="fetch-favicon-btn" title="Favicon von der URL laden">🌐</button>
+                        <input type="text" name="icon" id="svc-icon-input" placeholder="{{.T "manage.icon_placeholder"}}">
+                        <button type="button" class="btn-sm" id="fetch-favicon-btn" title="{{.T "manage.fetch_favicon"}}">🌐</button>
                         <img id="favicon-preview" src="" alt="" class="favicon-preview hidden">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
+                    <label>{{.T "manage.description"}}</label>
                     <input type="text" name="description">
                 </div>
                 <div class="form-group">
-                    <label>Status Check URL</label>
+                    <label>{{.T "manage.status_check_url"}}</label>
                     <input type="url" name="status_check">
                 </div>
                 <div class="form-group">
@@ -110,13 +110,13 @@
 <section class="manage-panel manage-section" id="discovery-sources">
   <h2>{{.T "manage.discovery.sources"}}</h2>
   <p class="section-desc">
-    Nginx Proxy Manager, Docker und Traefik werden automatisch auf neue Dienste gescannt.
+    {{.T "manage.discovery.desc"}}
   </p>
 
   <form hx-post="/manage/discovery/sources" hx-target="#discovery-sources-list" hx-swap="outerHTML"
         class="discovery-form-grid">
     <div class="form-group">
-      <label>Typ</label>
+      <label>{{.T "manage.type"}}</label>
       <select name="type">
         <option value="npm">Nginx Proxy Manager</option>
         <option value="traefik">Traefik</option>
@@ -133,10 +133,10 @@
     </div>
     <div class="form-group">
       <label>Token / identity:secret</label>
-      <input type="text" name="token" placeholder="admin@example.com:passwort">
+      <input type="text" name="token" placeholder="admin@example.com:password">
     </div>
     <div class="form-group">
-      <label>Intervall (Sekunden)</label>
+      <label>{{.T "manage.discovery.interval"}}</label>
       <input type="number" name="interval" value="300" min="10">
     </div>
     <div class="flex-align-end">
@@ -158,22 +158,23 @@
 </section>
 
 <section class="manage-panel manage-section" id="backup">
-  <h2>Backup & Restore</h2>
+  <h2>{{.T "manage.backup"}} & {{.T "manage.restore"}}</h2>
 
-  <!-- Manueller Backup-Download -->
+  <!-- Backup download -->
   <div class="flex-row-wrap-mb">
-    <a href="/manage/backup" class="btn-sm" download>💾 Backup herunterladen</a>
-    <span class="text-hint">Lädt homeport.db als Snapshot</span>
+    <a href="/manage/backup" class="btn-sm" download>💾 {{.T "manage.backup.download"}}</a>
+    <span class="text-hint">{{.T "manage.backup.desc"}}</span>
   </div>
 
-  <!-- Restore-Upload -->
-  <form id="restore-form" method="post" action="/manage/restore" enctype="multipart/form-data">
+  <!-- Restore upload -->
+  <form id="restore-form" method="post" action="/manage/restore" enctype="multipart/form-data"
+        data-confirm="{{.T "manage.restore.confirm"}}">
     <div class="flex-row-align-end-wrap">
       <div class="form-group form-group-mb0">
-        <label>DB-Datei wiederherstellen</label>
+        <label>{{.T "manage.restore.label"}}</label>
         <input type="file" name="file" accept=".db" required>
       </div>
-      <button type="submit" class="btn-sm btn-danger">⚠️ Restore</button>
+      <button type="submit" class="btn-sm btn-danger">⚠️ {{.T "manage.restore"}}</button>
     </div>
   </form>
 </section>
@@ -197,6 +198,9 @@
         <select name="language" onchange="savePrefs({language: this.value}).then(function(){ window.location.reload(); })">
           <option value="de" {{if eq .Prefs.Language "de"}}selected{{end}}>{{.T "pref.language.de"}}</option>
           <option value="en" {{if eq .Prefs.Language "en"}}selected{{end}}>{{.T "pref.language.en"}}</option>
+          <option value="es" {{if eq .Prefs.Language "es"}}selected{{end}}>{{.T "pref.language.es"}}</option>
+          <option value="sk" {{if eq .Prefs.Language "sk"}}selected{{end}}>{{.T "pref.language.sk"}}</option>
+          <option value="fr" {{if eq .Prefs.Language "fr"}}selected{{end}}>{{.T "pref.language.fr"}}</option>
         </select>
       </div>
     </div>
@@ -214,7 +218,7 @@
       <div class="color-picker-row">
         <input type="color" id="accent-picker" value="{{.Prefs.AccentColor}}">
         <span id="accent-hex" class="accent-hex">{{.Prefs.AccentColor}}</span>
-        <button class="btn-sm" id="reset-accent-btn">Reset</button>
+        <button class="btn-sm" id="reset-accent-btn">{{.T "common.reset"}}</button>
       </div>
     </div>
 
@@ -265,28 +269,25 @@
 
 <section class="manage-panel manage-section" id="pages">
   <h2>{{.T "manage.pages"}}</h2>
-  <p class="section-desc-sm">
-    Pages erlauben es, Kategorien und Widgets auf verschiedene Tabs aufzuteilen (Work / Personal / Hobby).
-    Nicht zugewiesene Inhalte (Page 0) erscheinen auf allen Tabs.
-  </p>
+  <p class="section-desc-sm">{{.T "manage.pages.desc"}}</p>
   {{if .Profiles}}
   {{range .Profiles}}
   <h4 class="profile-section-title">{{.Name}} ({{.Slug}})</h4>
   <div id="page-list-{{.Slug}}"
        hx-get="/manage/page-list?profile={{.Slug}}" hx-trigger="load"
-       hx-swap="innerHTML">{{.T "manage.loading"}}</div>
+       hx-swap="innerHTML">{{$.T "manage.loading"}}</div>
   <form hx-post="/manage/page" hx-target="#page-list-{{.Slug}}" hx-swap="innerHTML"
         hx-on::after-request="this.reset()"
         class="form-row-wrap-sm">
     <input type="hidden" name="profile" value="{{.Slug}}">
     <input type="text" name="icon" placeholder="📄" class="icon-input-sm">
-    <input type="text" name="name" placeholder="Page Name (z.B. Work)" required class="flex-1">
+    <input type="text" name="name" placeholder="{{$.T "manage.pages.name_placeholder"}}" required class="flex-1">
     <button class="btn-sm" type="submit">+ {{$.T "manage.add_page"}}</button>
   </form>
   {{end}}
   {{end}}
   <div class="hint-block">
-    Kategorien einer Page zuordnen: Im Kategorie-Bereich oben → "Page" Dropdown pro Kategorie.
+    {{.T "manage.pages.hint"}}
   </div>
 </section>
 

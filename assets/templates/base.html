@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" class="app-homeport" data-theme="{{if .Prefs}}{{.Prefs.Theme}}{{else}}dark{{end}}">
+<html lang="{{if .Prefs}}{{.Prefs.Language}}{{else}}de{{end}}" class="app-homeport" data-theme="{{if .Prefs}}{{.Prefs.Theme}}{{else}}dark{{end}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,8 +32,8 @@
         <a href="{{if .IsDefault}}/{{else}}/{{.Slug}}{{end}}">{{.Name}}</a>
         {{end}}
         <a href="/manage" class="nav-action">{{.T "nav.manage"}}</a>
-        <button class="btn-icon nav-lang-toggle" title="Sprache wechseln" aria-label="Sprache wechseln" data-lang="{{if .Prefs}}{{.Prefs.Language}}{{else}}de{{end}}">DE</button>
-        <button class="btn-icon nav-theme-toggle" title="Theme wechseln" aria-label="Theme wechseln">🌙</button>
+        <button class="btn-icon nav-lang-toggle" title="{{.T "manage.language_toggle"}}" aria-label="{{.T "manage.language_toggle"}}" data-lang="{{if .Prefs}}{{.Prefs.Language}}{{else}}de{{end}}">DE</button>
+        <button class="btn-icon nav-theme-toggle" title="{{.T "manage.theme_toggle"}}" aria-label="{{.T "manage.theme_toggle"}}">🌙</button>
         {{if .Profile}}<form method="post" action="/logout" style="display:inline"><button class="btn-icon" title="{{.T "nav.logout"}}" aria-label="{{.T "nav.logout"}}">⎋</button></form>{{end}}
     </nav>
     <main>

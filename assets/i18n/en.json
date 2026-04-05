@@ -85,6 +85,9 @@
 
   "pref.language.de": "Deutsch",
   "pref.language.en": "English",
+  "pref.language.es": "Español",
+  "pref.language.sk": "Slovenčina",
+  "pref.language.fr": "Français",
 
   "common.loading": "Loading…",
   "common.error": "Error",
@@ -93,5 +96,44 @@
   "onboarding.desc": "No services configured yet.",
   "manage.hint.create_category_first": "Create a category first (on the left).",
   "manage.category.set_visibility": "Set visibility for all services",
-  "manage.category.visibility_hint": "All services in this category will be visible in the selected profiles (replaces existing settings)."
+  "manage.category.visibility_hint": "All services in this category will be visible in the selected profiles (replaces existing settings).",
+  "manage.category.collapse": "Collapse",
+  "manage.category.span_full": "Full width",
+  "manage.category.span_half": "Half width",
+  "manage.category.span_third": "Third",
+  "manage.category.sort_usage": "Sort by usage",
+
+  "manage.icon_placeholder": "🏠 or leave empty",
+  "manage.fetch_favicon": "Load favicon",
+  "manage.description": "Description",
+  "manage.status_check_url": "Status Check URL",
+  "manage.layout": "Layout",
+  "manage.color": "Color",
+  "manage.type": "Type",
+  "manage.theme_toggle": "Toggle theme",
+  "manage.language_toggle": "Change language",
+  "manage.profile.set_default": "Set as default",
+
+  "manage.backup.download": "Download backup",
+  "manage.backup.desc": "Downloads homeport.db as snapshot",
+  "manage.restore.label": "Restore database",
+  "manage.restore.confirm": "⚠️ Restore will overwrite ALL data. Continue?",
+
+  "manage.discovery.no_sources": "No sources configured.",
+  "manage.discovery.found_suffix": "new services found",
+  "manage.discovery.status_active": "● active",
+  "manage.discovery.status_paused": "● paused",
+  "manage.discovery.pause": "Pause",
+  "manage.discovery.start": "Start",
+  "manage.discovery.desc": "Nginx Proxy Manager, Docker and Traefik are automatically scanned for new services.",
+  "manage.discovery.interval": "Interval (seconds)",
+
+  "manage.pages.empty": "No pages – all categories and widgets are globally visible.",
+  "manage.pages.desc": "Pages allow splitting categories and widgets into different tabs. Unassigned content appears on all tabs.",
+  "manage.pages.hint": "Assign categories to a page: category area → \"Page\" dropdown.",
+  "manage.pages.name_placeholder": "Page name (e.g. Work)",
+
+  "analytics.auto_track_desc": "Services are automatically tracked when opened via the dashboard.",
+
+  "common.reset": "Reset"
 }

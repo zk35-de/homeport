@@ -1,7 +1,7 @@
 {{define "discovery_inbox"}}
 <div id="discovery-inbox">
   {{if .Items}}
-  <div class="inbox-badge">{{len .Items}} neue Dienste gefunden</div>
+  <div class="inbox-badge">{{len .Items}} {{$.T "manage.discovery.found_suffix"}}</div>
   {{range .Items}}
   {{$item := .}}
   <div class="inbox-item">

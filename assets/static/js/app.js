@@ -27,8 +27,11 @@ if ('serviceWorker' in navigator) {
 (function() {
   function pad(n) { return String(n).padStart(2, '0'); }
 
+  var _LANG_LOCALE = {de:'de-DE', en:'en-US', es:'es-ES', sk:'sk-SK', fr:'fr-FR'};
   function formatDate(d, tz) {
-    return d.toLocaleDateString('de-DE', {
+    var lang = document.documentElement.lang || 'de';
+    var locale = _LANG_LOCALE[lang] || 'de-DE';
+    return d.toLocaleDateString(locale, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz
     });
   }
@@ -70,7 +73,11 @@ if ('serviceWorker' in navigator) {
           digitalEl.textContent = '00d 00:00:00';
         }
       }
-      if (labelEl && target) labelEl.textContent = 'bis ' + new Date(target).toLocaleDateString('de-DE');
+      if (labelEl && target) {
+        var _l = document.documentElement.lang || 'de';
+        var _loc = _LANG_LOCALE[_l] || 'de-DE';
+        labelEl.textContent = new Date(target).toLocaleDateString(_loc);
+      }
       return;
     }
 
@@ -101,10 +108,12 @@ if ('serviceWorker' in navigator) {
   document.addEventListener('DOMContentLoaded', initClocks);
 })();
 
-// Language toggle (nav button)
+// Language toggle (nav button) – cycles through all supported languages
+var _SUPPORTED_LANGS = ['de', 'en', 'es', 'sk', 'fr'];
 function toggleLang() {
   var cur = localStorage.getItem('hp-lang') || 'de';
-  var next = cur === 'de' ? 'en' : 'de';
+  var idx = _SUPPORTED_LANGS.indexOf(cur);
+  var next = _SUPPORTED_LANGS[(idx + 1) % _SUPPORTED_LANGS.length];
   localStorage.setItem('hp-lang', next);
   document.querySelectorAll('.nav-lang-toggle').forEach(function(b) { b.textContent = next.toUpperCase(); });
   try {

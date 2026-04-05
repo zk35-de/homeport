@@ -42,7 +42,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var restoreForm = document.getElementById('restore-form');
   if (restoreForm) {
     restoreForm.addEventListener('submit', function(e) {
-      if (!confirm('⚠️ Restore überschreibt ALLE Daten. Fortfahren?')) {
+      var msg = restoreForm.dataset.confirm || '⚠️ Restore will overwrite ALL data. Continue?';
+      if (!confirm(msg)) {
         e.preventDefault();
       }
     });
