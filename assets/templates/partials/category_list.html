@@ -5,6 +5,7 @@
     <div class="manage-category" id="cat-{{.ID}}" data-id="{{.ID}}">
         <div class="manage-header">
             <span class="drag-handle" title="Ziehen zum Sortieren">⠿</span>
+            <span class="cat-arrow" data-cat-toggle="{{.ID}}" title="Ein-/Ausklappen">▾</span>
             <span class="category-title color-{{.Color}}">{{.Name}} ({{.Layout}})</span>
             <div class="actions">
                 <button class="btn-icon" hx-post="/manage/sort/category/{{.ID}}/up" hx-target="#category-list" hx-swap="innerHTML">⬆️</button>
@@ -47,6 +48,47 @@
                     <button class="btn-icon delete" hx-delete="/manage/service/{{.ID}}" hx-confirm="{{$.T "common.confirm_delete"}}" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
                 </div>
                 <div id="svc-edit-{{.ID}}"></div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    {{if .DiscoveryItems}}
+    <div class="manage-category manage-category-discovery" id="cat-discovery">
+        <div class="manage-header">
+            <span class="cat-arrow" data-cat-toggle="discovery" title="Ein-/Ausklappen">▾</span>
+            <span class="category-title color-indigo">🔍 Discovery ({{len .DiscoveryItems}})</span>
+        </div>
+        <div class="manage-service-list" id="discovery-service-list">
+            {{range .DiscoveryItems}}
+            {{$item := .}}
+            <div class="manage-service-item manage-discovery-item">
+                <div class="service-info">
+                    {{if .Suggested.URL}}<img src="/api/favicon?url={{.Suggested.URL}}" alt="" class="inbox-favicon" onerror="this.style.display='none'">{{end}}
+                    <strong>{{.Suggested.Name}}</strong>
+                    <span class="text-muted"> – {{.Suggested.URL}}</span>
+                    {{if .Suggested.Category}}<span class="tag">{{.Suggested.Category}}</span>{{end}}
+                </div>
+                <div class="actions">
+                    <form class="inline-form"
+                          hx-post="/manage/discovery/{{.ID}}/accept-cl"
+                          hx-target="#category-list"
+                          hx-swap="innerHTML">
+                        {{if $.Categories}}
+                        <select name="category_id" class="inbox-cat-select">
+                            {{range $.Categories}}
+                            <option value="{{.ID}}" {{if eq .Name $item.Suggested.Category}}selected{{end}}>{{.Name}}</option>
+                            {{end}}
+                        </select>
+                        {{end}}
+                        <button type="submit" class="btn-sm">✅</button>
+                    </form>
+                    <button class="btn-sm btn-icon"
+                            hx-post="/manage/discovery/{{.ID}}/ignore-cl"
+                            hx-target="#category-list"
+                            hx-swap="innerHTML">✕</button>
+                </div>
             </div>
             {{end}}
         </div>

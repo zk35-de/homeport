@@ -465,18 +465,63 @@ func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
 		return
 	}
 
+	discoveryItems, err := db.GetDiscoveryInbox()
+	if err != nil {
+		slog.Error("fetching discovery inbox for category list", "err", err)
+		discoveryItems = nil
+	}
+
 	data := struct {
 		i18n.Translator
-		Categories []db.Category
+		Categories     []db.Category
+		DiscoveryItems []db.DiscoveryItem
 	}{
-		Translator: i18n.NewTranslator(lang),
-		Categories: categories,
+		Translator:     i18n.NewTranslator(lang),
+		Categories:     categories,
+		DiscoveryItems: discoveryItems,
 	}
 
 	if err := s.ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
 		slog.Error("executing template", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+// HandleAcceptDiscoveryCL accepts a discovery item and re-renders the category list (incl. discovery section).
+func (s *Server) HandleAcceptDiscoveryCL(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+	r.ParseForm()
+	categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
+	noCheck := r.FormValue("no_check") == "1"
+
+	if err := db.AcceptDiscoveryItem(id, categoryID, noCheck); err != nil {
+		slog.Error("accepting discovery item (CL)", "id", id, "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	lang := GetLang(r)
+	s.renderCategoryList(w, lang)
+}
+
+// HandleIgnoreDiscoveryCL ignores a discovery item and re-renders the category list.
+func (s *Server) HandleIgnoreDiscoveryCL(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.IgnoreDiscoveryItem(id); err != nil {
+		slog.Error("ignoring discovery item (CL)", "id", id, "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	lang := GetLang(r)
+	s.renderCategoryList(w, lang)
 }
 
 // HandleDiscoveryInbox handles the GET request for the discovery inbox partial.

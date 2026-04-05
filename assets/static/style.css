@@ -326,6 +326,10 @@
     flex-direction: column;
     gap: 0.4rem;
 }
+.manage-service-list.collapsed { display: none; }
+.manage-discovery-item .actions { display: flex; gap: 0.4rem; align-items: center; }
+.inline-form { display: flex; gap: 0.4rem; align-items: center; margin: 0; }
+.manage-category-discovery { border-left: 2px solid var(--accent); }
 
 .manage-service-item {
     display: flex;

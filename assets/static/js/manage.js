@@ -102,10 +102,51 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() { showPanel(btn.dataset.panel); });
   });
 
+  // ── Category collapse toggle ──────────────────────────────────
+  var COLLAPSE_KEY = 'hp-cat-collapsed';
+  function getCollapsed() { try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]'); } catch(e) { return []; } }
+  function setCollapsed(ids) { try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(ids)); } catch(e) {} }
+
+  function applyCollapse() {
+    var collapsed = getCollapsed();
+    document.querySelectorAll('[data-cat-toggle]').forEach(function(arrow) {
+      var id = arrow.dataset.catToggle;
+      var cat = document.getElementById('cat-' + id) || document.getElementById('cat-discovery');
+      if (!cat) return;
+      var list = cat.querySelector('.manage-service-list');
+      if (!list) return;
+      if (collapsed.indexOf(id) !== -1) {
+        list.classList.add('collapsed');
+        arrow.classList.add('collapsed');
+      } else {
+        list.classList.remove('collapsed');
+        arrow.classList.remove('collapsed');
+      }
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    var arrow = e.target.closest('[data-cat-toggle]');
+    if (!arrow) return;
+    var id = arrow.dataset.catToggle;
+    var cat = document.getElementById('cat-' + id) || document.getElementById('cat-discovery');
+    if (!cat) return;
+    var list = cat.querySelector('.manage-service-list');
+    if (!list) return;
+    var collapsed = getCollapsed();
+    var idx = collapsed.indexOf(id);
+    if (idx === -1) { collapsed.push(id); } else { collapsed.splice(idx, 1); }
+    setCollapsed(collapsed);
+    applyCollapse();
+  });
+
+  applyCollapse();
+
   // ── Sortable init ──────────────────────────────────────────────
   initSortable();
   document.body.addEventListener('htmx:afterSwap', function(e) {
     if (e.detail && e.detail.target && e.detail.target.id === 'category-list') {
+      applyCollapse();
       initSortable();
     }
   });

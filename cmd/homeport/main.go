@@ -153,6 +153,8 @@ func main() {
 		r.Get("/discovery", srv.HandleDiscoveryInbox)
 		r.Post("/discovery/{id}/accept", srv.HandleAcceptDiscovery)
 		r.Post("/discovery/{id}/ignore", srv.HandleIgnoreDiscovery)
+		r.Post("/discovery/{id}/accept-cl", srv.HandleAcceptDiscoveryCL)
+		r.Post("/discovery/{id}/ignore-cl", srv.HandleIgnoreDiscoveryCL)
 
 		// Discovery Sources
 		r.Get("/discovery/sources", srv.HandleGetDiscoverySources)
