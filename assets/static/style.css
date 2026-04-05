@@ -445,7 +445,8 @@
     border-bottom: 1px solid var(--glass-border);
 }
 
-.inbox-info { flex: 1; font-size: 0.82rem; }
+.inbox-info { flex: 1; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.inbox-favicon { width: 16px; height: 16px; object-fit: contain; border-radius: 2px; flex-shrink: 0; }
 .inbox-actions { display: flex; gap: 0.4rem; }
 .inbox-empty { color: var(--sub); font-size: 0.82rem; }
 

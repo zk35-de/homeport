@@ -5,14 +5,14 @@
   <div class="auth-item">
     <span class="auth-name">{{.Name}} <span class="auth-slug">({{.Slug}})</span></span>
     {{if $auth.Profile}}
-      <span class="auth-status-ok">✓ Passwort gesetzt{{if $auth.IsAdmin}} · Admin{{end}}</span>
+      <span class="auth-status-ok">✓ {{$.T "manage.auth.set"}}{{if $auth.IsAdmin}} · Admin{{end}}</span>
       <form hx-post="/manage/auth/password/delete" hx-target="#auth-list" hx-swap="outerHTML"
-            hx-confirm="Passwort für {{.Name}} löschen?">
+            hx-confirm="{{$.T "manage.auth.remove"}} {{.Name}}?">
         <input type="hidden" name="profile" value="{{.Slug}}">
-        <button class="btn-sm btn-danger" type="submit">Passwort löschen</button>
+        <button class="btn-sm btn-danger" type="submit">{{$.T "manage.auth.remove"}}</button>
       </form>
     {{else}}
-      <span class="auth-status-none">Kein Passwort</span>
+      <span class="auth-status-none">{{$.T "manage.auth.no_password"}}</span>
     {{end}}
   </div>
   {{end}}

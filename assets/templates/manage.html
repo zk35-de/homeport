@@ -43,7 +43,10 @@
             <form hx-post="/manage/service" hx-target="#category-list" hx-swap="innerHTML" hx-on::after-request="this.reset()">
                 <div class="form-group">
                     <label>{{.T "manage.category"}}</label>
-                    <select name="category_id" required>
+                    <select id="cat-select" name="category_id" required
+                            hx-get="/manage/category-options"
+                            hx-trigger="categoryAdded from:body"
+                            hx-swap="innerHTML">
                         {{range .Categories}}
                         <option value="{{.ID}}">{{.Name}}</option>
                         {{end}}
@@ -89,20 +92,6 @@
             </form>
         </div>
 
-        <div class="manage-category">
-            <h3>Suchmaschine</h3>
-            <div class="form-group form-group-xs">
-                <label>Suchmaschine</label>
-                <select name="search_engine"
-                        onchange="savePrefs({search_engine: this.value})">
-                    <option value="https://duckduckgo.com/" {{if eq .Prefs.SearchEngine "https://duckduckgo.com/"}}selected{{end}}>DuckDuckGo</option>
-                    <option value="https://www.google.com/search" {{if eq .Prefs.SearchEngine "https://www.google.com/search"}}selected{{end}}>Google</option>
-                    <option value="https://search.brave.com/search" {{if eq .Prefs.SearchEngine "https://search.brave.com/search"}}selected{{end}}>Brave</option>
-                    <option value="https://www.startpage.com/search" {{if eq .Prefs.SearchEngine "https://www.startpage.com/search"}}selected{{end}}>Startpage</option>
-                    <option value="https://www.bing.com/search" {{if eq .Prefs.SearchEngine "https://www.bing.com/search"}}selected{{end}}>Bing</option>
-                </select>
-            </div>
-        </div>
 
     </div>
 
@@ -244,18 +233,15 @@
 
 <section class="manage-panel manage-section" id="auth">
   <h2>{{.T "manage.auth"}}</h2>
-  <p class="section-desc-sm">
-    Auth aktiv wenn <code>HOMEPORT_AUTH=true</code> gesetzt ist.
-    Erster User mit Passwort wird automatisch Admin.
-  </p>
-  <div hx-get="/manage/auth" hx-trigger="load" hx-swap="innerHTML" id="auth-list-wrap">Lade…</div>
+  <p class="section-desc-sm">{{.T "manage.auth.desc"}}</p>
+  <div hx-get="/manage/auth" hx-trigger="load" hx-swap="innerHTML" id="auth-list-wrap">{{.T "manage.loading"}}</div>
   <form hx-post="/manage/auth/password" hx-target="#auth-list-wrap" hx-swap="innerHTML"
         hx-on::after-request="this.reset()"
         class="form-row-wrap">
     <select name="profile" class="flex-1-min120">
       {{range .Profiles}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
     </select>
-    <input type="password" name="password" placeholder="Neues Passwort" required class="flex-2-min150">
+    <input type="password" name="password" placeholder="{{.T "manage.password.placeholder"}}" required class="flex-2-min150">
     <button class="btn-sm" type="submit">{{.T "manage.auth.set"}}</button>
   </form>
 </section>
@@ -266,8 +252,8 @@
     {{template "profile_list" .}}
   </div>
   <form hx-post="/manage/profile" hx-target="#profile-list" hx-swap="innerHTML" class="form-row">
-    <input type="text" name="name" placeholder="Profilname" required class="flex-1">
-    <input type="text" name="slug" placeholder="slug (URL)" required pattern="[a-z0-9-]+" class="flex-1">
+    <input type="text" name="name" placeholder="{{.T "manage.profile.name_placeholder"}}" required class="flex-1">
+    <input type="text" name="slug" placeholder="{{.T "manage.profile.slug_placeholder"}}" required pattern="[a-z0-9-]+" class="flex-1">
     <button class="btn-sm" type="submit">+ {{.T "manage.profile"}}</button>
   </form>
   <form hx-post="/manage/profile/{{.DefaultProfile}}/clone" hx-swap="outerHTML" hx-target="body" class="form-row-center">
@@ -287,7 +273,7 @@
   <h4 class="profile-section-title">{{.Name}} ({{.Slug}})</h4>
   <div id="page-list-{{.Slug}}"
        hx-get="/manage/page-list?profile={{.Slug}}" hx-trigger="load"
-       hx-swap="innerHTML">Lade…</div>
+       hx-swap="innerHTML">{{.T "manage.loading"}}</div>
   <form hx-post="/manage/page" hx-target="#page-list-{{.Slug}}" hx-swap="innerHTML"
         hx-on::after-request="this.reset()"
         class="form-row-wrap-sm">

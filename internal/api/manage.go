@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -88,6 +89,8 @@ func (s *Server) HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Trigger OOB update of category dropdown in the service-add form
+	w.Header().Set("HX-Trigger", "categoryAdded")
 	lang := GetLang(r)
 	s.renderCategoryList(w, lang)
 }
@@ -99,6 +102,10 @@ func (s *Server) HandleAddService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
+	if categoryID <= 0 {
+		http.Error(w, "category required", http.StatusBadRequest)
+		return
+	}
 	name := r.FormValue("name")
 	url := r.FormValue("url")
 	icon := r.FormValue("icon")
@@ -434,6 +441,20 @@ func (s *Server) HandleCloneProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Info("CloneProfile", "src", srcSlug, "dst", dstSlug, "added", added, "skipped", skipped)
 	s.HandleManage(w, r)
+}
+
+// HandleCategoryOptions returns <option> elements for all categories.
+// Used by HTMX to refresh the category dropdown in the service-add form.
+// GET /manage/category-options
+func (s *Server) HandleCategoryOptions(w http.ResponseWriter, r *http.Request) {
+	categories, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	for _, c := range categories {
+		fmt.Fprintf(w, `<option value="%d">%s</option>`, c.ID, c.Name)
+	}
 }
 
 func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {

@@ -53,7 +53,13 @@ func GetProfileBySlug(slug string) (*Profile, error) {
 }
 
 func AddProfile(name, slug string) error {
-	_, err := DB.Exec(`INSERT INTO profiles (slug, name, sort_order) VALUES (?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM profiles))`, slug, name)
+	var count int
+	DB.QueryRow(`SELECT COUNT(*) FROM profiles`).Scan(&count)
+	isDefault := 0
+	if count == 0 {
+		isDefault = 1
+	}
+	_, err := DB.Exec(`INSERT INTO profiles (slug, name, is_default, sort_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM profiles))`, slug, name, isDefault)
 	return err
 }
 
