@@ -487,6 +487,55 @@ func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
 	}
 }
 
+// HandleGetCategoryVisibility returns the inline visibility form for a category.
+func (s *Server) HandleGetCategoryVisibility(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	lang := GetLang(r)
+	data := struct {
+		i18n.Translator
+		CategoryID int
+		Profiles   []db.Profile
+	}{
+		Translator: i18n.NewTranslator(lang),
+		CategoryID: id,
+		Profiles:   profiles,
+	}
+	if err := s.ManageTmpl.ExecuteTemplate(w, "category_visibility_form", data); err != nil {
+		slog.Error("executing category_visibility_form", "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// HandleSetCategoryVisibility applies the selected profiles to all services in a category.
+func (s *Server) HandleSetCategoryVisibility(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	profiles := r.Form["profiles"]
+	if err := db.SetCategoryVisibility(id, profiles); err != nil {
+		slog.Error("SetCategoryVisibility", "id", id, "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	lang := GetLang(r)
+	s.renderCategoryList(w, lang)
+}
+
 // HandleAcceptDiscoveryCL accepts a discovery item and re-renders the category list (incl. discovery section).
 func (s *Server) HandleAcceptDiscoveryCL(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))

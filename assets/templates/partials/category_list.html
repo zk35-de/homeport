@@ -23,10 +23,16 @@
                     hx-get="/manage/category/{{.ID}}/edit"
                     hx-target="#cat-edit-{{.ID}}"
                     hx-swap="innerHTML">✏️</button>
+                <button class="btn-icon"
+                    hx-get="/manage/category/{{.ID}}/visibility"
+                    hx-target="#cat-vis-{{.ID}}"
+                    hx-swap="innerHTML"
+                    title="{{$.T "manage.category.set_visibility"}}">👁</button>
                 <button class="btn-icon delete" hx-delete="/manage/category/{{.ID}}" hx-confirm="{{$.T "common.confirm_delete"}}" hx-target="#category-list" hx-swap="innerHTML">🗑️</button>
             </div>
         </div>
         <div id="cat-edit-{{.ID}}"></div>
+        <div id="cat-vis-{{.ID}}"></div>
         <div class="manage-service-list sortable-services" data-cat="{{$catID}}">
             {{range .Services}}
             <div class="manage-service-item" id="svc-row-{{.ID}}" data-id="{{.ID}}">
@@ -194,6 +200,28 @@
     <div class="form-actions">
         <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
         <button type="button" class="btn-sm" data-clear-target="cat-edit-{{.Category.ID}}">{{.T "manage.cancel"}}</button>
+    </div>
+</form>
+{{end}}
+
+{{define "category_visibility_form"}}
+<form class="edit-form"
+      hx-post="/manage/category/{{.CategoryID}}/visibility"
+      hx-target="#category-list"
+      hx-swap="innerHTML">
+    <p class="form-hint">{{.T "manage.category.visibility_hint"}}</p>
+    <div class="form-group">
+        <div class="profile-checkbox-group">
+            {{range .Profiles}}
+            <label class="checkbox-label">
+                <input type="checkbox" name="profiles" value="{{.Slug}}"> {{.Name}}
+            </label>
+            {{end}}
+        </div>
+    </div>
+    <div class="form-actions">
+        <button type="submit" class="btn-sm">{{.T "manage.save"}}</button>
+        <button type="button" class="btn-sm" data-clear-target="cat-vis-{{.CategoryID}}">{{.T "manage.cancel"}}</button>
     </div>
 </form>
 {{end}}

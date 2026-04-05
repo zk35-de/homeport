@@ -173,6 +173,8 @@ func main() {
 		r.Delete("/profile/{slug}", srv.HandleDeleteProfile)
 		r.Post("/profile/{slug}/default", srv.HandleSetDefaultProfile)
 		r.Post("/category/{id}/sortmode/{mode}", srv.HandleSetCategorySortMode)
+		r.Get("/category/{id}/visibility", srv.HandleGetCategoryVisibility)
+		r.Post("/category/{id}/visibility", srv.HandleSetCategoryVisibility)
 
 		// Page management
 		r.Get("/page-list", srv.HandleGetPageList)

@@ -91,5 +91,7 @@
   "common.confirm_delete": "Really delete?",
   "onboarding.title": "Welcome to homeport",
   "onboarding.desc": "No services configured yet.",
-  "manage.hint.create_category_first": "Create a category first (on the left)."
+  "manage.hint.create_category_first": "Create a category first (on the left).",
+  "manage.category.set_visibility": "Set visibility for all services",
+  "manage.category.visibility_hint": "All services in this category will be visible in the selected profiles (replaces existing settings)."
 }

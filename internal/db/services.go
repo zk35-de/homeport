@@ -223,6 +223,39 @@ func GetService(id int) (*Service, error) {
 	return &s, nil
 }
 
+// SetCategoryVisibility replaces the visibility of all services in a category.
+func SetCategoryVisibility(categoryID int, profiles []string) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query(`SELECT id FROM services WHERE category_id = ?`, categoryID)
+	if err != nil {
+		return err
+	}
+	var ids []int
+	for rows.Next() {
+		var id int
+		rows.Scan(&id)
+		ids = append(ids, id)
+	}
+	rows.Close()
+
+	for _, svcID := range ids {
+		if _, err := tx.Exec(`DELETE FROM visibility WHERE service_id = ?`, svcID); err != nil {
+			return err
+		}
+		for _, p := range profiles {
+			if _, err := tx.Exec(`INSERT INTO visibility (service_id, profile) VALUES (?, ?)`, svcID, p); err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Commit()
+}
+
 func UpdateServiceSort(id, newOrder int) error {
 	_, err := DB.Exec(`UPDATE services SET sort_order = ? WHERE id = ?`, newOrder, id)
 	return err

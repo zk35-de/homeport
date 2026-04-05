@@ -913,6 +913,8 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
 .hint-block { margin-top: 1rem; font-size: 0.85rem; color: var(--muted); }
 .hint-inline { margin: 0.3rem 0 0; font-size: 0.8rem; color: var(--accent); }
 .form-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.form-hint { margin: 0 0 0.5rem; font-size: 0.8rem; color: var(--muted); }
+.profile-checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
 
 /* Discovery Sources table */
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
