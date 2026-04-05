@@ -65,6 +65,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btn) setTheme(btn.dataset.theme);
   });
 
+  // ── Background mode buttons ────────────────────────────────────
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.bg-btn[data-bg]');
+    if (btn) setBgMode(btn.dataset.bg);
+  });
+
   // ── Favicon edit buttons (event delegation) ────────────────────
   document.addEventListener('click', function(e) {
     var editBtn = e.target.closest('.fetch-favicon-btn[data-svc-id]');
@@ -204,6 +210,14 @@ function setTheme(theme) {
     b.classList.toggle('active', b.dataset.theme === theme);
   });
   savePrefs({theme: theme});
+}
+
+function setBgMode(mode) {
+  document.body.dataset.bg = mode;
+  document.querySelectorAll('.bg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.bg === mode);
+  });
+  savePrefs({background_mode: mode});
 }
 
 function previewAccent(hex) {

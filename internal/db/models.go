@@ -68,9 +68,8 @@ type UserPreferences struct {
 	AccentColor    string `json:"accent_color"`
 	SearchEngine   string `json:"search_engine"`
 	Language       string `json:"language"`
-
 	CustomCSS      string `json:"custom_css"`
-
+	BackgroundMode string `json:"background_mode"`
 }
 
 type DiscoveryItem struct {

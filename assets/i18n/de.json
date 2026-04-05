@@ -30,6 +30,8 @@
   "manage.widget_type": "Widget-Typ",
   "manage.settings": "Einstellungen",
   "manage.theme": "Theme",
+  "manage.background": "Hintergrund",
+  "manage.background.none": "Kein",
   "manage.accent_color": "Akzentfarbe",
   "manage.language": "Sprache",
   "manage.backup": "Backup",

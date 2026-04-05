@@ -79,6 +79,9 @@ func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
 	if v, ok := patch["custom_css"]; ok {
 		current.CustomCSS = v
 	}
+	if v, ok := patch["background_mode"]; ok && (v == "aurora" || v == "none") {
+		current.BackgroundMode = v
+	}
 
 	if err := db.SetUserPreferences(profile, *current); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

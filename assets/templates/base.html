@@ -19,10 +19,10 @@
     <script src="/static/sortable.min.js"></script>
     <script src="/static/js/app.js" defer></script>
 </head>
-<body data-profile="{{if .Profile}}{{.Profile}}{{end}}">
-
-
-
+<body data-profile="{{if .Profile}}{{.Profile}}{{end}}" data-bg="{{if .Prefs}}{{.Prefs.BackgroundMode}}{{else}}aurora{{end}}">
+    <div class="aurora" id="bg-aurora">
+        <div class="ab ab-1"></div><div class="ab ab-2"></div><div class="ab ab-3"></div>
+    </div>
 
     <div class="htmx-loading-bar" id="htmx-loading-bar"></div>
     <nav>
