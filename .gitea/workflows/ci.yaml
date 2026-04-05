@@ -1,9 +1,0 @@
-# This file is intentionally disabled – use ci.yml instead
-name: CI (disabled)
-on:
-  workflow_dispatch:
-jobs:
-  noop:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "disabled"
