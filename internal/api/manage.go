@@ -16,6 +16,7 @@ import (
 type ManageData struct {
 	i18n.Translator
 	Categories     []db.Category
+	DiscoveryItems []db.DiscoveryItem
 	Prefs          *db.UserPreferences
 	Profiles       []db.Profile
 	Pages          []db.Page
@@ -57,9 +58,16 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		prefs = &db.UserPreferences{Theme: "dark", AccentColor: "#6366f1"}
 	}
 
+	discoveryItems, err := db.GetDiscoveryInbox()
+	if err != nil {
+		slog.Error("fetching discovery inbox", "err", err)
+		discoveryItems = nil
+	}
+
 	data := ManageData{
 		Translator:     i18n.NewTranslator(prefs.Language),
 		Categories:     categories,
+		DiscoveryItems: discoveryItems,
 		Prefs:          prefs,
 		Profiles:       profiles,
 		Pages:          pages,
