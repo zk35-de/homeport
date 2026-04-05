@@ -109,6 +109,36 @@ func fetchIconPathFromHTML(pageURL string, base *url.URL) string {
 }
 
 
+// resolveFaviconURL tries to find a working direct favicon URL for a service URL.
+// Returns "" if nothing is found. Does NOT download the image data.
+func resolveFaviconURL(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return ""
+	}
+	base := parsed.Scheme + "://" + parsed.Host
+
+	// 1. /favicon.ico
+	if img, _ := fetchImage(base + "/favicon.ico"); img != nil {
+		return base + "/favicon.ico"
+	}
+
+	// 2. HTML <link rel="icon">
+	if iconPath := fetchIconPathFromHTML(base+"/", parsed); iconPath != "" {
+		if img, _ := fetchImage(iconPath); img != nil {
+			return iconPath
+		}
+	}
+
+	// 3. DuckDuckGo (public fallback, always a valid URL)
+	ddgURL := "https://icons.duckduckgo.com/ip3/" + parsed.Hostname() + ".ico"
+	if img, _ := fetchImage(ddgURL); img != nil {
+		return ddgURL
+	}
+
+	return ""
+}
+
 func fetchImage(targetURL string) ([]byte, string) {
 	resp, err := faviconClient.Get(targetURL)
 	if err != nil {

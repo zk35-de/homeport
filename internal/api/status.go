@@ -70,13 +70,16 @@ func (s *Server) checkAllServices() {
 		return
 	}
 
+	urlByID := make(map[int]string, len(services))
 	results := make(chan serviceResult, len(services))
 	for _, svc := range services {
+		urlByID[svc.ID] = svc.URL
 		go func(svc db.Service) {
 			results <- serviceResult{id: svc.ID, alive: pingService(svc.StatusCheck)}
 		}(svc)
 	}
 
+	aliveURLs := make(map[int]string)
 	for range services {
 		r := <-results
 		if err := db.UpdateServiceStatus(r.id, r.alive); err != nil {
@@ -86,6 +89,32 @@ func (s *Server) checkAllServices() {
 		msg, _ := json.Marshal(update)
 		s.Broker.Messages <- string(msg)
 		s.Hub.Broadcast(Message{Type: ServiceStatusMsg, Payload: update})
+		if r.alive {
+			aliveURLs[r.id] = urlByID[r.id]
+		}
+	}
+
+	// Resolve favicons for alive services that still use proxy URL or have no icon
+	go s.resolveMissingFavicons(aliveURLs)
+}
+
+func (s *Server) resolveMissingFavicons(aliveURLs map[int]string) {
+	pending, err := db.GetServicesNeedingFavicon()
+	if err != nil {
+		slog.Error("GetServicesNeedingFavicon", "err", err)
+		return
+	}
+	for _, svc := range pending {
+		if _, alive := aliveURLs[svc.ID]; !alive {
+			continue // only resolve for services we just confirmed alive
+		}
+		if iconURL := resolveFaviconURL(svc.URL); iconURL != "" {
+			if err := db.UpdateServiceIcon(svc.ID, iconURL); err != nil {
+				slog.Error("UpdateServiceIcon", "id", svc.ID, "err", err)
+			} else {
+				slog.Info("favicon resolved", "id", svc.ID, "url", iconURL)
+			}
+		}
 	}
 }
 

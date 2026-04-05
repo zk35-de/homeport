@@ -257,6 +257,31 @@ func UpdateServiceStatus(id int, alive bool) error {
 	return err
 }
 
+// UpdateServiceIcon updates the icon for a single service.
+func UpdateServiceIcon(id int, icon string) error {
+	_, err := DB.Exec(`UPDATE services SET icon = ? WHERE id = ?`, icon, id)
+	return err
+}
+
+// GetServicesNeedingFavicon returns services that have no icon or still use the
+// /api/favicon proxy URL (unresolved). Only services with a URL are returned.
+func GetServicesNeedingFavicon() ([]Service, error) {
+	rows, err := DB.Query(`SELECT id, url FROM services WHERE url != '' AND (icon = '' OR icon LIKE '/api/favicon?%')`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var services []Service
+	for rows.Next() {
+		var s Service
+		if err := rows.Scan(&s.ID, &s.URL); err != nil {
+			return nil, err
+		}
+		services = append(services, s)
+	}
+	return services, nil
+}
+
 func GetAllServicesWithStatusCheck() ([]Service, error) {
 	rows, err := DB.Query(`SELECT id, url, status_check FROM services WHERE COALESCE(no_check,0) = 0`)
 	if err != nil {
