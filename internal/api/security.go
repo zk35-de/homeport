@@ -53,8 +53,11 @@ func CSRFMiddleware(next http.Handler) http.Handler {
 		// PATCH /api/user/preferences and other state-changing API calls
 		// must pass CSRF validation like any other request.
 
-		// Login POST is exempt (no session yet, can't have valid CSRF)
-		if r.URL.Path == "/login" {
+		// Login and logout POSTs are exempt from CSRF.
+		// Login: no session yet, can't have valid CSRF cookie.
+		// Logout: destroys the session; SameSite=Lax already prevents cross-site
+		// POST from including the session cookie, so CSRF on logout is redundant.
+		if r.URL.Path == "/login" || r.URL.Path == "/logout" {
 			next.ServeHTTP(w, r)
 			return
 		}

@@ -625,6 +625,20 @@ func TestCSRFMiddleware_LoginExempt(t *testing.T) {
 	}
 }
 
+func TestCSRFMiddleware_LogoutExempt(t *testing.T) {
+	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("POST", "/logout", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected /logout POST to be exempt from CSRF, got %d", rr.Code)
+	}
+}
+
 func TestCSRFMiddleware_MissingToken(t *testing.T) {
 	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
