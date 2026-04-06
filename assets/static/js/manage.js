@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (resp.ok) {
           iconInput.value = faviconURL;
           preview.src = faviconURL;
-          preview.style.display = 'inline';
+          preview.classList.remove('hidden');
           btn.textContent = '✅';
         } else {
           btn.textContent = '❌';

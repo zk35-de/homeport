@@ -19,7 +19,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Content-Security-Policy",
 			"default-src 'self'; "+
-				"script-src 'self'; "+
+				"script-src 'self' 'unsafe-eval'; "+
 				"style-src 'self'; "+
 				"img-src 'self' data:; "+
 				"connect-src 'self'; "+

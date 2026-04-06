@@ -97,8 +97,6 @@ func (s *Server) HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Trigger OOB update of category dropdown in the service-add form
-	w.Header().Set("HX-Trigger", "categoryAdded")
 	lang := GetLang(r)
 	s.renderCategoryList(w, lang)
 }
