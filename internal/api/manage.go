@@ -97,6 +97,9 @@ func (s *Server) HandleAddCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fire categoryAdded so #cat-select reloads its options via hx-trigger.
+	// HTMX 2.x dispatches HX-Trigger events without eval() → CSP-safe.
+	w.Header().Set("HX-Trigger", "categoryAdded")
 	lang := GetLang(r)
 	s.renderCategoryList(w, lang)
 }
@@ -145,6 +148,7 @@ func (s *Server) HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("HX-Trigger", "categoryAdded")
 	lang := GetLang(r)
 	s.renderCategoryList(w, lang)
 }
@@ -492,18 +496,6 @@ func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	// OOB-swap: update the category select in the service-add form directly,
-	// so the new option appears without relying on the categoryAdded event.
-	fmt.Fprintf(w, `<select id="cat-select" name="category_id" required`+
-		` hx-get="/manage/category-options"`+
-		` hx-trigger="load, categoryAdded from:body"`+
-		` hx-swap="innerHTML"`+
-		` hx-swap-oob="true">`)
-	for _, c := range categories {
-		fmt.Fprintf(w, `<option value="%d">%s</option>`, c.ID, c.Name)
-	}
-	fmt.Fprintf(w, `</select>`)
 }
 
 // HandleGetCategoryVisibility returns the inline visibility form for a category.
