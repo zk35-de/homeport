@@ -143,6 +143,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   applyCollapse();
 
+  // ── htmx:afterRequest handlers (replaces hx-on::after-request inline eval) ──
+  document.body.addEventListener('htmx:afterRequest', function(e) {
+    var elt = e.detail && e.detail.elt;
+    if (!elt || !e.detail.successful) return;
+    if (elt.hasAttribute('data-reset-on-success')) {
+      elt.reset();
+    }
+    if (elt.classList.contains('inbox-accept-form')) {
+      window.location.reload();
+    }
+  });
+
   // ── Sortable init ──────────────────────────────────────────────
   initSortable();
   document.body.addEventListener('htmx:afterSwap', function(e) {

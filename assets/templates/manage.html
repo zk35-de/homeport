@@ -40,7 +40,7 @@
 
         <div class="manage-category">
             <h3>{{.T "manage.add_service"}}</h3>
-            <form hx-post="/manage/service" hx-target="#category-list" hx-swap="innerHTML" hx-on::after-request="this.reset()">
+            <form hx-post="/manage/service" hx-target="#category-list" hx-swap="innerHTML" data-reset-on-success>
                 <div class="form-group">
                     <label>{{.T "manage.category"}}</label>
                     <select id="cat-select" name="category_id" required
@@ -241,7 +241,7 @@
   <p class="section-desc-sm">{{.T "manage.auth.desc"}}</p>
   <div hx-get="/manage/auth" hx-trigger="load" hx-swap="innerHTML" id="auth-list-wrap">{{.T "manage.loading"}}</div>
   <form hx-post="/manage/auth/password" hx-target="#auth-list-wrap" hx-swap="innerHTML"
-        hx-on::after-request="this.reset()"
+        data-reset-on-success
         class="form-row-wrap">
     <select name="profile" class="flex-1-min120">
       {{range .Profiles}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
@@ -277,7 +277,7 @@
        hx-get="/manage/page-list?profile={{.Slug}}" hx-trigger="load"
        hx-swap="innerHTML">{{$.T "manage.loading"}}</div>
   <form hx-post="/manage/page" hx-target="#page-list-{{.Slug}}" hx-swap="innerHTML"
-        hx-on::after-request="this.reset()"
+        data-reset-on-success
         class="form-row-wrap-sm">
     <input type="hidden" name="profile" value="{{.Slug}}">
     <input type="text" name="icon" placeholder="📄" class="icon-input-sm">
