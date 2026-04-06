@@ -1086,6 +1086,121 @@ func TestHandleAddPage_BadRequest(t *testing.T) {
 	}
 }
 
+// --- Manage: Category Visibility (#141 regression) ---
+
+// TestHandleCategoryOptions_ReturnsOptions verifies that GET /manage/category-options
+// returns an <option> element for each existing category.
+// Regression test for #141 (categories not visible in right panel of /manage).
+func TestHandleCategoryOptions_ReturnsOptions(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("Homelab", "blue")
+	db.AddCategory("Media", "purple")
+
+	req := httptest.NewRequest("GET", "/manage/category-options", nil)
+	rr := httptest.NewRecorder()
+	srv.HandleCategoryOptions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "Homelab") {
+		t.Errorf("expected category 'Homelab' in options, got: %s", body)
+	}
+	if !strings.Contains(body, "Media") {
+		t.Errorf("expected category 'Media' in options, got: %s", body)
+	}
+	if !strings.Contains(body, "<option") {
+		t.Errorf("expected <option> elements, got: %s", body)
+	}
+}
+
+// TestHandleCategoryOptions_EmptyWhenNoCategories verifies that the endpoint
+// returns an empty body (no options) when there are no categories.
+func TestHandleCategoryOptions_EmptyWhenNoCategories(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	req := httptest.NewRequest("GET", "/manage/category-options", nil)
+	rr := httptest.NewRecorder()
+	srv.HandleCategoryOptions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	if strings.Contains(rr.Body.String(), "<option") {
+		t.Errorf("expected no <option> elements with empty DB, got: %s", rr.Body.String())
+	}
+}
+
+// TestHandleManage_PassesCategoryData verifies that HandleManage passes all
+// categories to the template. If Categories is empty, the right panel in
+// /manage would show nothing (#141).
+func TestHandleManage_PassesCategoryData(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("Servers", "red")
+	db.AddCategory("Tools", "green")
+
+	req := httptest.NewRequest("GET", "/manage", nil)
+	rr := httptest.NewRecorder()
+	srv.HandleManage(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	body := rr.Body.String()
+	// The stub template renders: Manage: <cat1> <cat2> and the category_list partial
+	if !strings.Contains(body, "Servers") {
+		t.Errorf("expected category 'Servers' in manage output, got: %s", body)
+	}
+	if !strings.Contains(body, "Tools") {
+		t.Errorf("expected category 'Tools' in manage output, got: %s", body)
+	}
+}
+
+// TestHandleCategoryOptions_AfterAddCategory verifies that a newly added category
+// immediately appears in /manage/category-options.
+// This is the core regression: after adding a category, the right panel dropdown
+// must reflect it without page reload.
+func TestHandleCategoryOptions_AfterAddCategory(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Initially empty
+	req := httptest.NewRequest("GET", "/manage/category-options", nil)
+	rr := httptest.NewRecorder()
+	srv.HandleCategoryOptions(rr, req)
+	if strings.Contains(rr.Body.String(), "<option") {
+		t.Fatal("precondition failed: expected no options before any category exists")
+	}
+
+	// Add category via handler
+	form := url.Values{}
+	form.Set("name", "NAS")
+	form.Set("color", "orange")
+	form.Set("layout", "tiles")
+	addReq := httptest.NewRequest("POST", "/manage/category", strings.NewReader(form.Encode()))
+	addReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	addRr := httptest.NewRecorder()
+	srv.HandleAddCategory(addRr, addReq)
+	if addRr.Code != http.StatusOK {
+		t.Fatalf("HandleAddCategory failed: %d", addRr.Code)
+	}
+
+	// Now category-options must contain the new category
+	req2 := httptest.NewRequest("GET", "/manage/category-options", nil)
+	rr2 := httptest.NewRecorder()
+	srv.HandleCategoryOptions(rr2, req2)
+	body := rr2.Body.String()
+	if !strings.Contains(body, "NAS") {
+		t.Errorf("newly added category 'NAS' not in /manage/category-options after add – right panel regression (#141). Got: %s", body)
+	}
+}
+
 // --- UpdateHub (SSE) ---
 
 func TestUpdateHub_Broadcast_NoClients(t *testing.T) {

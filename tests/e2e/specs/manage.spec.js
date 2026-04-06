@@ -108,4 +108,55 @@ test.describe('Manage Page', () => {
     const colorOptions = await catForm.locator('select[name="color"] option').allTextContents();
     expect(colorOptions.length).toBeGreaterThan(3);
   });
+
+  // Regression test for #141: categories must be visible in the right panel
+  // and in the category dropdown of the service-add form.
+  test('category appears in right panel (#category-list) after adding', async ({ page }) => {
+    await page.goto('/manage');
+    page.on('dialog', d => d.accept());
+
+    const catName = `E2E-RightPanel-${Date.now()}`;
+
+    // Add category
+    const catForm = page.locator('form[hx-post="/manage/category"]');
+    await catForm.locator('input[name="name"]').fill(catName);
+    await catForm.getByRole('button', { name: /Kategorie hinzufügen/i }).click();
+
+    // Category must appear in #category-list (right panel)
+    await expect(
+      page.locator('#category-list .category-title', { hasText: catName }),
+      'category not visible in #category-list right panel (#141)'
+    ).toBeVisible({ timeout: 5000 });
+
+    // Cleanup
+    const catContainer = page.locator('#category-list .manage-category', {
+      has: page.locator('.category-title', { hasText: catName }),
+    }).first();
+    await catContainer.locator('button.delete').click();
+  });
+
+  test('category appears in service-form dropdown (#cat-select) after adding', async ({ page }) => {
+    await page.goto('/manage');
+    page.on('dialog', d => d.accept());
+
+    const catName = `E2E-Dropdown-${Date.now()}`;
+
+    // Add category
+    const catForm = page.locator('form[hx-post="/manage/category"]');
+    await catForm.locator('input[name="name"]').fill(catName);
+    await catForm.getByRole('button', { name: /Kategorie hinzufügen/i }).click();
+
+    // Category must appear as <option> in the service-add form's category select
+    // (populated via HTMX GET /manage/category-options on load + categoryAdded event)
+    await expect(
+      page.locator('#cat-select option', { hasText: catName }),
+      'category not visible in service-form category dropdown (#141)'
+    ).toBeAttached({ timeout: 5000 });
+
+    // Cleanup
+    const catContainer = page.locator('#category-list .manage-category', {
+      has: page.locator('.category-title', { hasText: catName }),
+    }).first();
+    await catContainer.locator('button.delete').click();
+  });
 });
