@@ -3,6 +3,9 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js');
 }
 
+// HTMX config: disable eval (no inline hx-on::* expressions in this app)
+if (typeof htmx !== 'undefined') { htmx.config.allowEval = false; }
+
 // CSRF: inject cookie value as X-CSRF-Token header on every HTMX request
 (function() {
   function getCookie(name) {
