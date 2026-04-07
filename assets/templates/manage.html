@@ -46,6 +46,7 @@
                     <select id="cat-select" name="category_id" required
                             hx-get="/manage/category-options"
                             hx-trigger="load, categoryAdded from:body"
+                            hx-target="this"
                             hx-swap="innerHTML">
                         {{range .Categories}}
                         <option value="{{.ID}}">{{.Name}}</option>
@@ -246,6 +247,7 @@
     <select name="profile" class="flex-1-min120"
             hx-get="/manage/profile-options"
             hx-trigger="load, profileChanged from:body"
+            hx-target="this"
             hx-swap="innerHTML">
       {{range .Profiles}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
     </select>
