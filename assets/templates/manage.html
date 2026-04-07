@@ -189,7 +189,7 @@
     {{if .IsAdmin}}
     <div class="form-group flex-no-shrink">
       <label>{{.T "manage.profile"}}</label>
-      <select id="appearance-profile">
+      <select id="appearance-profile" onchange="onAppearanceProfileChange(this.value)">
         {{range .Profiles}}
         <option value="{{.Slug}}" {{if eq .Slug $.Profile}}selected{{end}}>{{.Name}}</option>
         {{end}}

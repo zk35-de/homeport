@@ -1,7 +1,12 @@
 {{define "discovery_inbox"}}
 <div id="discovery-inbox">
   {{if .Items}}
-  <div class="inbox-badge">{{len .Items}} {{$.T "manage.discovery.found_suffix"}}</div>
+  <div class="manage-header" style="cursor:pointer" onclick="var el=document.getElementById('discovery-inbox-items');var arr=this.querySelector('.cat-arrow');if(el){el.classList.toggle('collapsed');arr.classList.toggle('collapsed');}">
+    <span class="cat-arrow">▾</span>
+    <span class="category-title color-indigo">🔍 Discovery</span>
+    <span class="inbox-badge">{{len .Items}} {{$.T "manage.discovery.found_suffix"}}</span>
+  </div>
+  <div id="discovery-inbox-items">
   {{range .Items}}
   {{$item := .}}
   <div class="inbox-item">
@@ -34,6 +39,7 @@
     </form>
   </div>
   {{end}}
+  </div>{{/* end discovery-inbox-items */}}
   {{end}}
 </div>
 {{end}}
