@@ -42,6 +42,30 @@ func authRouter(srv *api.Server, cfg *config.Config) http.Handler {
 	return r
 }
 
+// manageRouter extends authRouter with /manage routes, mirroring main.go.
+func manageRouter(srv *api.Server, cfg *config.Config) http.Handler {
+	r := chi.NewRouter()
+	r.Use(chimw.Recoverer)
+	r.Use(api.CSRFMiddleware)
+	r.Use(api.RequireAuth(cfg))
+	r.Get("/login", srv.HandleLogin)
+	r.Post("/login", srv.HandleLogin)
+	r.Post("/logout", srv.HandleLogout)
+	r.Get("/", srv.HandleIndex)
+	r.Route("/manage", func(r chi.Router) {
+		r.Get("/", srv.HandleManage)
+		r.Post("/category", srv.HandleAddCategory)
+		r.Group(func(r chi.Router) {
+			r.Use(srv.RequireAdmin)
+			r.Get("/auth", srv.HandleManageAuth)
+			r.Get("/backup", srv.HandleBackupDownload)
+			r.Get("/analytics", srv.HandleAnalytics)
+		})
+	})
+	r.Get("/{slug}", srv.HandleIndex)
+	return r
+}
+
 // newAuthClient returns an http.Client with a cookie jar that does NOT follow
 // redirects, so tests can assert on the redirect response itself.
 func newAuthClient(t *testing.T, server *httptest.Server) *http.Client {
@@ -439,5 +463,186 @@ func TestAuthFlow_LoggedInUserCanAccessPasswordlessProfile(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("/andrea (passwordless, logged in as markus): expected 200, got %d", resp.StatusCode)
+	}
+}
+
+// --- /manage access control tests (#143) ---
+
+// setupManageTest sets up a full test env with manage routes registered,
+// using setupAuthTestNonAdmin (markus=non-admin, andrea=non-admin).
+func setupManageTest(t *testing.T) (*httptest.Server, *http.Client, func()) {
+	t.Helper()
+	srv, cleanup := setupTestWithLogin(t)
+	db.DB.SetMaxOpenConns(1)
+
+	loginTmpl, err := template.New("login.html").Parse(
+		`<form method="post" action="/login">` +
+			`<input name="csrf_token" value="{{.CSRFToken}}">` +
+			`<input name="profile"><input name="password">` +
+			`</form>`,
+	)
+	if err != nil {
+		cleanup()
+		t.Fatalf("parse login template: %v", err)
+	}
+	srv.LoginTmpl = loginTmpl
+
+	if err := db.SetPassword("markus", "markus"); err != nil {
+		cleanup()
+		t.Fatalf("SetPassword markus: %v", err)
+	}
+	if err := db.SetAdmin("markus", false); err != nil {
+		cleanup()
+		t.Fatalf("SetAdmin markus false: %v", err)
+	}
+	if err := db.SetPassword("andrea", "andrea"); err != nil {
+		cleanup()
+		t.Fatalf("SetPassword andrea: %v", err)
+	}
+
+	cfg := &config.Config{SessionDays: 30}
+	srv.Config = cfg
+	ts := httptest.NewServer(manageRouter(srv, cfg))
+	client := newAuthClient(t, ts)
+
+	return ts, client, func() { ts.Close(); cleanup() }
+}
+
+// setupManageTestAdmin is like setupManageTest but markus is admin.
+func setupManageTestAdmin(t *testing.T) (*httptest.Server, *http.Client, func()) {
+	t.Helper()
+	srv, cleanup := setupTestWithLogin(t)
+	db.DB.SetMaxOpenConns(1)
+
+	loginTmpl, err := template.New("login.html").Parse(
+		`<form method="post" action="/login">` +
+			`<input name="csrf_token" value="{{.CSRFToken}}">` +
+			`<input name="profile"><input name="password">` +
+			`</form>`,
+	)
+	if err != nil {
+		cleanup()
+		t.Fatalf("parse login template: %v", err)
+	}
+	srv.LoginTmpl = loginTmpl
+
+	if err := db.SetPassword("markus", "markus"); err != nil {
+		cleanup()
+		t.Fatalf("SetPassword markus: %v", err)
+	}
+	if err := db.SetAdmin("markus", true); err != nil {
+		cleanup()
+		t.Fatalf("SetAdmin markus: %v", err)
+	}
+
+	cfg := &config.Config{SessionDays: 30}
+	srv.Config = cfg
+	ts := httptest.NewServer(manageRouter(srv, cfg))
+	client := newAuthClient(t, ts)
+
+	return ts, client, func() { ts.Close(); cleanup() }
+}
+
+// TestManageAccess_NonAdminCanGetManage verifies that a non-admin authenticated
+// user can access GET /manage (#143).
+func TestManageAccess_NonAdminCanGetManage(t *testing.T) {
+	ts, client, cleanup := setupManageTest(t)
+	defer cleanup()
+
+	loginResp := doLogin(t, client, ts.URL, "markus", "markus")
+	loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("login failed, got %d", loginResp.StatusCode)
+	}
+
+	resp, err := client.Get(ts.URL + "/manage")
+	if err != nil {
+		t.Fatalf("GET /manage: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("/manage (non-admin): expected 200, got %d", resp.StatusCode)
+	}
+}
+
+// TestManageAccess_NonAdminBlockedFromAdminRoutes verifies that a non-admin
+// user cannot access admin-only manage routes (#143).
+func TestManageAccess_NonAdminBlockedFromAdminRoutes(t *testing.T) {
+	ts, client, cleanup := setupManageTest(t)
+	defer cleanup()
+
+	loginResp := doLogin(t, client, ts.URL, "markus", "markus")
+	loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("login failed, got %d", loginResp.StatusCode)
+	}
+
+	adminRoutes := []string{"/manage/auth", "/manage/backup", "/manage/analytics"}
+	for _, route := range adminRoutes {
+		resp, err := client.Get(ts.URL + route)
+		if err != nil {
+			t.Fatalf("GET %s: %v", route, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("%s (non-admin): expected 403, got %d", route, resp.StatusCode)
+		}
+	}
+}
+
+// TestManageAccess_AdminCanAccessAll verifies that an admin user is NOT blocked
+// by the admin middleware on any /manage route (#143). Template errors (500)
+// are expected in the stub-template test environment and do not indicate an
+// access-control failure.
+func TestManageAccess_AdminCanAccessAll(t *testing.T) {
+	ts, client, cleanup := setupManageTestAdmin(t)
+	defer cleanup()
+
+	loginResp := doLogin(t, client, ts.URL, "markus", "markus")
+	loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("login failed, got %d", loginResp.StatusCode)
+	}
+
+	// Test that admin is not blocked (403) on any manage route.
+	// 200 = handler ran fine; 500 = handler ran but template missing in test env.
+	adminRoutes := []string{"/manage", "/manage/auth", "/manage/backup", "/manage/analytics"}
+	for _, route := range adminRoutes {
+		resp, err := client.Get(ts.URL + route)
+		if err != nil {
+			t.Fatalf("GET %s: %v", route, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusForbidden {
+			t.Errorf("%s (admin): got 403 Forbidden – admin should not be blocked", route)
+		}
+	}
+}
+
+// TestManageAccess_UnauthenticatedRedirected verifies that unauthenticated
+// requests to /manage are redirected to /login (not 403).
+func TestManageAccess_UnauthenticatedRedirected(t *testing.T) {
+	ts, _, cleanup := setupManageTest(t)
+	defer cleanup()
+
+	// Fresh client without any session
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar: jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	resp, err := client.Get(ts.URL + "/manage")
+	if err != nil {
+		t.Fatalf("GET /manage: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("/manage (no session): expected 303 redirect to /login, got %d", resp.StatusCode)
+	}
+	if loc := resp.Header.Get("Location"); loc != "/login" {
+		t.Errorf("expected redirect to /login, got %q", loc)
 	}
 }

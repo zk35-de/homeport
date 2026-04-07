@@ -125,27 +125,26 @@ func main() {
 	r.Get("/r/{id}", api.HandleServiceRedirect)
 
 	r.Route("/manage", func(r chi.Router) {
-		r.Use(srv.RequireAdmin)
-		r.Post("/profile/{slug}/clone", srv.HandleCloneProfile)
+		// User-level: any authenticated user can manage their own content.
+		// RequireAuth (global middleware) already ensures a valid session.
 		r.Get("/", srv.HandleManage)
-		r.Get("/analytics", srv.HandleAnalytics)
-
-		// Backup & Restore
-		r.Get("/backup", srv.HandleBackupDownload)
-		r.Post("/restore", srv.HandleRestore)
-
-		r.Post("/category", srv.HandleAddCategory)
 		r.Get("/category-options", srv.HandleCategoryOptions)
 		r.Get("/profile-options", srv.HandleProfileOptions)
 
-		r.Post("/service", srv.HandleAddService)
-		r.Delete("/category/{id}", srv.HandleDeleteCategory)
-		r.Delete("/service/{id}", srv.HandleDeleteService)
+		r.Post("/category", srv.HandleAddCategory)
 		r.Get("/category/{id}/edit", srv.HandleGetCategory)
 		r.Patch("/category/{id}", srv.HandleUpdateCategory)
+		r.Delete("/category/{id}", srv.HandleDeleteCategory)
 		r.Post("/category/{id}/span/{span}", srv.HandleUpdateCategorySpan)
+		r.Post("/category/{id}/sortmode/{mode}", srv.HandleSetCategorySortMode)
+		r.Get("/category/{id}/visibility", srv.HandleGetCategoryVisibility)
+		r.Post("/category/{id}/visibility", srv.HandleSetCategoryVisibility)
+
+		r.Post("/service", srv.HandleAddService)
 		r.Get("/service/{id}/edit", srv.HandleGetService)
 		r.Patch("/service/{id}", srv.HandleUpdateService)
+		r.Delete("/service/{id}", srv.HandleDeleteService)
+
 		r.Post("/sort/category/{id}/{direction}", srv.HandleSortCategory)
 		r.Post("/sort/service/{id}/{direction}", srv.HandleSortService)
 		r.Post("/sort/category/reorder", srv.HandleReorderCategories)
@@ -157,33 +156,36 @@ func main() {
 		r.Post("/discovery/{id}/accept-cl", srv.HandleAcceptDiscoveryCL)
 		r.Post("/discovery/{id}/ignore-cl", srv.HandleIgnoreDiscoveryCL)
 
-		// Discovery Sources
-		r.Get("/discovery/sources", srv.HandleGetDiscoverySources)
-		r.Post("/discovery/sources", srv.HandleAddDiscoverySource)
-		r.Delete("/discovery/sources/{id}", srv.HandleDeleteDiscoverySource)
-		r.Post("/discovery/sources/{id}/toggle", srv.HandleToggleDiscoverySource)
-		r.Post("/discovery/sources/{id}/scan", srv.HandleScanDiscoverySource)
-
-		// Auth management
-		r.Get("/auth", srv.HandleManageAuth)
-		r.Post("/auth/password", srv.HandleSetPassword)
-		r.Post("/auth/password/delete", srv.HandleDeletePassword)
-
-		// Profile management
-		r.Post("/profile", srv.HandleAddProfile)
-		r.Delete("/profile/{slug}", srv.HandleDeleteProfile)
-		r.Post("/profile/{slug}/default", srv.HandleSetDefaultProfile)
-		r.Post("/category/{id}/sortmode/{mode}", srv.HandleSetCategorySortMode)
-		r.Get("/category/{id}/visibility", srv.HandleGetCategoryVisibility)
-		r.Post("/category/{id}/visibility", srv.HandleSetCategoryVisibility)
-
-		// Page management
 		r.Get("/page-list", srv.HandleGetPageList)
 		r.Post("/page", srv.HandleAddPage)
 		r.Delete("/page/{id}", srv.HandleDeletePage)
 		r.Patch("/page/{id}", srv.HandleUpdatePage)
 		r.Post("/sort/page/{id}/{direction}", srv.HandleSortPage)
 		r.Post("/category/{id}/page/{pageID}", srv.HandleSetCategoryPage)
+
+		// Admin-only: system-level operations.
+		r.Group(func(r chi.Router) {
+			r.Use(srv.RequireAdmin)
+
+			r.Get("/analytics", srv.HandleAnalytics)
+			r.Get("/backup", srv.HandleBackupDownload)
+			r.Post("/restore", srv.HandleRestore)
+			r.Post("/profile/{slug}/clone", srv.HandleCloneProfile)
+
+			r.Get("/discovery/sources", srv.HandleGetDiscoverySources)
+			r.Post("/discovery/sources", srv.HandleAddDiscoverySource)
+			r.Delete("/discovery/sources/{id}", srv.HandleDeleteDiscoverySource)
+			r.Post("/discovery/sources/{id}/toggle", srv.HandleToggleDiscoverySource)
+			r.Post("/discovery/sources/{id}/scan", srv.HandleScanDiscoverySource)
+
+			r.Get("/auth", srv.HandleManageAuth)
+			r.Post("/auth/password", srv.HandleSetPassword)
+			r.Post("/auth/password/delete", srv.HandleDeletePassword)
+
+			r.Post("/profile", srv.HandleAddProfile)
+			r.Delete("/profile/{slug}", srv.HandleDeleteProfile)
+			r.Post("/profile/{slug}/default", srv.HandleSetDefaultProfile)
+		})
 	})
 
 	// REST API Routes

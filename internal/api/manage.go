@@ -27,7 +27,25 @@ type ManageData struct {
 }
 
 func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
-	categories, err := db.GetCategoriesWithServices("")
+	// Determine which profile to display. Admins see the global view (all
+	// services, default profile context). Non-admin users see only their own
+	// profile's services.
+	sessionSlug := SessionProfile(r)
+	isAdmin := false
+	if sessionSlug != "" {
+		if a, _ := db.GetUserAuth(sessionSlug); a != nil {
+			isAdmin = a.IsAdmin
+		}
+	}
+
+	filterProfile := ""    // empty = show all services (admin/no-auth view)
+	contextSlug := ""      // profile used for prefs, pages, UI context
+	if sessionSlug != "" && !isAdmin {
+		filterProfile = sessionSlug
+		contextSlug = sessionSlug
+	}
+
+	categories, err := db.GetCategoriesWithServices(filterProfile)
 	if err != nil {
 		slog.Error("fetching categories", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -43,16 +61,31 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 	var pages []db.Page
 	defaultSlug := ""
 	profileName := ""
-	if def, defErr := db.GetDefaultProfile(); defErr != nil {
-		slog.Error("GetDefaultProfile", "err", defErr)
-	} else if def != nil {
-		defaultSlug = def.Slug
-		profileName = def.Name
-		if prefs, err = db.GetUserPreferences(def.Slug); err != nil {
-			slog.Error("GetUserPreferences", "profile", def.Slug, "err", err)
+
+	// Admin / no-auth: use default profile for UI context.
+	if contextSlug == "" {
+		if def, defErr := db.GetDefaultProfile(); defErr != nil {
+			slog.Error("GetDefaultProfile", "err", defErr)
+		} else if def != nil {
+			contextSlug = def.Slug
+			defaultSlug = def.Slug
 		}
-		if pages, err = db.GetPages(def.Slug); err != nil {
-			slog.Error("GetPages", "profile", def.Slug, "err", err)
+	} else {
+		// Non-admin: context is the session profile; still need the default slug.
+		if def, defErr := db.GetDefaultProfile(); defErr == nil && def != nil {
+			defaultSlug = def.Slug
+		}
+	}
+
+	if contextSlug != "" {
+		if p, pErr := db.GetProfileBySlug(contextSlug); pErr == nil && p != nil {
+			profileName = p.Name
+		}
+		if prefs, err = db.GetUserPreferences(contextSlug); err != nil {
+			slog.Error("GetUserPreferences", "profile", contextSlug, "err", err)
+		}
+		if pages, err = db.GetPages(contextSlug); err != nil {
+			slog.Error("GetPages", "profile", contextSlug, "err", err)
 		}
 	}
 	if prefs == nil {
@@ -72,7 +105,7 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		Prefs:          prefs,
 		Profiles:       profiles,
 		Pages:          pages,
-		Profile:        defaultSlug,
+		Profile:        contextSlug,
 		ProfileName:    profileName,
 		DefaultProfile: defaultSlug,
 		CSRFToken:      CSRFToken(r),
