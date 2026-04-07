@@ -64,7 +64,9 @@ func (s *Server) HandleRestore(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	tempFile, err := os.CreateTemp("", "homeport_restore_*.db")
+	// Write temp file into the same directory as the target DB so os.Rename
+	// stays on the same filesystem (cross-device rename fails in containers).
+	tempFile, err := os.CreateTemp(filepath.Dir(s.Config.DBPath), "homeport_restore_*.db")
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
