@@ -182,20 +182,10 @@
   </form>
 </section>
 
-<section class="manage-panel manage-section" id="appearance">
+<section class="manage-panel manage-section" id="appearance" {{if .IsAdmin}}data-save-all="1"{{end}}>
   <h2>{{.T "manage.settings"}}</h2>
+  {{if .IsAdmin}}<p class="section-desc-sm">{{.T "manage.appearance.admin_hint"}}</p>{{end}}
   <div class="settings-row">
-
-    {{if .IsAdmin}}
-    <div class="form-group flex-no-shrink">
-      <label>{{.T "manage.profile"}}</label>
-      <select id="appearance-profile" onchange="onAppearanceProfileChange(this.value)">
-        {{range .Profiles}}
-        <option value="{{.Slug}}" {{if eq .Slug $.Profile}}selected{{end}}>{{.Name}}</option>
-        {{end}}
-      </select>
-    </div>
-    {{end}}
 
     <div class="form-group flex-no-shrink">
       <label>{{.T "manage.theme"}}</label>

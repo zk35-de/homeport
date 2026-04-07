@@ -39,29 +39,8 @@ func HandleGetPreferences(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(prefs)
 }
 
-// HandleSetPreferences partially updates user preferences for a profile.
-// PATCH /api/user/preferences[?profile=slug]  (JSON body with optional fields)
-func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
-	profile := resolvePrefsProfile(r)
-	if profile == "" {
-		http.Error(w, "no profile", http.StatusBadRequest)
-		return
-	}
-
-	// Load current preferences as base
-	current, err := db.GetUserPreferences(profile)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// Decode partial update using a map so we only change provided fields
-	var patch map[string]string
-	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
+// applyPrefsPatch applies a partial JSON patch to a UserPreferences struct.
+func applyPrefsPatch(current *db.UserPreferences, patch map[string]string) {
 	if v, ok := patch["theme"]; ok {
 		current.Theme = v
 	}
@@ -71,18 +50,63 @@ func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
 	if v, ok := patch["search_engine"]; ok {
 		current.SearchEngine = v
 	}
-
 	if v, ok := patch["language"]; ok {
 		current.Language = v
 	}
-
 	if v, ok := patch["custom_css"]; ok {
 		current.CustomCSS = v
 	}
 	if v, ok := patch["background_mode"]; ok && (v == "aurora" || v == "none") {
 		current.BackgroundMode = v
 	}
+}
 
+// HandleSetPreferences partially updates user preferences for a profile.
+// PATCH /api/user/preferences[?profile=slug&all=1]  (JSON body with optional fields)
+// With ?all=1 (admin only) the patch is applied to every profile.
+func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
+	// Decode patch first so we can reuse it across profiles
+	var patch map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	if r.URL.Query().Get("all") == "1" {
+		// Apply to all profiles – only allowed for admins
+		_, isAdmin := sessionContext(r)
+		if !isAdmin {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		profiles, err := db.GetProfiles()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		for _, p := range profiles {
+			current, err := db.GetUserPreferences(p.Slug)
+			if err != nil {
+				continue
+			}
+			applyPrefsPatch(current, patch)
+			db.SetUserPreferences(p.Slug, *current)
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	profile := resolvePrefsProfile(r)
+	if profile == "" {
+		http.Error(w, "no profile", http.StatusBadRequest)
+		return
+	}
+	current, err := db.GetUserPreferences(profile)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	applyPrefsPatch(current, patch)
 	if err := db.SetUserPreferences(profile, *current); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

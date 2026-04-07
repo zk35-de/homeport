@@ -1,45 +1,46 @@
 {{define "discovery_inbox"}}
 <div id="discovery-inbox">
   {{if .Items}}
-  <div class="manage-header" style="cursor:pointer" onclick="var el=document.getElementById('discovery-inbox-items');var arr=this.querySelector('.cat-arrow');if(el){el.classList.toggle('collapsed');arr.classList.toggle('collapsed');}">
-    <span class="cat-arrow">▾</span>
-    <span class="category-title color-indigo">🔍 Discovery</span>
-    <span class="inbox-badge">{{len .Items}} {{$.T "manage.discovery.found_suffix"}}</span>
-  </div>
-  <div id="discovery-inbox-items">
-  {{range .Items}}
-  {{$item := .}}
-  <div class="inbox-item">
-    <div class="inbox-info">
-      {{if .Suggested.URL}}<img src="/api/favicon?url={{.Suggested.URL}}" alt="" class="inbox-favicon" onerror="this.style.display='none'">{{end}}
-      <strong>{{.Suggested.Name}}</strong><br>
-      <span class="text-muted">{{.Suggested.URL}}</span>
+  <div class="manage-category manage-category-discovery" id="cat-discovery-inbox">
+    <div class="manage-header">
+      <span class="cat-arrow" data-cat-toggle="discovery-inbox">▾</span>
+      <span class="category-title color-indigo">🔍 Discovery ({{len .Items}})</span>
     </div>
-    <form class="inbox-accept-form"
-          hx-post="/manage/discovery/{{.ID}}/accept"
-          hx-target="#discovery-inbox" hx-swap="outerHTML">
-      {{if $.Categories}}
-      <select name="category_id" class="inbox-cat-select">
-        {{range $.Categories}}
-        <option value="{{.ID}}" {{if eq .Name $item.Suggested.Category}}selected{{end}}>{{.Name}}</option>
-        {{end}}
-      </select>
-      {{else}}
-      <span class="tag">{{.Suggested.Category}}</span>
-      {{end}}
-      <label class="checkbox-label inbox-nocheck">
-        <input type="checkbox" name="no_check" value="1"> {{$.T "manage.no_check"}}
-      </label>
-      <div class="inbox-actions">
-        <button type="submit">{{$.T "manage.discovery.add"}}</button>
-        <button type="button"
-                hx-post="/manage/discovery/{{$item.ID}}/ignore"
-                hx-target="#discovery-inbox" hx-swap="outerHTML">{{$.T "manage.discovery.ignore"}}</button>
+    <div class="manage-service-list">
+    {{range .Items}}
+    {{$item := .}}
+    <div class="inbox-item">
+      <div class="inbox-info">
+        {{if .Suggested.URL}}<img src="/api/favicon?url={{.Suggested.URL}}" alt="" class="inbox-favicon" onerror="this.style.display='none'">{{end}}
+        <strong>{{.Suggested.Name}}</strong><br>
+        <span class="text-muted">{{.Suggested.URL}}</span>
       </div>
-    </form>
-  </div>
-  {{end}}
-  </div>{{/* end discovery-inbox-items */}}
+      <form class="inbox-accept-form"
+            hx-post="/manage/discovery/{{.ID}}/accept"
+            hx-target="#discovery-inbox" hx-swap="outerHTML">
+        {{if $.Categories}}
+        <select name="category_id" class="inbox-cat-select">
+          {{range $.Categories}}
+          <option value="{{.ID}}" {{if eq .Name $item.Suggested.Category}}selected{{end}}>{{.Name}}</option>
+          {{end}}
+        </select>
+        {{else}}
+        <span class="tag">{{.Suggested.Category}}</span>
+        {{end}}
+        <label class="checkbox-label inbox-nocheck">
+          <input type="checkbox" name="no_check" value="1"> {{$.T "manage.no_check"}}
+        </label>
+        <div class="inbox-actions">
+          <button type="submit">{{$.T "manage.discovery.add"}}</button>
+          <button type="button"
+                  hx-post="/manage/discovery/{{$item.ID}}/ignore"
+                  hx-target="#discovery-inbox" hx-swap="outerHTML">{{$.T "manage.discovery.ignore"}}</button>
+        </div>
+      </form>
+    </div>
+    {{end}}
+    </div>{{/* end manage-service-list */}}
+  </div>{{/* end manage-category */}}
   {{end}}
 </div>
 {{end}}

@@ -247,43 +247,11 @@ async function fetchFaviconEdit(svcId, btn) {
 }
 
 // ── Theme Engine ──────────────────────────────────────────────────
-function getAppearanceProfile() {
-  var sel = document.getElementById('appearance-profile');
-  return (sel && sel.value) || document.body.dataset.profile || '';
-}
-
-// Called when the appearance profile selector changes.
-// Fetches the selected profile's prefs and updates all appearance controls.
-async function onAppearanceProfileChange(slug) {
-  try {
-    var resp = await fetch('/api/user/preferences' + (slug ? '?profile=' + encodeURIComponent(slug) : ''));
-    if (!resp.ok) return;
-    var prefs = await resp.json();
-    // Update theme buttons
-    document.querySelectorAll('.theme-btn').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.theme === (prefs.theme || 'dark'));
-    });
-    // Update background buttons
-    document.querySelectorAll('.bg-btn').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.bg === (prefs.background_mode || 'aurora'));
-    });
-    // Update accent picker
-    var picker = document.getElementById('accent-picker');
-    var hexEl  = document.getElementById('accent-hex');
-    if (picker && prefs.accent_color) {
-      picker.value = prefs.accent_color;
-      if (hexEl) hexEl.textContent = prefs.accent_color;
-    }
-    // Update custom CSS textarea
-    var cssEl = document.getElementById('custom-css-input');
-    if (cssEl) cssEl.value = prefs.custom_css || '';
-  } catch(e) { console.warn('onAppearanceProfileChange failed', e); }
-}
-
-
 async function savePrefs(patch) {
-  var profile = getAppearanceProfile();
-  var url = '/api/user/preferences' + (profile ? '?profile=' + encodeURIComponent(profile) : '');
+  var section = document.getElementById('appearance');
+  var saveAll = section && section.dataset.saveAll === '1';
+  var profile = document.body.dataset.profile || '';
+  var url = '/api/user/preferences' + (saveAll ? '?all=1' : (profile ? '?profile=' + encodeURIComponent(profile) : ''));
   try {
     var resp = await fetch(url, {
       method: 'PATCH',

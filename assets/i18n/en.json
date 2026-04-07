@@ -29,6 +29,7 @@
   "manage.add_profile": "Add profile",
   "manage.widget_type": "Widget type",
   "manage.settings": "Settings",
+  "manage.appearance.admin_hint": "Settings apply to all profiles.",
   "manage.theme": "Theme",
   "manage.background": "Background",
   "manage.background.none": "None",
