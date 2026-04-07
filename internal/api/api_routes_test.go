@@ -1201,6 +1201,64 @@ func TestHandleCategoryOptions_AfterAddCategory(t *testing.T) {
 	}
 }
 
+// --- Profile Options (#150) ---
+
+// TestHandleProfileOptions_ReturnsOptions verifies that GET /manage/profile-options
+// returns <option> elements for all existing profiles.
+func TestHandleProfileOptions_ReturnsOptions(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	req := httptest.NewRequest("GET", "/manage/profile-options", nil)
+	rr := httptest.NewRecorder()
+	srv.HandleProfileOptions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	body := rr.Body.String()
+	// setupTest creates markus/mgi/ako profiles
+	if !strings.Contains(body, "markus") {
+		t.Errorf("expected markus in profile-options, got: %s", body)
+	}
+}
+
+// TestHandleProfileOptions_AfterAddProfile verifies that a newly added profile
+// immediately appears in /manage/profile-options (#150).
+func TestHandleProfileOptions_AfterAddProfile(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Verify it's not there yet
+	req := httptest.NewRequest("GET", "/manage/profile-options", nil)
+	rr := httptest.NewRecorder()
+	srv.HandleProfileOptions(rr, req)
+	if strings.Contains(rr.Body.String(), "newuser") {
+		t.Fatal("precondition failed: newuser should not exist yet")
+	}
+
+	// Add profile via handler
+	form := url.Values{}
+	form.Set("name", "New User")
+	form.Set("slug", "newuser")
+	addReq := httptest.NewRequest("POST", "/manage/profile", strings.NewReader(form.Encode()))
+	addReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	addRr := httptest.NewRecorder()
+	srv.HandleAddProfile(addRr, addReq)
+	if addRr.Code != http.StatusOK {
+		t.Fatalf("HandleAddProfile failed: %d %s", addRr.Code, addRr.Body.String())
+	}
+
+	// Now profile-options must include the new profile
+	req2 := httptest.NewRequest("GET", "/manage/profile-options", nil)
+	rr2 := httptest.NewRecorder()
+	srv.HandleProfileOptions(rr2, req2)
+	body := rr2.Body.String()
+	if !strings.Contains(body, "newuser") {
+		t.Errorf("newly added profile 'newuser' not in /manage/profile-options (#150). Got: %s", body)
+	}
+}
+
 // --- UpdateHub (SSE) ---
 
 func TestUpdateHub_Broadcast_NoClients(t *testing.T) {

@@ -136,6 +136,7 @@ func main() {
 
 		r.Post("/category", srv.HandleAddCategory)
 		r.Get("/category-options", srv.HandleCategoryOptions)
+		r.Get("/profile-options", srv.HandleProfileOptions)
 
 		r.Post("/service", srv.HandleAddService)
 		r.Delete("/category/{id}", srv.HandleDeleteCategory)

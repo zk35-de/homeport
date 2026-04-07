@@ -4,7 +4,12 @@ if ('serviceWorker' in navigator) {
 }
 
 // HTMX config: disable eval (no inline hx-on::* expressions in this app)
-if (typeof htmx !== 'undefined') { htmx.config.allowEval = false; }
+// includeIndicatorStyles=false: HTMX 2.x injects inline styles for .htmx-indicator,
+// which violates CSP style-src 'self'. We ship the rules in our own CSS instead.
+if (typeof htmx !== 'undefined') {
+  htmx.config.allowEval = false;
+  htmx.config.includeIndicatorStyles = false;
+}
 
 // CSRF: inject cookie value as X-CSRF-Token header on every HTMX request
 (function() {

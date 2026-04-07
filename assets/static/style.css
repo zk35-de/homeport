@@ -943,3 +943,8 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
 .page-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
 .page-id { font-size: 0.75rem; color: var(--muted); }
 .page-empty { color: var(--muted); font-size: 0.85rem; }
+
+/* htmx-indicator: ship these externally so HTMX can run with includeIndicatorStyles=false (CSP #151) */
+.htmx-indicator { opacity: 0; transition: opacity 500ms ease-in; }
+.htmx-request .htmx-indicator { opacity: 1; }
+.htmx-request.htmx-indicator { opacity: 1; }

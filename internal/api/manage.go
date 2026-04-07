@@ -467,6 +467,20 @@ func (s *Server) HandleCategoryOptions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleProfileOptions returns <option> elements for all profiles.
+// Used by HTMX to refresh the profile dropdown in the auth password form.
+// GET /manage/profile-options
+func (s *Server) HandleProfileOptions(w http.ResponseWriter, r *http.Request) {
+	profiles, err := db.GetProfiles()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	for _, p := range profiles {
+		fmt.Fprintf(w, `<option value="%s">%s</option>`, p.Slug, p.Name)
+	}
+}
+
 func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
@@ -695,6 +709,7 @@ func (s *Server) HandleAddProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("HX-Trigger", "profileChanged")
 	lang := GetLang(r)
 	s.renderProfileList(w, lang)
 }
@@ -706,6 +721,7 @@ func (s *Server) HandleDeleteProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("HX-Trigger", "profileChanged")
 	lang := GetLang(r)
 	s.renderProfileList(w, lang)
 }

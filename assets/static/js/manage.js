@@ -161,6 +161,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.detail && e.detail.target && e.detail.target.id === 'category-list') {
       applyCollapse();
       initSortable();
+      // HTMX 2.x fires HX-Trigger events on the target element, not on body.
+      // #cat-select listens with "from:body", so we dispatch explicitly (#149).
+      htmx.trigger(document.body, 'categoryAdded');
+    }
+    if (e.detail && e.detail.target && e.detail.target.id === 'profile-list') {
+      // Refresh auth password-form profile dropdown (#150)
+      htmx.trigger(document.body, 'profileChanged');
     }
   });
 });

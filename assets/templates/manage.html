@@ -243,7 +243,10 @@
   <form hx-post="/manage/auth/password" hx-target="#auth-list-wrap" hx-swap="innerHTML"
         data-reset-on-success
         class="form-row-wrap">
-    <select name="profile" class="flex-1-min120">
+    <select name="profile" class="flex-1-min120"
+            hx-get="/manage/profile-options"
+            hx-trigger="load, profileChanged from:body"
+            hx-swap="innerHTML">
       {{range .Profiles}}<option value="{{.Slug}}">{{.Name}}</option>{{end}}
     </select>
     <input type="password" name="password" placeholder="{{.T "manage.password.placeholder"}}" required class="flex-2-min150">
