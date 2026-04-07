@@ -332,32 +332,112 @@ func TestAuthFlow_PasswordedProfileRequiresAuth(t *testing.T) {
 	}
 }
 
-// TestAuthFlow_ProfileIsolation verifies that a user logged in as markus cannot
-// access andrea's profile page (#146 – currently a known bug, fix pending).
-// TODO: remove t.Skip once #146 is fixed.
+// setupAuthTestNonAdmin creates a setup where both markus and andrea have
+// passwords but markus is explicitly NOT admin. Used to test profile isolation
+// without the admin bypass (#146).
+func setupAuthTestNonAdmin(t *testing.T) (*httptest.Server, *http.Client, func()) {
+	t.Helper()
+	srv, cleanup := setupTestWithLogin(t)
+	db.DB.SetMaxOpenConns(1)
+
+	loginTmpl, err := template.New("login.html").Parse(
+		`<form method="post" action="/login">` +
+			`<input name="csrf_token" value="{{.CSRFToken}}">` +
+			`<input name="profile"><input name="password">` +
+			`</form>`,
+	)
+	if err != nil {
+		cleanup()
+		t.Fatalf("parse login template: %v", err)
+	}
+	srv.LoginTmpl = loginTmpl
+
+	// First SetPassword call auto-grants admin; we immediately revoke it.
+	if err := db.SetPassword("markus", "markus"); err != nil {
+		cleanup()
+		t.Fatalf("SetPassword markus: %v", err)
+	}
+	if err := db.SetAdmin("markus", false); err != nil {
+		cleanup()
+		t.Fatalf("SetAdmin markus false: %v", err)
+	}
+	if err := db.SetPassword("andrea", "andrea"); err != nil {
+		cleanup()
+		t.Fatalf("SetPassword andrea: %v", err)
+	}
+
+	cfg := &config.Config{SessionDays: 30}
+	srv.Config = cfg
+	ts := httptest.NewServer(authRouter(srv, cfg))
+	client := newAuthClient(t, ts)
+
+	return ts, client, func() { ts.Close(); cleanup() }
+}
+
+// TestAuthFlow_ProfileIsolation verifies that a non-admin user logged in as
+// markus cannot access andrea's profile page (#146).
 func TestAuthFlow_ProfileIsolation(t *testing.T) {
-	t.Skip("known bug #146: profile isolation not yet implemented")
-	ts, client, cleanup := setupAuthTest(t)
+	ts, client, cleanup := setupAuthTestNonAdmin(t)
 	defer cleanup()
 
-	// Login as markus
 	loginResp := doLogin(t, client, ts.URL, "markus", "markus")
 	loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("login failed, got %d", loginResp.StatusCode)
+	}
 
-	// markus should be able to access his own profile
+	// markus can access his own profile
 	resp, _ := client.Get(ts.URL + "/markus")
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("/markus: expected 200, got %d", resp.StatusCode)
 	}
 
-	// markus must NOT be able to access andrea's profile
-	// Expected: 403 Forbidden or redirect to /login
-	// BUG #146: currently returns 200 because RequireAuth only checks for any
-	// valid session, not whether the session matches the requested profile.
+	// markus must NOT access andrea's profile
 	resp, _ = client.Get(ts.URL + "/andrea")
 	resp.Body.Close()
-	if resp.StatusCode == http.StatusOK {
-		t.Error("profile isolation broken (#146): markus can access /andrea (expected 403 or redirect)")
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("/andrea: expected 403, got %d", resp.StatusCode)
+	}
+}
+
+// TestAuthFlow_AdminCanAccessAllProfiles verifies that an admin user can access
+// any profile page, including other users' profiles (#146).
+func TestAuthFlow_AdminCanAccessAllProfiles(t *testing.T) {
+	ts, client, cleanup := setupAuthTest(t) // markus = admin
+	defer cleanup()
+
+	loginResp := doLogin(t, client, ts.URL, "markus", "markus")
+	loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("login failed, got %d", loginResp.StatusCode)
+	}
+
+	// Admin markus can access andrea's profile
+	resp, _ := client.Get(ts.URL + "/andrea")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("/andrea (admin session): expected 200, got %d", resp.StatusCode)
+	}
+}
+
+// TestAuthFlow_LoggedInUserCanAccessPasswordlessProfile verifies that a logged-in
+// user (as any profile) can still access a passwordless profile (#145 + #146
+// interaction: passwordless bypass must survive isolation logic).
+func TestAuthFlow_LoggedInUserCanAccessPasswordlessProfile(t *testing.T) {
+	ts, client, cleanup := setupAuthTestMixed(t) // markus=admin+password, andrea=no password
+	defer cleanup()
+
+	loginResp := doLogin(t, client, ts.URL, "markus", "markus")
+	loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("login failed, got %d", loginResp.StatusCode)
+	}
+
+	// andrea has no password → isolation does not apply, always accessible
+	resp, _ := client.Get(ts.URL + "/andrea")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("/andrea (passwordless, logged in as markus): expected 200, got %d", resp.StatusCode)
 	}
 }

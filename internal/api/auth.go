@@ -57,35 +57,41 @@ func (s *Server) RequireAdmin(next http.Handler) http.Handler {
 	})
 }
 
+// resolveProfileSlug returns the profile slug for a profile page path.
+// Returns "" for non-profile paths (/manage, /api/..., unknown slugs).
+// Safe to call with db.DB == nil (returns "").
+func resolveProfileSlug(path string) string {
+	if db.DB == nil {
+		return ""
+	}
+	if path == "/" {
+		p, err := db.GetDefaultProfile()
+		if err != nil || p == nil {
+			return ""
+		}
+		return p.Slug
+	}
+	// Only single-segment paths can be profile slugs (/markus, /andrea).
+	// Multi-segment paths (/manage/auth, /api/...) are never profile pages.
+	trimmed := strings.TrimPrefix(path, "/")
+	if trimmed == "" || strings.ContainsRune(trimmed, '/') {
+		return ""
+	}
+	p, err := db.GetProfileBySlug(trimmed)
+	if err != nil || p == nil {
+		return ""
+	}
+	return p.Slug
+}
+
 // profilePathNeedsAuth returns true if the given path requires authentication.
 // Returns false only for profile pages (/ or /{slug}) where the profile has
 // no password set — those are always accessible without a session.
 func profilePathNeedsAuth(path string) bool {
-	if db.DB == nil {
-		return true
+	slug := resolveProfileSlug(path)
+	if slug == "" {
+		return true // not a profile page → auth required
 	}
-	var slug string
-	if path == "/" {
-		p, err := db.GetDefaultProfile()
-		if err != nil || p == nil {
-			return true
-		}
-		slug = p.Slug
-	} else {
-		// Only single-segment paths can be profile slugs (/markus, /andrea).
-		// Multi-segment paths (/manage/auth, /api/...) always require auth.
-		trimmed := strings.TrimPrefix(path, "/")
-		if trimmed == "" || strings.ContainsRune(trimmed, '/') {
-			return true
-		}
-		slug = trimmed
-	}
-	// Verify it's an actual profile in the DB (not /manage, /r, etc.)
-	p, err := db.GetProfileBySlug(slug)
-	if err != nil || p == nil {
-		return true
-	}
-	// Check if the profile has a password
 	auth, err := db.GetUserAuth(slug)
 	if err != nil {
 		return true
@@ -142,6 +148,20 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 				}
 			}
 			if profile != "" {
+				// Profile isolation: non-admin users may only access their own
+				// profile page. Passwordless profiles remain open to everyone.
+				// Admins bypass isolation and can access all profiles.
+				if targetSlug := resolveProfileSlug(path); targetSlug != "" {
+					targetAuth, _ := db.GetUserAuth(targetSlug)
+					if targetAuth != nil { // target profile is password-protected
+						userAuth, _ := db.GetUserAuth(profile)
+						isAdmin := userAuth != nil && userAuth.IsAdmin
+						if !isAdmin && profile != targetSlug {
+							http.Error(w, "Forbidden", http.StatusForbidden)
+							return
+						}
+					}
+				}
 				next.ServeHTTP(w, r)
 				return
 			}
