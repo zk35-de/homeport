@@ -50,6 +50,16 @@ type IndexData struct {
 	Profiles     []db.Profile
 }
 
+// profilesMatching returns only the profiles from the list whose slug matches.
+func profilesMatching(profiles []db.Profile, slug string) []db.Profile {
+	for _, p := range profiles {
+		if p.Slug == slug {
+			return []db.Profile{p}
+		}
+	}
+	return nil
+}
+
 func (s *Server) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	// Slug aus URL-Param (chi) oder URL-Pfad als Fallback (Tests ohne chi-Kontext)
 	slug := chi.URLParam(r, "slug")
@@ -91,6 +101,25 @@ func (s *Server) HandleIndex(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("GetProfiles", "err", err)
 	}
+
+	// Filter the profile list shown in the nav header.
+	// Without auth: show all profiles (family/single-user setup).
+	// With auth: only show profiles the current visitor may access.
+	visibleProfiles := allProfiles
+	if db.HasAnyPassword() {
+		sessionSlug := SessionProfile(r)
+		if sessionSlug != "" {
+			// Logged in: admin sees all, non-admin sees only own profile.
+			a, _ := db.GetUserAuth(sessionSlug)
+			if a == nil || !a.IsAdmin {
+				visibleProfiles = profilesMatching(allProfiles, sessionSlug)
+			}
+		} else {
+			// No session (passwordless visitor): show only the viewed profile.
+			visibleProfiles = profilesMatching(allProfiles, profileObj.Slug)
+		}
+	}
+
 	pages, err := db.GetPages(profileObj.Slug)
 	if err != nil {
 		slog.Error("GetPages", "profile", profileObj.Slug, "err", err)
@@ -104,7 +133,7 @@ func (s *Server) HandleIndex(w http.ResponseWriter, r *http.Request) {
 		ProfileName:  profileObj.Name,
 		SearchAction: prefs.SearchEngine,
 		Prefs:        prefs,
-		Profiles:     allProfiles,
+		Profiles:     visibleProfiles,
 	}
 
 	if err := s.IndexTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
