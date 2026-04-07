@@ -57,6 +57,42 @@ func (s *Server) RequireAdmin(next http.Handler) http.Handler {
 	})
 }
 
+// profilePathNeedsAuth returns true if the given path requires authentication.
+// Returns false only for profile pages (/ or /{slug}) where the profile has
+// no password set — those are always accessible without a session.
+func profilePathNeedsAuth(path string) bool {
+	if db.DB == nil {
+		return true
+	}
+	var slug string
+	if path == "/" {
+		p, err := db.GetDefaultProfile()
+		if err != nil || p == nil {
+			return true
+		}
+		slug = p.Slug
+	} else {
+		// Only single-segment paths can be profile slugs (/markus, /andrea).
+		// Multi-segment paths (/manage/auth, /api/...) always require auth.
+		trimmed := strings.TrimPrefix(path, "/")
+		if trimmed == "" || strings.ContainsRune(trimmed, '/') {
+			return true
+		}
+		slug = trimmed
+	}
+	// Verify it's an actual profile in the DB (not /manage, /r, etc.)
+	p, err := db.GetProfileBySlug(slug)
+	if err != nil || p == nil {
+		return true
+	}
+	// Check if the profile has a password
+	auth, err := db.GetUserAuth(slug)
+	if err != nil {
+		return true
+	}
+	return auth != nil // has password → needs auth; no password → open
+}
+
 // RequireAuth middleware: if auth is enabled, check session.
 // Unauthenticated requests are redirected to /login (or shown public profile).
 // Active sessions are renewed (rolling/sliding expiry) when less than
@@ -110,8 +146,14 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Unauthenticated: serve public profile or redirect to login
-			if cfg.PublicProfile != "" &&
+			// Unauthenticated: allow passwordless profile pages
+			if !profilePathNeedsAuth(path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Legacy: explicit public profile config override
+			if cfg != nil && cfg.PublicProfile != "" &&
 				(path == "/" || path == "/"+cfg.PublicProfile) {
 				next.ServeHTTP(w, r)
 				return

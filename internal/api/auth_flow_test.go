@@ -258,6 +258,80 @@ func TestAuthFlow_SessionInvalidatedAfterLogout(t *testing.T) {
 	}
 }
 
+// setupAuthTestMixed creates a setup where markus has a password (admin) but
+// andrea has none. Used to test per-profile auth (#145).
+func setupAuthTestMixed(t *testing.T) (*httptest.Server, *http.Client, func()) {
+	t.Helper()
+	srv, cleanup := setupTestWithLogin(t)
+	db.DB.SetMaxOpenConns(1)
+
+	loginTmpl, err := template.New("login.html").Parse(
+		`<form method="post" action="/login">` +
+			`<input name="csrf_token" value="{{.CSRFToken}}">` +
+			`<input name="profile"><input name="password">` +
+			`</form>`,
+	)
+	if err != nil {
+		cleanup()
+		t.Fatalf("parse login template: %v", err)
+	}
+	srv.LoginTmpl = loginTmpl
+
+	// Only markus gets a password; andrea has none.
+	if err := db.SetPassword("markus", "markus"); err != nil {
+		cleanup()
+		t.Fatalf("SetPassword markus: %v", err)
+	}
+	if err := db.SetAdmin("markus", true); err != nil {
+		cleanup()
+		t.Fatalf("SetAdmin markus: %v", err)
+	}
+
+	cfg := &config.Config{SessionDays: 30}
+	srv.Config = cfg
+	ts := httptest.NewServer(authRouter(srv, cfg))
+	client := newAuthClient(t, ts)
+
+	return ts, client, func() { ts.Close(); cleanup() }
+}
+
+// TestAuthFlow_PasswordlessProfileAccessible verifies that a profile without a
+// password is directly accessible even when another profile has a password (#145).
+func TestAuthFlow_PasswordlessProfileAccessible(t *testing.T) {
+	ts, client, cleanup := setupAuthTestMixed(t)
+	defer cleanup()
+
+	// andrea has no password → must be accessible without login
+	resp, err := client.Get(ts.URL + "/andrea")
+	if err != nil {
+		t.Fatalf("GET /andrea: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("/andrea (no password): expected 200, got %d", resp.StatusCode)
+	}
+}
+
+// TestAuthFlow_PasswordedProfileRequiresAuth verifies that a profile WITH a
+// password still requires authentication (#145).
+func TestAuthFlow_PasswordedProfileRequiresAuth(t *testing.T) {
+	ts, client, cleanup := setupAuthTestMixed(t)
+	defer cleanup()
+
+	// markus has a password → must redirect to /login without a session
+	resp, err := client.Get(ts.URL + "/markus")
+	if err != nil {
+		t.Fatalf("GET /markus: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("/markus (has password): expected 303 redirect to /login, got %d", resp.StatusCode)
+	}
+	if loc := resp.Header.Get("Location"); loc != "/login" {
+		t.Errorf("expected redirect to /login, got %q", loc)
+	}
+}
+
 // TestAuthFlow_ProfileIsolation verifies that a user logged in as markus cannot
 // access andrea's profile page (#146 – currently a known bug, fix pending).
 // TODO: remove t.Skip once #146 is fixed.
