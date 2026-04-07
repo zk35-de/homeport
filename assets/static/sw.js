@@ -1,14 +1,9 @@
-const CACHE = 'homeport-v2';
+const CACHE = 'homeport-v3';
+// Only cache static assets that don't change between releases (images, icons).
+// JS and CSS are excluded so new versions are always fetched fresh.
 const STATIC = [
-  '/static/style.css',
-  '/static/htmx.min.js',
-  '/static/sse.js',
   '/static/icon-192.png',
   '/static/icon-512.png',
-  '/static/css/prism-tokens.css',
-  '/static/css/prism-base.css',
-  '/static/css/prism-aurora.css',
-  '/static/css/prism-components.css',
 ];
 
 // Install: pre-cache static assets
@@ -30,8 +25,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Cache-First for static assets
-  if (url.pathname.startsWith('/static/')) {
+  // Cache-First only for images/icons that never change between releases.
+  // JS and CSS use network-first so updates are always picked up.
+  if (url.pathname.startsWith('/static/icon-') || url.pathname.startsWith('/static/logo')) {
     e.respondWith(
       caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
         const clone = res.clone();
