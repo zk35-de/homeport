@@ -1,13 +1,15 @@
 {{define "content"}}
 <div class="manage-nav" role="tablist">
-    <button class="manage-tab" data-panel="panel-services"    role="tab">⊞ {{.T "manage.services"}}</button>
+    <button class="manage-tab" data-panel="panel-services" role="tab">⊞ {{.T "manage.services"}}</button>
+    <button class="manage-tab" data-panel="appearance"     role="tab">⚙️ {{.T "manage.settings"}}</button>
+    <button class="manage-tab" data-panel="pages"          role="tab">📄 {{.T "manage.pages"}}</button>
+    {{if .IsAdmin}}
     <button class="manage-tab" data-panel="discovery-sources" role="tab">🔌 {{.T "manage.discovery"}}</button>
     <button class="manage-tab" data-panel="analytics-link"    role="tab">📊 {{.T "analytics.title"}}</button>
     <button class="manage-tab" data-panel="backup"            role="tab">💾 {{.T "manage.backup"}}</button>
-    <button class="manage-tab" data-panel="appearance"        role="tab">⚙️ {{.T "manage.settings"}}</button>
     <button class="manage-tab" data-panel="auth"              role="tab">🔐 {{.T "manage.auth"}}</button>
     <button class="manage-tab" data-panel="profiles"          role="tab">👤 {{.T "manage.profiles"}}</button>
-    <button class="manage-tab" data-panel="pages"             role="tab">📄 {{.T "manage.pages"}}</button>
+    {{end}}
 </div>
 <div class="manage-panel" id="panel-services">
 <div class="manage-grid">

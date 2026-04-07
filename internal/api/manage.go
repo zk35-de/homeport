@@ -24,6 +24,7 @@ type ManageData struct {
 	ProfileName    string
 	DefaultProfile string
 	CSRFToken      string
+	IsAdmin        bool
 }
 
 func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -109,6 +110,7 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		ProfileName:    profileName,
 		DefaultProfile: defaultSlug,
 		CSRFToken:      CSRFToken(r),
+		IsAdmin:        isAdmin || sessionSlug == "", // no-auth mode = everyone is admin
 	}
 
 	if err := s.ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
