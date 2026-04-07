@@ -23,6 +23,7 @@ type ManageData struct {
 	Profile        string
 	ProfileName    string
 	DefaultProfile string
+	CSRFToken      string
 }
 
 func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +75,7 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		Profile:        defaultSlug,
 		ProfileName:    profileName,
 		DefaultProfile: defaultSlug,
+		CSRFToken:      CSRFToken(r),
 	}
 
 	if err := s.ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {

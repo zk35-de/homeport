@@ -170,6 +170,7 @@
   <!-- Restore upload -->
   <form id="restore-form" method="post" action="/manage/restore" enctype="multipart/form-data"
         data-confirm="{{.T "manage.restore.confirm"}}">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <div class="flex-row-align-end-wrap">
       <div class="form-group form-group-mb0">
         <label>{{.T "manage.restore.label"}}</label>
