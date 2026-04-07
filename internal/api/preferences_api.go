@@ -73,12 +73,7 @@ func HandleSetPreferences(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Query().Get("all") == "1" {
-		// Apply to all profiles – only allowed for admins
-		_, isAdmin := sessionContext(r)
-		if !isAdmin {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
+		// Apply to all profiles – available to any authenticated user on /manage
 		profiles, err := db.GetProfiles()
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

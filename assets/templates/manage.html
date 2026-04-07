@@ -182,9 +182,9 @@
   </form>
 </section>
 
-<section class="manage-panel manage-section" id="appearance" {{if .IsAdmin}}data-save-all="1"{{end}}>
+<section class="manage-panel manage-section" id="appearance" data-save-all="1">
   <h2>{{.T "manage.settings"}}</h2>
-  {{if .IsAdmin}}<p class="section-desc-sm">{{.T "manage.appearance.admin_hint"}}</p>{{end}}
+  <p class="section-desc-sm">{{.T "manage.appearance.admin_hint"}}</p>
   <div class="settings-row">
 
     <div class="form-group flex-no-shrink">
