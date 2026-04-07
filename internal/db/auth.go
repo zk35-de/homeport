@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -123,9 +124,9 @@ func CreateSession(profile string, days int) (string, error) {
 		return "", err
 	}
 	token := hex.EncodeToString(b)
-	expires := time.Now().UTC().Add(time.Duration(days) * 24 * time.Hour)
-	_, err := DB.Exec(`INSERT INTO sessions (token, profile, expires_at) VALUES (?, ?, ?)`,
-		token, profile, expires.Format("2006-01-02 15:04:05"))
+	_, err := DB.Exec(
+		`INSERT INTO sessions (token, profile, expires_at) VALUES (?, ?, datetime('now', ?))`,
+		token, profile, fmt.Sprintf("+%d days", days))
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +139,7 @@ func GetSession(token string) string {
 	var profile string
 	err := DB.QueryRow(`
 		SELECT profile FROM sessions
-		WHERE token = ? AND expires_at > datetime('now')`, token).Scan(&profile)
+		WHERE token = ? AND datetime(expires_at) > datetime('now')`, token).Scan(&profile)
 	if err != nil {
 		return ""
 	}
@@ -157,11 +158,15 @@ func GetSessionInfo(token string) *SessionInfo {
 	var profile, expiresStr string
 	err := DB.QueryRow(`
 		SELECT profile, expires_at FROM sessions
-		WHERE token = ? AND expires_at > datetime('now')`, token).Scan(&profile, &expiresStr)
+		WHERE token = ? AND datetime(expires_at) > datetime('now')`, token).Scan(&profile, &expiresStr)
 	if err != nil {
 		return nil
 	}
+	// Try both formats: SQLite space format and RFC3339 (modernc/sqlite may store either).
 	expires, err := time.Parse("2006-01-02 15:04:05", expiresStr)
+	if err != nil {
+		expires, err = time.Parse(time.RFC3339, expiresStr)
+	}
 	if err != nil {
 		return &SessionInfo{Profile: profile}
 	}
@@ -170,9 +175,9 @@ func GetSessionInfo(token string) *SessionInfo {
 
 // ExtendSession updates the expiry of an existing session.
 func ExtendSession(token string, days int) error {
-	expires := time.Now().UTC().Add(time.Duration(days) * 24 * time.Hour)
-	_, err := DB.Exec(`UPDATE sessions SET expires_at = ? WHERE token = ?`,
-		expires.Format("2006-01-02 15:04:05"), token)
+	_, err := DB.Exec(
+		`UPDATE sessions SET expires_at = datetime('now', ?) WHERE token = ?`,
+		fmt.Sprintf("+%d days", days), token)
 	return err
 }
 

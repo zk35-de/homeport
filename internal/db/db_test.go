@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zk35-de/homeport/internal/db"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
@@ -691,6 +692,66 @@ func TestUserPreferences(t *testing.T) {
 	}
 	if prefs2.AccentColor != "#ff0000" {
 		t.Errorf("Expected accent '#ff0000', got %q", prefs2.AccentColor)
+	}
+}
+
+func TestSessions(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// CreateSession returns a non-empty token.
+	token, err := db.CreateSession("markus", 7)
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+	if token == "" {
+		t.Fatal("Expected non-empty session token")
+	}
+
+	// GetSession finds a valid session.
+	profile := db.GetSession(token)
+	if profile != "markus" {
+		t.Errorf("GetSession: expected 'markus', got %q", profile)
+	}
+
+	// GetSessionInfo returns non-nil with a future ExpiresAt.
+	info := db.GetSessionInfo(token)
+	if info == nil {
+		t.Fatal("GetSessionInfo returned nil for valid token")
+	}
+	if info.Profile != "markus" {
+		t.Errorf("GetSessionInfo profile: expected 'markus', got %q", info.Profile)
+	}
+	if info.ExpiresAt.IsZero() {
+		t.Error("GetSessionInfo ExpiresAt is zero – datetime parse failed")
+	}
+	if !info.ExpiresAt.After(time.Now()) {
+		t.Errorf("GetSessionInfo ExpiresAt should be in the future, got %v", info.ExpiresAt)
+	}
+
+	// ExtendSession pushes ExpiresAt further out.
+	if err := db.ExtendSession(token, 14); err != nil {
+		t.Fatalf("ExtendSession: %v", err)
+	}
+	infoAfter := db.GetSessionInfo(token)
+	if infoAfter == nil {
+		t.Fatal("GetSessionInfo nil after ExtendSession")
+	}
+	if !infoAfter.ExpiresAt.After(info.ExpiresAt) {
+		t.Errorf("ExpiresAt after extend (%v) should be after original (%v)", infoAfter.ExpiresAt, info.ExpiresAt)
+	}
+
+	// DeleteSession removes the session.
+	if err := db.DeleteSession(token); err != nil {
+		t.Fatalf("DeleteSession: %v", err)
+	}
+	if db.GetSession(token) != "" {
+		t.Error("GetSession should return '' after DeleteSession")
+	}
+
+	// Unknown token returns empty.
+	if db.GetSession("nonexistent") != "" {
+		t.Error("GetSession with unknown token should return ''")
 	}
 }
 
