@@ -29,6 +29,10 @@
           {{end}}
         </td>
         <td class="td-actions">
+          <form hx-post="/manage/discovery/sources/{{.ID}}/scan"
+                hx-target="#discovery-sources-list" hx-swap="outerHTML">
+            <button class="btn-sm" type="submit" title="{{$.T "manage.discovery.scan_now"}}">🔄</button>
+          </form>
           <form hx-post="/manage/discovery/sources/{{.ID}}/toggle"
                 hx-target="#discovery-sources-list" hx-swap="outerHTML">
             <button class="btn-sm" type="submit">

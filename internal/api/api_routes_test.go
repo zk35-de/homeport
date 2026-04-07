@@ -219,6 +219,34 @@ func TestHandleSetCategorySortMode(t *testing.T) {
 	}
 }
 
+// TestHandleSetCategorySortMode_ServicesPreserved reproduces #152:
+// after toggling sort mode the category list must still contain the service name.
+func TestHandleSetCategorySortMode_ServicesPreserved(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("SortCat2", "blue")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+	db.AddService(catID, "MySvc", "http://my.svc", "", "", "", false, []string{"markus"})
+
+	r := chi.NewRouter()
+	r.Post("/manage/category/{id}/sortmode/{mode}", srv.HandleSetCategorySortMode)
+
+	req := httptest.NewRequest("POST", fmt.Sprintf("/manage/category/%d/sortmode/usage", catID), nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	body := rr.Body.String()
+	// Testdata stub renders "CategoryName:NumServices@Color" – verify 1 service present.
+	if !strings.Contains(body, "SortCat2:1@") {
+		t.Errorf("#152 regression: category list empty after sortmode toggle (expected 1 service). Body: %s", body)
+	}
+}
+
 // --- GetService / UpdateService ---
 
 func TestHandleGetService(t *testing.T) {
@@ -893,8 +921,8 @@ func TestHandleScanDiscoverySource_Success(t *testing.T) {
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNoContent {
-		t.Errorf("expected 204 for scan, got %d", rr.Code)
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200 for scan, got %d", rr.Code)
 	}
 }
 
@@ -1265,4 +1293,172 @@ func TestUpdateHub_Broadcast_NoClients(t *testing.T) {
 	hub := api.NewUpdateHub()
 	// Should not panic or block with no clients
 	hub.Broadcast(api.Message{Type: api.ServiceStatusMsg, Payload: "test"})
+}
+
+// --- Ownership checks (#165) ---
+
+// sessionCookieFor creates a DB session for the profile and returns the cookie.
+func sessionCookieFor(t *testing.T, profile string) *http.Cookie {
+	t.Helper()
+	token, err := db.CreateSession(profile, 1)
+	if err != nil {
+		t.Fatalf("CreateSession(%s): %v", profile, err)
+	}
+	return &http.Cookie{Name: "hp_session", Value: token}
+}
+
+// TestOwnership_DeleteService_Forbidden: non-admin cannot delete a service not visible to them.
+func TestOwnership_DeleteService_Forbidden(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("OwnerCat", "blue")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+	// Service only visible to "andrea", not "markus"
+	db.AddService(catID, "AndreaSvc", "http://andrea.svc", "", "", "", false, []string{"andrea"})
+	svcCats, _ := db.GetCategoriesWithServices("")
+	svcID := svcCats[0].Services[0].ID
+
+	r := chi.NewRouter()
+	r.Delete("/manage/service/{id}", srv.HandleDeleteService)
+
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/manage/service/%d", svcID), nil)
+	req.AddCookie(sessionCookieFor(t, "markus")) // markus has no auth entry → non-admin
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("#165: expected 403 Forbidden for non-admin deleting foreign service, got %d", rr.Code)
+	}
+}
+
+// TestOwnership_DeleteService_Allowed: non-admin can delete a service visible to them.
+func TestOwnership_DeleteService_Allowed(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("OwnerCat2", "red")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+	// Service visible to "markus"
+	db.AddService(catID, "MarkusSvc", "http://markus.svc", "", "", "", false, []string{"markus"})
+	svcCats, _ := db.GetCategoriesWithServices("")
+	svcID := svcCats[0].Services[0].ID
+
+	r := chi.NewRouter()
+	r.Delete("/manage/service/{id}", srv.HandleDeleteService)
+
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/manage/service/%d", svcID), nil)
+	req.AddCookie(sessionCookieFor(t, "markus"))
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("#165: expected 200 for non-admin deleting own service, got %d", rr.Code)
+	}
+}
+
+// TestOwnership_UpdateService_Forbidden: non-admin cannot update a service not visible to them.
+func TestOwnership_UpdateService_Forbidden(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("OwnerCat3", "green")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+	db.AddService(catID, "AndreaSvc2", "http://andrea2.svc", "", "", "", false, []string{"andrea"})
+	svcCats, _ := db.GetCategoriesWithServices("")
+	svcID := svcCats[0].Services[0].ID
+
+	r := chi.NewRouter()
+	r.Patch("/manage/service/{id}", srv.HandleUpdateService)
+
+	form := strings.NewReader("name=Updated&url=http://updated.svc")
+	req := httptest.NewRequest("PATCH", fmt.Sprintf("/manage/service/%d", svcID), form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(sessionCookieFor(t, "markus"))
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("#165: expected 403 Forbidden for non-admin updating foreign service, got %d", rr.Code)
+	}
+}
+
+// TestOwnership_DeleteCategory_Forbidden: non-admin cannot delete a category.
+func TestOwnership_DeleteCategory_Forbidden(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("GlobalCat", "purple")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+
+	r := chi.NewRouter()
+	r.Delete("/manage/category/{id}", srv.HandleDeleteCategory)
+
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/manage/category/%d", catID), nil)
+	req.AddCookie(sessionCookieFor(t, "markus"))
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("#165: expected 403 Forbidden for non-admin deleting category, got %d", rr.Code)
+	}
+}
+
+// TestOwnership_UpdateCategory_Forbidden: non-admin cannot update a category.
+func TestOwnership_UpdateCategory_Forbidden(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("GlobalCat2", "cyan")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+
+	r := chi.NewRouter()
+	r.Patch("/manage/category/{id}", srv.HandleUpdateCategory)
+
+	form := strings.NewReader("name=NewName&color=blue")
+	req := httptest.NewRequest("PATCH", fmt.Sprintf("/manage/category/%d", catID), form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(sessionCookieFor(t, "markus"))
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("#165: expected 403 Forbidden for non-admin updating category, got %d", rr.Code)
+	}
+}
+
+// --- No discovery duplicates in category list (#159) ---
+
+// TestCategoryList_NoDiscoveryDuplicates: category list must not render discovery items inline.
+// Discovery items are shown only via the separate discovery-inbox partial.
+func TestCategoryList_NoDiscoveryDuplicates(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Seed a discovery item
+	db.AddDiscoveryItemExt("ext:test:1", `{"name":"DiscSvc","url":"http://disc.svc"}`, 0)
+
+	db.AddCategory("NormalCat", "blue")
+	req := httptest.NewRequest("POST", "/manage/category", strings.NewReader("name=NormalCat&color=blue"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	srv.HandleAddCategory(rr, req)
+
+	body := rr.Body.String()
+	// The category_list partial must not contain accept-cl or ignore-cl endpoints
+	if strings.Contains(body, "accept-cl") || strings.Contains(body, "ignore-cl") {
+		t.Errorf("#159 regression: discovery items rendered inline in category list. Body: %s", body[:min(len(body), 500)])
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

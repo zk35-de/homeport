@@ -59,6 +59,22 @@ func (s *Scheduler) Reload() {
 	}
 }
 
+// ScanNow triggers an immediate scan for the given source ID (async).
+func (s *Scheduler) ScanNow(sourceID int) {
+	sources, err := db.GetDiscoverySources()
+	if err != nil {
+		slog.Error("discovery: ScanNow failed to load sources", "err", err)
+		return
+	}
+	for _, src := range sources {
+		if src.ID == sourceID {
+			go scanSource(src)
+			return
+		}
+	}
+	slog.Warn("discovery: ScanNow: source not found", "id", sourceID)
+}
+
 func (s *Scheduler) StopAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()

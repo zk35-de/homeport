@@ -102,20 +102,8 @@ func (s *Server) HandleScanDiscoverySource(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	sources, err := db.GetDiscoverySources()
-	if err != nil {
-		slog.Error("GetDiscoverySources", "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	for _, src := range sources {
-		if src.ID == id {
-			_ = db.SetDiscoverySourceEnabled(id, true)
-			discovery.Global.Reload()
-			break
-		}
-	}
-	w.WriteHeader(http.StatusNoContent)
+	discovery.Global.ScanNow(id)
+	s.renderDiscoverySources(w, r)
 }
 
 func (s *Server) renderDiscoverySources(w http.ResponseWriter, r *http.Request) {

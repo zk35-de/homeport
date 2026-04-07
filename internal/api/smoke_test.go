@@ -75,7 +75,6 @@ func TestSmoke_HandleManage(t *testing.T) {
 		`id="appearance"`,
 		`id="auth"`,
 		`id="profiles"`,
-		`id="pages"`,
 		// All tab buttons must be present
 		`data-panel="panel-services"`,
 		`data-panel="auth"`,

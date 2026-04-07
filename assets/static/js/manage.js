@@ -247,8 +247,14 @@ async function fetchFaviconEdit(svcId, btn) {
 }
 
 // ── Theme Engine ──────────────────────────────────────────────────
+function getAppearanceProfile() {
+  var sel = document.getElementById('appearance-profile');
+  return (sel && sel.value) || document.body.dataset.profile || '';
+}
+
+
 async function savePrefs(patch) {
-  var profile = document.body.dataset.profile || '';
+  var profile = getAppearanceProfile();
   var url = '/api/user/preferences' + (profile ? '?profile=' + encodeURIComponent(profile) : '');
   try {
     var resp = await fetch(url, {

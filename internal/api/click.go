@@ -55,8 +55,7 @@ func (s *Server) HandleSetCategorySortMode(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	// Re-render category list
-	s.HandleCategoryList(w, r)
+	s.renderCategoryList(w, GetLang(r))
 }
 
 // HandleCategoryList renders the category_list partial (shared helper).

@@ -27,17 +27,38 @@ type ManageData struct {
 	IsAdmin        bool
 }
 
+// sessionContext returns the session profile slug and whether that profile is admin.
+// No-auth mode: slug="" → treated as admin.
+func sessionContext(r *http.Request) (slug string, isAdmin bool) {
+	slug = SessionProfile(r)
+	if slug == "" {
+		return "", true // no-auth = admin
+	}
+	if a, _ := db.GetUserAuth(slug); a != nil {
+		return slug, a.IsAdmin
+	}
+	return slug, false
+}
+
+// serviceVisibleToProfile reports whether the service with the given ID is visible to the profile.
+func serviceVisibleToProfile(serviceID int, profile string) bool {
+	svc, err := db.GetService(serviceID)
+	if err != nil {
+		return false
+	}
+	for _, p := range svc.VisibleTo {
+		if p == profile {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 	// Determine which profile to display. Admins see the global view (all
 	// services, default profile context). Non-admin users see only their own
 	// profile's services.
-	sessionSlug := SessionProfile(r)
-	isAdmin := false
-	if sessionSlug != "" {
-		if a, _ := db.GetUserAuth(sessionSlug); a != nil {
-			isAdmin = a.IsAdmin
-		}
-	}
+	sessionSlug, isAdmin := sessionContext(r)
 
 	filterProfile := ""    // empty = show all services (admin/no-auth view)
 	contextSlug := ""      // profile used for prefs, pages, UI context
@@ -176,6 +197,10 @@ func (s *Server) HandleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+	if _, isAdmin := sessionContext(r); !isAdmin {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if _, err := db.GetCategory(id); err != nil {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
@@ -194,6 +219,11 @@ func (s *Server) HandleDeleteService(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	slug, isAdmin := sessionContext(r)
+	if !isAdmin && !serviceVisibleToProfile(id, slug) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 	if _, err := db.GetService(id); err != nil {
@@ -256,6 +286,11 @@ func (s *Server) HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+	slug, isAdmin := sessionContext(r)
+	if !isAdmin && !serviceVisibleToProfile(id, slug) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if _, err := db.GetService(id); err != nil {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
@@ -314,6 +349,10 @@ func (s *Server) HandleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if _, isAdmin := sessionContext(r); !isAdmin {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 	if _, err := db.GetCategory(id); err != nil {
