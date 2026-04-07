@@ -82,7 +82,7 @@
             <div class="icon-input-row">
                 <input type="text" name="icon" id="edit-icon-{{.Service.ID}}" value="{{.Service.Icon}}" placeholder="{{.T "manage.icon_placeholder"}}">
                 <button type="button" class="btn-sm fetch-favicon-btn" data-svc-id="{{.Service.ID}}" title="{{.T "manage.fetch_favicon"}}">🌐</button>
-                <img id="edit-favicon-preview-{{.Service.ID}}" src="{{if .Service.Icon}}{{.Service.Icon}}{{end}}"
+                <img id="edit-favicon-preview-{{.Service.ID}}" src="{{if .Service.Icon}}{{faviconSrc .Service.Icon}}{{end}}"
                     alt="" class="favicon-preview{{if not .Service.Icon}} hidden{{end}}"
                     onerror="this.classList.add('hidden')">
             </div>

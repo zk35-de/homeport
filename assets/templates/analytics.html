@@ -34,7 +34,7 @@
       <td>
         <div class="a-svc">
           {{if isImgURL $s.ServiceIcon}}
-            <img src="{{$s.ServiceIcon}}" class="a-favicon" alt="">
+            <img src="{{faviconSrc $s.ServiceIcon}}" class="a-favicon" alt="">
           {{else if $s.ServiceIcon}}
             <span>{{$s.ServiceIcon}}</span>
           {{else}}

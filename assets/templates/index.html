@@ -55,7 +55,7 @@
                 {{range .Services}}
                 <a href="/r/{{.ID}}?p={{$.Profile}}" target="_blank" class="service-card{{if and .URL (not .NoCheck)}} {{if .Alive}}status-alive{{else}}status-dead{{end}}{{end}}" id="service-{{.ID}}">
                     {{if .Icon}}
-                    <div class="service-icon">{{if isImgURL .Icon}}<img src="{{.Icon}}" alt="" loading="lazy">{{else}}{{.Icon}}{{end}}</div>
+                    <div class="service-icon">{{if isImgURL .Icon}}<img src="{{faviconSrc .Icon}}" alt="" loading="lazy">{{else}}{{.Icon}}{{end}}</div>
                     {{else}}
                     <div class="service-icon">?</div>
                     {{end}}

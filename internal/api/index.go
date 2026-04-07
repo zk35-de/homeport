@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -16,6 +17,15 @@ import (
 // isImgURL returns true if the icon value is a URL (should be rendered as <img>).
 func isImgURL(s string) bool {
 	return strings.HasPrefix(s, "http") || strings.HasPrefix(s, "/api/favicon")
+}
+
+// faviconSrc returns the src value for an icon: external URLs are routed
+// through the server-side favicon proxy to satisfy the img-src CSP directive.
+func faviconSrc(icon string) string {
+	if strings.HasPrefix(icon, "http") {
+		return "/api/favicon?url=" + url.QueryEscape(icon)
+	}
+	return icon
 }
 
 // hexToRGB converts "#rrggbb" to "r,g,b" for use in CSS rgb() or rgba().
@@ -34,9 +44,10 @@ func hexToRGB(hex string) string {
 }
 
 var tmplFuncs = template.FuncMap{
-	"isImgURL": isImgURL,
-	"hexToRGB": hexToRGB,
-	"inc":      func(i int) int { return i + 1 },
+	"isImgURL":   isImgURL,
+	"faviconSrc": faviconSrc,
+	"hexToRGB":   hexToRGB,
+	"inc":        func(i int) int { return i + 1 },
 }
 
 type IndexData struct {
