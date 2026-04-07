@@ -88,6 +88,12 @@ func (s *Server) HandleRestore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Checkpoint WAL into the main DB file before swapping so no old WAL
+	// data leaks into the restored DB (WAL mode keeps homeport.db-wal/-shm).
+	if _, err := db.DB.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		slog.Warn("wal_checkpoint before restore", "err", err)
+	}
+
 	// Atomic swap: move old DB to .bak, move new DB to DBPath
 	bakPath := s.Config.DBPath + ".bak"
 	if err := os.Rename(s.Config.DBPath, bakPath); err != nil {
@@ -98,11 +104,14 @@ func (s *Server) HandleRestore(w http.ResponseWriter, r *http.Request) {
 
 	if err := os.Rename(tempPath, s.Config.DBPath); err != nil {
 		slog.Error("move restored DB", "err", err)
-		// Try to restore the backup
 		_ = os.Rename(bakPath, s.Config.DBPath)
 		http.Error(w, "Failed to restore database", http.StatusInternalServerError)
 		return
 	}
+
+	// Remove stale WAL/SHM files so InitDB opens the restored DB cleanly.
+	os.Remove(s.Config.DBPath + "-wal")
+	os.Remove(s.Config.DBPath + "-shm")
 
 	// Reinit DB
 	if err := db.ReinitDB(s.Config.DBPath); err != nil {
