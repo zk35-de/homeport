@@ -2,15 +2,15 @@
 # Pfad: ~/.config/containers/systemd/homeport.container
 # Nach Änderungen: systemctl --user daemon-reload && systemctl --user restart homeport
 #
-# Registry-Login (einmalig):
-#   podman login git.zk35.de
+# Registry-Login nicht nötig – ghcr.io ist public
+# (oder: podman login ghcr.io -u <github-username> -p <github-token>)
 
 [Unit]
 Description=homeport startpage
 After=network-online.target
 
 [Container]
-Image=git.zk35.de/secalpha/homeport:latest
+Image=ghcr.io/zk35-de/homeport:latest
 PublishPort=8855:8855
 Volume=%h/homeport-data:/app/data:Z
 Environment=HOMEPORT_PORT=8855

@@ -1065,8 +1065,9 @@ func TestHandleDeletePassword(t *testing.T) {
 	// Set a password first
 	db.SetPassword("markus", "apassword")
 
-	req := httptest.NewRequest("DELETE", "/manage/auth/password", strings.NewReader(url.Values{"profile": {"markus"}}.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// HTMX sends hx-delete form values as URL query parameters, not in the body.
+	// Go's ParseForm only reads the body for POST/PUT/PATCH, not DELETE.
+	req := httptest.NewRequest("DELETE", "/manage/auth/password?profile=markus", nil)
 	rr := httptest.NewRecorder()
 	srv.HandleDeletePassword(rr, req)
 
@@ -1089,9 +1090,8 @@ func TestHandleDeletePassword_ChangesDBState(t *testing.T) {
 		t.Fatal("precondition failed: CheckPassword returned false before delete")
 	}
 
-	req := httptest.NewRequest("DELETE", "/manage/auth/password",
-		strings.NewReader(url.Values{"profile": {"markus"}}.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// HTMX sends hx-delete form values as URL query parameters, not in the body.
+	req := httptest.NewRequest("DELETE", "/manage/auth/password?profile=markus", nil)
 	rr := httptest.NewRecorder()
 	srv.HandleDeletePassword(rr, req)
 
