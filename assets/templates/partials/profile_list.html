@@ -8,6 +8,13 @@
       {{if .IsDefault}}<span class="tag">Default</span>{{end}}
     </div>
     <div class="actions">
+      <label title="Aurora-Farbe" style="display:flex;align-items:center;cursor:pointer;">
+        <div class="profile-aurora-color" style="background:{{index $.ProfileColors .Slug}}"></div>
+        <input type="color" value="{{index $.ProfileColors .Slug}}"
+               data-profile="{{.Slug}}"
+               class="profile-aurora-input"
+               style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+      </label>
       {{if not .IsDefault}}
       <button class="btn-icon" title="{{$.T "manage.profile.set_default"}}"
         hx-post="/manage/profile/{{.Slug}}/default"

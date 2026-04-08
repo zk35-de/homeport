@@ -939,6 +939,27 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
     padding: 0;
 }
 .color-preset:hover { transform: scale(1.15); }
+.color-preset.active { border-color: var(--accent); }
+
+/* Aurora/Intensity/Anim button active state */
+.intensity-btn.active, .anim-btn.active, .bg-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(99,102,241,0.12);
+}
+
+/* Profile aurora color swatch */
+.profile-aurora-color {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--glass-border);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: border-color 0.15s, transform 0.15s;
+}
+.profile-aurora-color:hover { border-color: var(--accent); transform: scale(1.1); }
+
 .pref-label {
     display: block;
     font-size: 0.7rem;

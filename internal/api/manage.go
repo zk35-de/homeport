@@ -25,6 +25,7 @@ type ManageData struct {
 	DefaultProfile string
 	CSRFToken      string
 	IsAdmin        bool
+	ProfileColors  map[string]string // slug → aurora_color
 }
 
 // sessionContext returns the session profile slug and whether that profile is admin.
@@ -120,6 +121,15 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		discoveryItems = nil
 	}
 
+	profileColors := make(map[string]string, len(profiles))
+	for _, p := range profiles {
+		if pp, err := db.GetUserPreferences(p.Slug); err == nil {
+			profileColors[p.Slug] = pp.AuroraColor
+		} else {
+			profileColors[p.Slug] = "#6366f1"
+		}
+	}
+
 	data := ManageData{
 		Translator:     i18n.NewTranslator(prefs.Language),
 		Categories:     categories,
@@ -132,6 +142,7 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		DefaultProfile: defaultSlug,
 		CSRFToken:      CSRFToken(r),
 		IsAdmin:        isAdmin || sessionSlug == "", // no-auth mode = everyone is admin
+		ProfileColors:  profileColors,
 	}
 
 	if err := s.ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -756,12 +767,22 @@ func (s *Server) renderProfileList(w http.ResponseWriter, lang string) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	profileColors := make(map[string]string, len(profiles))
+	for _, p := range profiles {
+		if pp, err := db.GetUserPreferences(p.Slug); err == nil {
+			profileColors[p.Slug] = pp.AuroraColor
+		} else {
+			profileColors[p.Slug] = "#6366f1"
+		}
+	}
 	data := struct {
 		i18n.Translator
-		Profiles []db.Profile
+		Profiles      []db.Profile
+		ProfileColors map[string]string
 	}{
-		Translator: i18n.NewTranslator(lang),
-		Profiles:   profiles,
+		Translator:    i18n.NewTranslator(lang),
+		Profiles:      profiles,
+		ProfileColors: profileColors,
 	}
 	if err := s.ManageTmpl.ExecuteTemplate(w, "profile_list", data); err != nil {
 		slog.Error("executing profile_list", "err", err)

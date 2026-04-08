@@ -3,9 +3,9 @@
 
 :root {
   --aurora-color: #6366f1;
-  --aurora-alpha-1: 18%;
-  --aurora-alpha-2: 11%;
-  --aurora-alpha-3: 8%;
+  --aurora-op-1: 0.18;
+  --aurora-op-2: 0.11;
+  --aurora-op-3: 0.08;
 }
 
 .aurora {
@@ -14,27 +14,30 @@
 }
 
 /* Intensität – wird als Klasse auf .aurora gesetzt */
-.aurora.intensity-subtle { --aurora-alpha-1: 8%; --aurora-alpha-2: 5%; --aurora-alpha-3: 4%; }
-.aurora.intensity-medium { --aurora-alpha-1: 18%; --aurora-alpha-2: 11%; --aurora-alpha-3: 8%; }
-.aurora.intensity-vivid  { --aurora-alpha-1: 35%; --aurora-alpha-2: 22%; --aurora-alpha-3: 16%; }
+.aurora.intensity-subtle { --aurora-op-1: 0.08; --aurora-op-2: 0.05; --aurora-op-3: 0.04; }
+.aurora.intensity-medium { --aurora-op-1: 0.18; --aurora-op-2: 0.11; --aurora-op-3: 0.08; }
+.aurora.intensity-vivid  { --aurora-op-1: 0.35; --aurora-op-2: 0.22; --aurora-op-3: 0.16; }
 
 .ab { position: absolute; border-radius: 50%; filter: blur(90px); }
 
 .ab-1 {
   width: 70vmax; height: 70vmax;
-  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-color) var(--aurora-alpha-1), transparent) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
+  opacity: var(--aurora-op-1);
   top: -25%; left: -20%;
   animation: none;
 }
 .ab-2 {
   width: 55vmax; height: 55vmax;
-  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-color) var(--aurora-alpha-2), transparent) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
+  opacity: var(--aurora-op-2);
   bottom: -15%; right: -15%;
   animation: none;
 }
 .ab-3 {
   width: 35vmax; height: 35vmax;
-  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-color) var(--aurora-alpha-3), transparent) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
+  opacity: var(--aurora-op-3);
   top: 45%; left: 35%;
   animation: none;
 }

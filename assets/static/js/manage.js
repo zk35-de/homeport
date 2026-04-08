@@ -72,25 +72,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btn) setBgMode(btn.dataset.bg);
   });
 
-  // ── Aurora settings (intensity, animation, color) ────────────────
-  document.addEventListener('change', function(e) {
-    if (e.target.id === 'aurora-color-picker') {
-      const color = e.target.value;
-      savePrefs({ aurora_color: color });
-      document.body.style.setProperty('--aurora-color', color);
-    }
-  });
-
+  // ── Aurora settings (intensity, animation) ────────────────
   document.addEventListener('click', function(e) {
-    const preset = e.target.closest('.color-preset[data-color]');
-    if (preset) {
-      const color = preset.dataset.color;
-      savePrefs({ aurora_color: color });
-      document.body.style.setProperty('--aurora-color', color);
-      const picker = document.getElementById('aurora-color-picker');
-      if (picker) picker.value = color;
-    }
-
     const intensityBtn = e.target.closest('.intensity-btn[data-intensity]');
     if (intensityBtn) {
       const intensity = intensityBtn.dataset.intensity;
@@ -112,6 +95,28 @@ document.addEventListener('DOMContentLoaded', function() {
       animBtn.dataset.animated = animated ? 'false' : 'true';
       animBtn.classList.toggle('active', animated);
       animBtn.textContent = animated ? animBtn.dataset.tOn : animBtn.dataset.tOff;
+    }
+  });
+
+  // ── Profil-Aurora-Farbe (per Profile) ────────────────────────────
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('profile-aurora-input')) {
+      const color = e.target.value;
+      const profileSlug = e.target.dataset.profile;
+      const currentProfile = document.body.dataset.profile;
+      // Save to that profile's prefs
+      fetch('/api/user/preferences?profile=' + encodeURIComponent(profileSlug), {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (window._getCookie || function(){return '';})('hp_csrf')},
+        body: JSON.stringify({ aurora_color: color })
+      });
+      // Update swatch
+      const swatch = e.target.closest('label').querySelector('.profile-aurora-color');
+      if (swatch) swatch.style.background = color;
+      // Live-update background if it's the current profile
+      if (profileSlug === currentProfile) {
+        document.body.style.setProperty('--aurora-color', color);
+      }
     }
   });
 

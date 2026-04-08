@@ -218,19 +218,6 @@
     </div>
 
     <div id="aurora-options" class="aurora-options-panel{{if ne .Prefs.BackgroundMode "aurora"}} hidden{{end}}">
-      <!-- Farbe -->
-      <label class="pref-label">{{.T "manage.aurora.color"}}</label>
-      <div class="aurora-color-row">
-        <input type="color" id="aurora-color-picker"
-               value="{{.Prefs.AuroraColor}}">
-        <!-- 4-5 Preset-Buttons -->
-        <button class="color-preset" style="background:#6366f1" data-color="#6366f1" title="Indigo"></button>
-        <button class="color-preset" style="background:#06b6d4" data-color="#06b6d4" title="Cyan"></button>
-        <button class="color-preset" style="background:#10b981" data-color="#10b981" title="Emerald"></button>
-        <button class="color-preset" style="background:#f59e0b" data-color="#f59e0b" title="Amber"></button>
-        <button class="color-preset" style="background:#ef4444" data-color="#ef4444" title="Red"></button>
-      </div>
-
       <!-- Intensität -->
       <label class="pref-label">{{.T "manage.aurora.intensity"}}</label>
       <div class="btn-group-sm">
