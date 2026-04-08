@@ -19,7 +19,6 @@ Self-hosted startpage for your homelab. Alternative for Fenrus/Homer/Dashy....
 **Why homeport?**
 - No config file editing – everything via management Web-UI
 - Multi-profile: `/` default, `/{slug}` per user (no login needed)
-- **Multi-page layouts**: Work / Personal / Hobby tabs with keyboard shortcuts
 - Per-category layout: tiles | list | icons + collapsible + grid span
 - Written in Go – single binary, no runtime, minimal attack surface
 - Service status indicators (server-side health checks)
@@ -99,12 +98,6 @@ go build -o homeport ./cmd/homeport
 | `DELETE /manage/profile/{slug}` | Delete profile |
 | `POST /manage/profile/{slug}/default` | Set default profile |
 | `POST /manage/profile/{slug}/clone` | Clone profile services |
-| `GET /manage/page-list?profile=` | Page list partial (HTMX) |
-| `POST /manage/page` | Add page (form: profile, name, icon) |
-| `DELETE /manage/page/{id}` | Delete page |
-| `PATCH /manage/page/{id}` | Update page name/icon |
-| `POST /manage/sort/page/{id}/{direction}` | Reorder page (up\|down) |
-| `POST /manage/category/{id}/page/{pageID}` | Assign category to page (0=unassigned) |
 | `GET /manage/backup` | Download SQLite snapshot |
 | `POST /manage/restore` | Upload & restore backup |
 | `GET /manage/analytics` | Click analytics (top-25 per profile) |
@@ -167,15 +160,6 @@ go build -o homeport ./cmd/homeport
 - Bang syntax: `!g` Google · `!d` DuckDuckGo · `!b` Brave · `!gh` GitHub · `!yt` YouTube · `!w` Wikipedia
 - `Ctrl+K` / `/` focuses the search bar from anywhere; `Escape` clears and closes
 
-### Multi-Page Layouts
-- Create named pages per profile (Work / Personal / Hobby / …)
-- Tab bar appears automatically when pages exist
-- Assign categories to pages via manage UI → "Page" dropdown
-- Unassigned content (Page 0) appears on **all** tabs
-- **Keyboard shortcuts:** `0` / `` ` `` = All, `1`–`9` = page 1–9
-- Active tab persisted in `localStorage` per profile
-- No page reload – client-side show/hide
-
 ### Appearance
 - Themes: dark / light / system (toggle in navbar or Settings tab)
 - Language: DE / EN / ES / SK / FR (toggle in navbar or Settings tab)
@@ -196,8 +180,7 @@ go build -o homeport ./cmd/homeport
 
 ```
 profiles         → slug, name, is_default, sort_order
-pages            → profile, name, icon, sort_order
-categories       → name, layout, color, sort_order, col_span, sort_mode, page_id→pages
+categories       → name, layout, color, sort_order, col_span, sort_mode
 services         → category_id, name, url, icon, description, status_check, no_check, sort_order
 visibility       → service_id, profile
 service_status   → service_id, alive, last_check
