@@ -23,6 +23,7 @@ Self-hosted startpage for your homelab. Alternative for Fenrus/Homer/Dashy....
 - Written in Go – single binary, no runtime, minimal attack surface
 - Service status indicators (server-side health checks)
 - Click-tracking per profile → optional smart sort by usage
+- Duplicate URL detection: warning in manage UI, deduplication on dashboard
 
 ## Stack
 
@@ -133,6 +134,7 @@ go build -o homeport ./cmd/homeport
 - Click-tracking per profile; 📊 toggle per category = sort by usage
 - Podman container auto-discovery inbox
 - **Auto-Discovery Sources:** NPM, Traefik, and Docker TCP backends, configurable per source
+- **Duplicate detection:** services with the same URL are flagged ⚠️ in manage UI; dashboard shows only one entry per URL per profile
 
 ### Login System
 - Opt-in via `HOMEPORT_AUTH=true` (default off – backward compatible)
