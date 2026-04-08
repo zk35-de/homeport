@@ -170,6 +170,24 @@ Or use Podman's Docker-compatible socket (`podman system service --time=0`).
 
 ---
 
+## Limitations
+
+### macvlan networks
+
+Containers that run in a **macvlan network** (own IP, no port mappings) are **not auto-discovered**. Docker reports `Ports: []` for these containers — homeport has no way to derive the service URL automatically.
+
+Workaround: set `homeport.url` explicitly on each macvlan container:
+
+```yaml
+labels:
+  homeport.url: "http://10.35.135.130:80"
+  homeport.name: "Vaultwarden"
+```
+
+If all your macvlan services sit behind a reverse proxy (NPM, Traefik), use the corresponding **NPM or Traefik discovery source** instead — those know the public URLs.
+
+---
+
 ## Container Labels Reference
 
 | Label | Description |
