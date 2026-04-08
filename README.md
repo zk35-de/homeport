@@ -37,14 +37,23 @@ Self-hosted startpage for your homelab. Alternative for Fenrus/Homer/Dashy....
 
 ## Quick Start
 
+**Docker / Podman:**
+```bash
+docker run -d --name homeport \
+  -p 8855:8855 \
+  -v homeport-data:/app/data \
+  ghcr.io/zk35-de/homeport:latest
+```
+
+Open http://localhost:8855, configure at http://localhost:8855/manage
+
+**Build from source:**
 ```bash
 git clone https://github.com/zk35-de/homeport
 cd homeport
 go build -o homeport ./cmd/homeport
 ./homeport
 ```
-
-Open http://localhost:8855, configure at http://localhost:8855/manage
 
 ## Environment Variables
 
