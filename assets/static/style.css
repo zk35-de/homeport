@@ -379,6 +379,22 @@
     letter-spacing: 0.05em;
 }
 
+.tag-warn {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: var(--warn);
+    color: var(--warn);
+}
+
+.form-error {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius);
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid var(--fehler);
+    color: var(--fehler);
+    font-size: 0.85rem;
+}
+
 /* Sidebar forms submit button */
 .sidebar button[type="submit"] {
     width: 100%;

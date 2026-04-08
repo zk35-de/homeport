@@ -535,6 +535,99 @@ func TestHandleIgnoreDiscovery(t *testing.T) {
 	}
 }
 
+func TestHandleAddServiceDuplicateURL(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("TestCat", "blue")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+
+	// Add the first service
+	if err := db.AddService(catID, "Existing", "http://dup.local", "", "", "", false, []string{"markus"}); err != nil {
+		t.Fatalf("AddService seed: %v", err)
+	}
+
+	// Try to add a second service with the same URL
+	formData := url.Values{}
+	formData.Set("category_id", fmt.Sprintf("%d", catID))
+	formData.Set("name", "Duplicate")
+	formData.Set("url", "http://dup.local")
+	formData.Add("visibility", "markus")
+
+	req := httptest.NewRequest("POST", "/manage/service", strings.NewReader(formData.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	srv.HandleAddService(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("expected 200, got %d", status)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "duplicate URL") {
+		t.Errorf("expected duplicate error in response, got: %s", body)
+	}
+
+	// Verify no second service was created
+	cats2, _ := db.GetCategoriesWithServices("")
+	if len(cats2[0].Services) != 1 {
+		t.Errorf("expected 1 service (no duplicate added), got %d", len(cats2[0].Services))
+	}
+}
+
+func TestHandleUpdateServiceDuplicateURL(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	db.AddCategory("TestCat", "blue")
+	cats, _ := db.GetCategoriesWithServices("")
+	catID := cats[0].ID
+
+	db.AddService(catID, "SvcA", "http://a.local", "", "", "", false, []string{"markus"})
+	db.AddService(catID, "SvcB", "http://b.local", "", "", "", false, []string{"markus"})
+
+	cats2, _ := db.GetCategoriesWithServices("")
+	var idB int
+	for _, s := range cats2[0].Services {
+		if s.Name == "SvcB" {
+			idB = s.ID
+		}
+	}
+
+	// Try to update SvcB's URL to SvcA's URL
+	r := chi.NewRouter()
+	r.Patch("/manage/service/{id}", srv.HandleUpdateService)
+
+	formData := url.Values{}
+	formData.Set("name", "SvcB")
+	formData.Set("url", "http://a.local")
+	formData.Set("category_id", fmt.Sprintf("%d", catID))
+	formData.Add("visibility", "markus")
+
+	req := httptest.NewRequest("PATCH", fmt.Sprintf("/manage/service/%d", idB), strings.NewReader(formData.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("expected 200, got %d", status)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "duplicate URL") {
+		t.Errorf("expected duplicate error in response, got: %s", body)
+	}
+
+	// Verify SvcB's URL was NOT changed
+	cats3, _ := db.GetCategoriesWithServices("")
+	for _, s := range cats3[0].Services {
+		if s.Name == "SvcB" && s.URL != "http://b.local" {
+			t.Errorf("SvcB URL should not have changed, got %q", s.URL)
+		}
+	}
+}
+
 // Ensure testdata directory and files exist for embedding
 // This will be created in the current working directory which is /home/debian/new_pro/homeport
 // before running the test command.

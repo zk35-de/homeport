@@ -333,9 +333,11 @@ func TestXSSTemplateEscaping(t *testing.T) {
 		profiles, _ := db.GetProfiles()
 
 		data := struct {
-			Categories []db.Category
-			Profiles   []db.Profile
-		}{cats, profiles}
+			Categories   []db.Category
+			Profiles     []db.Profile
+			DuplicateIDs map[int]bool
+			ErrorMsg     string
+		}{cats, profiles, nil, ""}
 
 		var buf strings.Builder
 		if err := srv.ManageTmpl.ExecuteTemplate(&buf, "category_list", data); err != nil {

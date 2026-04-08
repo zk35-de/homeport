@@ -72,6 +72,28 @@ func GetCategoriesWithServices(profile string) ([]Category, error) {
 		}
 		categories = append(categories, c)
 	}
+
+	// Deduplicate by URL for per-profile views (dashboard). When a profile is
+	// specified the same URL should only appear once – keep the first occurrence
+	// in sort_order. The admin/manage view (profile="") intentionally shows all
+	// entries so duplicates are visible there.
+	if profile != "" {
+		seen := make(map[string]bool)
+		for i := range categories {
+			var deduped []Service
+			for _, svc := range categories[i].Services {
+				if svc.URL != "" && seen[svc.URL] {
+					continue
+				}
+				if svc.URL != "" {
+					seen[svc.URL] = true
+				}
+				deduped = append(deduped, svc)
+			}
+			categories[i].Services = deduped
+		}
+	}
+
 	return categories, nil
 }
 
@@ -340,4 +362,48 @@ func GetServiceURL(id int) (string, error) {
 	var url string
 	err := DB.QueryRow(`SELECT url FROM services WHERE id = ?`, id).Scan(&url)
 	return url, err
+}
+
+// GetServiceByURL returns the first service with the given URL, excluding the service
+// identified by excludeID (pass 0 to skip exclusion). Returns (nil, nil) if none found.
+func GetServiceByURL(url string, excludeID int) (*Service, error) {
+	var row *sql.Row
+	if excludeID > 0 {
+		row = DB.QueryRow(`SELECT id, name, url FROM services WHERE url = ? AND id != ? LIMIT 1`, url, excludeID)
+	} else {
+		row = DB.QueryRow(`SELECT id, name, url FROM services WHERE url = ? LIMIT 1`, url)
+	}
+	var s Service
+	if err := row.Scan(&s.ID, &s.Name, &s.URL); err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+// FindDuplicateURLs returns a set of service IDs whose URL appears more than once across all services.
+func FindDuplicateURLs() (map[int]bool, error) {
+	rows, err := DB.Query(`
+		SELECT id FROM services
+		WHERE url != '' AND url IN (
+			SELECT url FROM services
+			WHERE url != ''
+			GROUP BY url
+			HAVING COUNT(*) > 1
+		)
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[int]bool)
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		result[id] = true
+	}
+	return result, nil
 }

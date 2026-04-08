@@ -1,4 +1,5 @@
 {{define "category_list"}}
+{{if .ErrorMsg}}<div class="form-error">⚠️ {{.ErrorMsg}}</div>{{end}}
 <div class="category-list" id="sortable-categories">
     {{range .Categories}}
     {{$catID := .ID}}
@@ -40,6 +41,7 @@
                 <div class="service-info">
                     <strong>{{.Name}}</strong>
                     <span class="text-muted"> - {{.URL}}</span>
+                    {{if index $.DuplicateIDs .ID}}<span class="tag tag-warn" title="Duplicate URL">⚠️ duplicate</span>{{end}}
                     {{range .VisibleTo}}
                     <span class="tag">{{.}}</span>
                     {{end}}

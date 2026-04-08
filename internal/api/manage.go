@@ -26,6 +26,8 @@ type ManageData struct {
 	CSRFToken      string
 	IsAdmin        bool
 	ProfileColors  map[string]string // slug → aurora_color
+	DuplicateIDs   map[int]bool
+	ErrorMsg       string
 }
 
 // sessionContext returns the session profile slug and whether that profile is admin.
@@ -130,6 +132,12 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	duplicateIDs, err := db.FindDuplicateURLs()
+	if err != nil {
+		slog.Error("FindDuplicateURLs", "err", err)
+		duplicateIDs = nil
+	}
+
 	data := ManageData{
 		Translator:     i18n.NewTranslator(prefs.Language),
 		Categories:     categories,
@@ -143,6 +151,7 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 		CSRFToken:      CSRFToken(r),
 		IsAdmin:        isAdmin || sessionSlug == "", // no-auth mode = everyone is admin
 		ProfileColors:  profileColors,
+		DuplicateIDs:   duplicateIDs,
 	}
 
 	if err := s.ManageTmpl.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -192,13 +201,23 @@ func (s *Server) HandleAddService(w http.ResponseWriter, r *http.Request) {
 	noCheck := r.FormValue("no_check") == "1"
 	profiles := r.Form["visibility"]
 
+	lang := GetLang(r)
+
+	if url != "" {
+		if existing, dupErr := db.GetServiceByURL(url, 0); dupErr != nil {
+			slog.Error("checking duplicate URL", "err", dupErr)
+		} else if existing != nil {
+			s.renderCategoryListWithMsg(w, lang, fmt.Sprintf("duplicate URL: %q already exists as %q", url, existing.Name))
+			return
+		}
+	}
+
 	if err := db.AddService(categoryID, name, url, icon, desc, statusCheck, noCheck, profiles); err != nil {
 		slog.Error("adding service", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	lang := GetLang(r)
 	s.renderCategoryList(w, lang)
 }
 
@@ -319,13 +338,23 @@ func (s *Server) HandleUpdateService(w http.ResponseWriter, r *http.Request) {
 	noCheck := r.FormValue("no_check") == "1"
 	profiles := r.Form["visibility"]
 
+	lang := GetLang(r)
+
+	if url != "" {
+		if existing, dupErr := db.GetServiceByURL(url, id); dupErr != nil {
+			slog.Error("checking duplicate URL", "err", dupErr)
+		} else if existing != nil {
+			s.renderCategoryListWithMsg(w, lang, fmt.Sprintf("duplicate URL: %q already exists as %q", url, existing.Name))
+			return
+		}
+	}
+
 	if err := db.UpdateService(id, name, url, icon, desc, statusCheck, noCheck, profiles); err != nil {
 		slog.Error("updating service", "id", id, "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	lang := GetLang(r)
 	s.renderCategoryList(w, lang)
 }
 
@@ -569,6 +598,10 @@ func (s *Server) HandleProfileOptions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
+	s.renderCategoryListWithMsg(w, lang, "")
+}
+
+func (s *Server) renderCategoryListWithMsg(w http.ResponseWriter, lang, errMsg string) {
 	categories, err := db.GetCategoriesWithServices("")
 	if err != nil {
 		slog.Error("fetching categories", "err", err)
@@ -582,14 +615,24 @@ func (s *Server) renderCategoryList(w http.ResponseWriter, lang string) {
 		discoveryItems = nil
 	}
 
+	duplicateIDs, err := db.FindDuplicateURLs()
+	if err != nil {
+		slog.Error("finding duplicate URLs", "err", err)
+		duplicateIDs = nil
+	}
+
 	data := struct {
 		i18n.Translator
 		Categories     []db.Category
 		DiscoveryItems []db.DiscoveryItem
+		DuplicateIDs   map[int]bool
+		ErrorMsg       string
 	}{
 		Translator:     i18n.NewTranslator(lang),
 		Categories:     categories,
 		DiscoveryItems: discoveryItems,
+		DuplicateIDs:   duplicateIDs,
+		ErrorMsg:       errMsg,
 	}
 
 	if err := s.ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {

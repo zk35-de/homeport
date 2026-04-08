@@ -69,10 +69,17 @@ func (s *Server) HandleCategoryList(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("GetProfiles", "err", err)
 	}
+	duplicateIDs, err := db.FindDuplicateURLs()
+	if err != nil {
+		slog.Error("FindDuplicateURLs", "err", err)
+		duplicateIDs = nil
+	}
 	data := struct {
-		Categories []db.Category
-		Profiles   []db.Profile
-	}{cats, profiles}
+		Categories   []db.Category
+		Profiles     []db.Profile
+		DuplicateIDs map[int]bool
+		ErrorMsg     string
+	}{cats, profiles, duplicateIDs, ""}
 	if err := s.ManageTmpl.ExecuteTemplate(w, "category_list", data); err != nil {
 		slog.Error("category_list render", "err", err)
 	}

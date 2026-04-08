@@ -810,3 +810,133 @@ func TestSQLInjection(t *testing.T) {
 	}
 }
 
+func TestGetServiceByURL(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	catID, err := db.AddCategory("Test", "blue")
+	if err != nil {
+		t.Fatalf("AddCategory: %v", err)
+	}
+
+	if err := db.AddService(int(catID), "Gitea", "http://git.local", "", "", "", false, []string{"markus"}); err != nil {
+		t.Fatalf("AddService: %v", err)
+	}
+
+	// Found by URL
+	svc, err := db.GetServiceByURL("http://git.local", 0)
+	if err != nil {
+		t.Fatalf("GetServiceByURL: %v", err)
+	}
+	if svc == nil {
+		t.Fatal("expected service, got nil")
+	}
+	if svc.Name != "Gitea" {
+		t.Errorf("expected Gitea, got %q", svc.Name)
+	}
+
+	// Excluded by its own ID – simulates update case
+	svc2, err := db.GetServiceByURL("http://git.local", svc.ID)
+	if err != nil {
+		t.Fatalf("GetServiceByURL excludeID: %v", err)
+	}
+	if svc2 != nil {
+		t.Error("expected nil when only match is excluded")
+	}
+
+	// URL does not exist
+	svc3, err := db.GetServiceByURL("http://nowhere.local", 0)
+	if err != nil {
+		t.Fatalf("GetServiceByURL not found: %v", err)
+	}
+	if svc3 != nil {
+		t.Error("expected nil for unknown URL")
+	}
+}
+
+func TestFindDuplicateURLs(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	catID, err := db.AddCategory("Test", "blue")
+	if err != nil {
+		t.Fatalf("AddCategory: %v", err)
+	}
+
+	// Add two services with the same URL
+	if err := db.AddService(int(catID), "SvcA", "http://dup.local", "", "", "", false, []string{"markus"}); err != nil {
+		t.Fatalf("AddService SvcA: %v", err)
+	}
+	if err := db.AddService(int(catID), "SvcB", "http://dup.local", "", "", "", false, []string{"markus"}); err != nil {
+		t.Fatalf("AddService SvcB: %v", err)
+	}
+	// Add a service with a unique URL
+	if err := db.AddService(int(catID), "SvcC", "http://unique.local", "", "", "", false, []string{"markus"}); err != nil {
+		t.Fatalf("AddService SvcC: %v", err)
+	}
+
+	dups, err := db.FindDuplicateURLs()
+	if err != nil {
+		t.Fatalf("FindDuplicateURLs: %v", err)
+	}
+
+	cats, _ := db.GetCategoriesWithServices("")
+	var idA, idB, idC int
+	for _, s := range cats[0].Services {
+		switch s.Name {
+		case "SvcA":
+			idA = s.ID
+		case "SvcB":
+			idB = s.ID
+		case "SvcC":
+			idC = s.ID
+		}
+	}
+
+	if !dups[idA] {
+		t.Error("SvcA should be marked as duplicate")
+	}
+	if !dups[idB] {
+		t.Error("SvcB should be marked as duplicate")
+	}
+	if dups[idC] {
+		t.Error("SvcC should NOT be marked as duplicate")
+	}
+}
+
+func TestGetCategoriesWithServicesDeduplication(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	catID, err := db.AddCategory("Test", "blue")
+	if err != nil {
+		t.Fatalf("AddCategory: %v", err)
+	}
+
+	// Two services with the same URL, both visible to markus
+	if err := db.AddService(int(catID), "SvcA", "http://dup.local", "", "", "", false, []string{"markus"}); err != nil {
+		t.Fatalf("AddService SvcA: %v", err)
+	}
+	if err := db.AddService(int(catID), "SvcB", "http://dup.local", "", "", "", false, []string{"markus"}); err != nil {
+		t.Fatalf("AddService SvcB: %v", err)
+	}
+
+	// Admin/manage view (profile=""): both visible
+	all, err := db.GetCategoriesWithServices("")
+	if err != nil {
+		t.Fatalf("GetCategoriesWithServices admin: %v", err)
+	}
+	if len(all[0].Services) != 2 {
+		t.Errorf("admin view: expected 2 services, got %d", len(all[0].Services))
+	}
+
+	// Per-profile view: only one should appear
+	markus, err := db.GetCategoriesWithServices("markus")
+	if err != nil {
+		t.Fatalf("GetCategoriesWithServices markus: %v", err)
+	}
+	if len(markus[0].Services) != 1 {
+		t.Errorf("markus view: expected 1 service (deduplicated), got %d", len(markus[0].Services))
+	}
+}
+
