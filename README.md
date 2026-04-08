@@ -1,6 +1,6 @@
 # homeport
 
-Self-hosted startpage for your homelab. Replaces Fenrus/Homer/Dashy.
+Self-hosted startpage for your homelab. Alternative for Fenrus/Homer/Dashy....
 
 ## Screenshots
 
