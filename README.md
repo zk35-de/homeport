@@ -145,6 +145,7 @@ Open http://localhost:8855, configure at http://localhost:8855/manage
 - **Nginx Proxy Manager:** REST API, `identity:secret` auth, auto token-refresh
 - **Traefik:** HTTP provider, reads routers
 - **Docker TCP:** `GET /containers/json`, labels `homeport.name` / `homeport.url` / `homeport.icon` / `homeport.description`
+  → [Docker Discovery: Socket Proxy Setup & Debugging](docs/docker-discovery.md)
 - Per-source scan interval (seconds), enable/disable toggle, manual scan
 - Found services appear in Discovery Inbox (sidebar) for manual review: choose target category, disable health check, accept or ignore
 
