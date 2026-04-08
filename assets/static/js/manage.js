@@ -113,10 +113,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update swatch
       const swatch = e.target.closest('label').querySelector('.profile-aurora-color');
       if (swatch) swatch.style.background = color;
-      // Live-update background if it's the current profile
-      if (profileSlug === currentProfile) {
-        document.body.style.setProperty('--aurora-color', color);
-      }
+      // Live-update: theme.css neu laden damit --aurora-color sofort wirkt
+      var link = document.getElementById('user-theme');
+      if (link) link.href = link.href.replace(/[?&]t=\d+/, '') + (link.href.includes('?') ? '&' : '?') + 't=' + Date.now();
     }
   });
 

@@ -30,6 +30,9 @@ func HandleProfileThemeCSS(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(&sb, ":root { --accent: %s; --accent-rgb: %s; --accent-hover: %s; }\n",
 			prefs.AccentColor, rgb, prefs.AccentColor)
 	}
+	if prefs.AuroraColor != "" {
+		fmt.Fprintf(&sb, ":root { --aurora-color: %s; }\n", prefs.AuroraColor)
+	}
 	if prefs.CustomCSS != "" {
 		sb.WriteString(prefs.CustomCSS)
 		sb.WriteString("\n")

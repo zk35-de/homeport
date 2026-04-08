@@ -19,8 +19,7 @@
     <script src="/static/sortable.min.js?v={{assetVer}}"></script>
     <script src="/static/js/app.js?v={{assetVer}}" defer></script>
 </head>
-<body data-profile="{{if .Profile}}{{.Profile}}{{end}}" data-bg="{{if .Prefs}}{{.Prefs.BackgroundMode}}{{else}}aurora{{end}}"
-    style="{{if .Prefs}}--aurora-color: {{.Prefs.AuroraColor}};{{end}}">
+<body data-profile="{{if .Profile}}{{.Profile}}{{end}}" data-bg="{{if .Prefs}}{{.Prefs.BackgroundMode}}{{else}}aurora{{end}}">
     <div class="aurora{{if .Prefs}} intensity-{{.Prefs.AuroraIntensity}}{{if .Prefs.AuroraAnimated}} animated{{end}}{{end}}" id="bg-aurora">
         <div class="ab ab-1"></div><div class="ab ab-2"></div><div class="ab ab-3"></div>
     </div>
