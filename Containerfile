@@ -2,7 +2,7 @@
 # Rootless Podman / Docker – alle Assets sind go:embed eingebettet, nur Binary nötig
 
 # --- Build Stage ---
-FROM docker.io/library/golang:1.25-alpine AS builder
+FROM docker.io/library/golang:1.25.9-alpine AS builder
 
 WORKDIR /src
 

@@ -1,6 +1,6 @@
 module github.com/zk35-de/homeport
 
-go 1.25.8
+go 1.25.9
 
 require (
 	github.com/emersion/go-ical v0.0.0-20250609112844-439c63cef608
