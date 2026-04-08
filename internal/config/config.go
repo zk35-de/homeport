@@ -15,6 +15,7 @@ type Config struct {
 	AuthEnabled    bool
 	PublicProfile  string
 	SessionDays    int
+	SecureCookies  bool // HOMEPORT_SECURE_COOKIES=true – set when running behind an HTTPS reverse proxy
 }
 
 // Load reads configuration from environment variables and applies defaults.
@@ -46,6 +47,7 @@ func Load() *Config {
 
 	authEnabled := os.Getenv("HOMEPORT_AUTH") == "true"
 	publicProfile := os.Getenv("HOMEPORT_PUBLIC_PROFILE")
+	secureCookies := os.Getenv("HOMEPORT_SECURE_COOKIES") == "true"
 
 	sessionDays := 10
 	if s := os.Getenv("HOMEPORT_SESSION_DAYS"); s != "" {
@@ -63,5 +65,6 @@ func Load() *Config {
 		AuthEnabled:    authEnabled,
 		PublicProfile:  publicProfile,
 		SessionDays:    sessionDays,
+		SecureCookies:  secureCookies,
 	}
 }

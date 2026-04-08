@@ -100,12 +100,17 @@ func fetchIconPathFromHTML(pageURL string, base *url.URL) string {
 		return ""
 	}
 
-	// Resolve relative to base
+	// Resolve relative to base, then validate the resolved scheme.
+	// Absolute hrefs from untrusted HTML could override the scheme.
 	ref, err := url.Parse(href)
 	if err != nil {
 		return ""
 	}
-	return base.ResolveReference(ref).String()
+	resolved := base.ResolveReference(ref)
+	if resolved.Scheme != "http" && resolved.Scheme != "https" {
+		return ""
+	}
+	return resolved.String()
 }
 
 
@@ -140,6 +145,12 @@ func resolveFaviconURL(rawURL string) string {
 }
 
 func fetchImage(targetURL string) ([]byte, string) {
+	// Validate scheme as a defence-in-depth measure: only http/https allowed.
+	// Callers already validate the user-supplied URL, but icon hrefs parsed from
+	// HTML could theoretically contain file:// or other schemes.
+	if u, err := url.Parse(targetURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return nil, ""
+	}
 	resp, err := faviconClient.Get(targetURL)
 	if err != nil {
 		return nil, ""
