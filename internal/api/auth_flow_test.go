@@ -32,7 +32,7 @@ import (
 func authRouter(srv *api.Server, cfg *config.Config) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
-	r.Use(api.CSRFMiddleware)
+	r.Use(api.CSRFMiddleware(nil))
 	r.Use(api.RequireAuth(cfg))
 	r.Get("/login", srv.HandleLogin)
 	r.Post("/login", srv.HandleLogin)
@@ -46,7 +46,7 @@ func authRouter(srv *api.Server, cfg *config.Config) http.Handler {
 func manageRouter(srv *api.Server, cfg *config.Config) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.Recoverer)
-	r.Use(api.CSRFMiddleware)
+	r.Use(api.CSRFMiddleware(nil))
 	r.Use(api.RequireAuth(cfg))
 	r.Get("/login", srv.HandleLogin)
 	r.Post("/login", srv.HandleLogin)

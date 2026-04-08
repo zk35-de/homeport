@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/zk35-de/homeport/internal/config"
 )
 
 // --- Security Headers Middleware ---
@@ -38,52 +40,55 @@ const csrfFormField = "csrf_token"
 // CSRFMiddleware validates CSRF tokens for all state-changing requests.
 // GET/HEAD/OPTIONS are exempt. HTMX sends the token via X-CSRF-Token header.
 // Regular forms send it as a hidden field.
-func CSRFMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Safe methods exempt
-		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
-			ensureCSRFCookie(w, r)
+func CSRFMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	secure := cfg != nil && cfg.SecureCookies
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Safe methods exempt
+			if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
+				ensureCSRFCookie(w, r, secure)
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Bearer token auth was removed in #97 – the blanket /api/ exemption
+			// no longer has a security justification. Only read-only /api/ GETs
+			// are exempt (already covered by the safe-methods check above).
+			// PATCH /api/user/preferences and other state-changing API calls
+			// must pass CSRF validation like any other request.
+
+			// Login and logout POSTs are exempt from CSRF.
+			// Login: no session yet, can't have valid CSRF cookie.
+			// Logout: destroys the session; SameSite=Lax already prevents cross-site
+			// POST from including the session cookie, so CSRF on logout is redundant.
+			if r.URL.Path == "/login" || r.URL.Path == "/logout" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			cookie, err := r.Cookie(csrfCookie)
+			if err != nil || cookie.Value == "" {
+				http.Error(w, "CSRF token missing", http.StatusForbidden)
+				return
+			}
+
+			// HTMX sends via header, plain forms via hidden field
+			token := r.Header.Get(csrfHeader)
+			if token == "" {
+				token = r.FormValue(csrfFormField)
+			}
+
+			if token == "" || token != cookie.Value {
+				http.Error(w, "CSRF validation failed", http.StatusForbidden)
+				return
+			}
+
 			next.ServeHTTP(w, r)
-			return
-		}
-
-		// Bearer token auth was removed in #97 – the blanket /api/ exemption
-		// no longer has a security justification. Only read-only /api/ GETs
-		// are exempt (already covered by the safe-methods check above).
-		// PATCH /api/user/preferences and other state-changing API calls
-		// must pass CSRF validation like any other request.
-
-		// Login and logout POSTs are exempt from CSRF.
-		// Login: no session yet, can't have valid CSRF cookie.
-		// Logout: destroys the session; SameSite=Lax already prevents cross-site
-		// POST from including the session cookie, so CSRF on logout is redundant.
-		if r.URL.Path == "/login" || r.URL.Path == "/logout" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		cookie, err := r.Cookie(csrfCookie)
-		if err != nil || cookie.Value == "" {
-			http.Error(w, "CSRF token missing", http.StatusForbidden)
-			return
-		}
-
-		// HTMX sends via header, plain forms via hidden field
-		token := r.Header.Get(csrfHeader)
-		if token == "" {
-			token = r.FormValue(csrfFormField)
-		}
-
-		if token == "" || token != cookie.Value {
-			http.Error(w, "CSRF validation failed", http.StatusForbidden)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+		})
+	}
 }
 
-func ensureCSRFCookie(w http.ResponseWriter, r *http.Request) string {
+func ensureCSRFCookie(w http.ResponseWriter, r *http.Request, secure bool) string {
 	if c, err := r.Cookie(csrfCookie); err == nil && c.Value != "" {
 		return c.Value
 	}
@@ -96,6 +101,7 @@ func ensureCSRFCookie(w http.ResponseWriter, r *http.Request) string {
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: false, // must be readable by JS for HTMX header injection
+		Secure:   secure,
 	})
 	return token
 }

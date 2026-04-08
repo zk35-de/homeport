@@ -99,7 +99,7 @@ func main() {
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(api.SecurityHeaders)
-	r.Use(api.CSRFMiddleware)
+	r.Use(api.CSRFMiddleware(cfg))
 	r.Use(api.RequireAuth(cfg))
 
 	// Static Files from embedded FS

@@ -608,7 +608,7 @@ func TestSecurityHeaders(t *testing.T) {
 }
 
 func TestCSRFMiddleware_SafeMethods(t *testing.T) {
-	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := api.CSRFMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -626,7 +626,7 @@ func TestCSRFMiddleware_SafeMethods(t *testing.T) {
 func TestCSRFMiddleware_APIRouteNotExempt(t *testing.T) {
 	// Bearer token auth was removed in #97 – state-changing /api/ requests
 	// must now pass CSRF validation like any other POST/PATCH/DELETE.
-	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := api.CSRFMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -640,7 +640,7 @@ func TestCSRFMiddleware_APIRouteNotExempt(t *testing.T) {
 }
 
 func TestCSRFMiddleware_LoginExempt(t *testing.T) {
-	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := api.CSRFMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -654,7 +654,7 @@ func TestCSRFMiddleware_LoginExempt(t *testing.T) {
 }
 
 func TestCSRFMiddleware_LogoutExempt(t *testing.T) {
-	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := api.CSRFMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -668,7 +668,7 @@ func TestCSRFMiddleware_LogoutExempt(t *testing.T) {
 }
 
 func TestCSRFMiddleware_MissingToken(t *testing.T) {
-	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := api.CSRFMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -682,7 +682,7 @@ func TestCSRFMiddleware_MissingToken(t *testing.T) {
 }
 
 func TestCSRFMiddleware_ValidToken(t *testing.T) {
-	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := api.CSRFMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -699,7 +699,7 @@ func TestCSRFMiddleware_ValidToken(t *testing.T) {
 }
 
 func TestCSRFMiddleware_InvalidToken(t *testing.T) {
-	handler := api.CSRFMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := api.CSRFMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 

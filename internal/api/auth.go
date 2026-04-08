@@ -3,6 +3,7 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/zk35-de/homeport/internal/db"
 	"github.com/zk35-de/homeport/internal/i18n"
 )
+
+// validProfileSlug matches profile slugs: alphanumeric, hyphens, underscores.
+// Prevents open redirect via crafted profile names (e.g. "//evil.com").
+var validProfileSlug = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 const sessionCookie = "hp_session"
 
@@ -142,6 +147,7 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 								MaxAge:   cfg.SessionDays * 86400,
 								HttpOnly: true,
 								SameSite: http.SameSiteLaxMode,
+								Secure:   cfg.SecureCookies,
 							})
 						}
 					}
@@ -224,6 +230,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	secureCookies := s.Config != nil && s.Config.SecureCookies
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
 		Value:    token,
@@ -231,9 +238,16 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   sessionDays * 86400,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
+		Secure:   secureCookies,
 	})
 
-	// Redirect to profile page
+	// Validate profile slug before redirect to prevent open redirect via
+	// crafted profile names (e.g. "//evil.com" → "//evil.com").
+	if !validProfileSlug.MatchString(profile) {
+		slog.Error("login: invalid profile slug", "profile", profile)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/"+profile, http.StatusSeeOther)
 }
 
@@ -242,6 +256,7 @@ func (s *Server) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(sessionCookie); err == nil {
 		db.DeleteSession(c.Value)
 	}
+	secureCookies := s.Config != nil && s.Config.SecureCookies
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
 		Value:    "",
@@ -249,6 +264,7 @@ func (s *Server) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
+		Secure:   secureCookies,
 	})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
