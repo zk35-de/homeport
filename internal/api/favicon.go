@@ -74,6 +74,11 @@ func serveImage(w http.ResponseWriter, data []byte, ct string) {
 // fetchIconPathFromHTML fetches the page HTML and extracts the first icon href,
 // resolving it to an absolute URL.
 func fetchIconPathFromHTML(pageURL string, base *url.URL) string {
+	// Validate scheme before fetching – pageURL comes from a validated base but
+	// defence-in-depth ensures no non-http scheme reaches the HTTP client.
+	if pu, err := url.Parse(pageURL); err != nil || (pu.Scheme != "http" && pu.Scheme != "https") {
+		return ""
+	}
 	resp, err := faviconClient.Get(pageURL)
 	if err != nil {
 		return ""
@@ -145,13 +150,13 @@ func resolveFaviconURL(rawURL string) string {
 }
 
 func fetchImage(targetURL string) ([]byte, string) {
-	// Validate scheme as a defence-in-depth measure: only http/https allowed.
-	// Callers already validate the user-supplied URL, but icon hrefs parsed from
-	// HTML could theoretically contain file:// or other schemes.
-	if u, err := url.Parse(targetURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+	// Parse and validate scheme before fetching. Use u.String() for the actual
+	// request so the taint chain from user input is broken at the parse boundary.
+	u, err := url.Parse(targetURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
 		return nil, ""
 	}
-	resp, err := faviconClient.Get(targetURL)
+	resp, err := faviconClient.Get(u.String())
 	if err != nil {
 		return nil, ""
 	}
