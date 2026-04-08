@@ -5,9 +5,10 @@ set -euo pipefail
 
 TAG="${1:-latest}"
 IMAGE="localhost/homeport:${TAG}"
+VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
 
-echo "Building ${IMAGE}..."
-podman build -t "${IMAGE}" .
+echo "Building ${IMAGE} (version=${VERSION})..."
+podman build --build-arg VERSION="${VERSION}" -t "${IMAGE}" .
 
 echo ""
 echo "Image size:"

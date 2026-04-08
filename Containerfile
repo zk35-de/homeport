@@ -11,8 +11,13 @@ RUN go mod download
 
 COPY . .
 
+# Version wird per --build-arg übergeben (z.B. aus git describe --tags)
+ARG VERSION=dev
+
 # cmd/homeport ist der Entry Point; CGO_ENABLED=0 für statisches Binary
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/homeport ./cmd/homeport
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
+    -ldflags="-s -w -X 'github.com/zk35-de/homeport/internal/api.AppVersion=${VERSION}'" \
+    -o /out/homeport ./cmd/homeport
 
 # --- Final Stage ---
 FROM docker.io/library/alpine:3.21

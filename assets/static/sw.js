@@ -1,4 +1,4 @@
-const CACHE = 'homeport-v3';
+const CACHE = 'homeport-v' + APP_VERSION;
 // Only cache static assets that don't change between releases (images, icons).
 // JS and CSS are excluded so new versions are always fetched fresh.
 const STATIC = [

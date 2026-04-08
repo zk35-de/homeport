@@ -48,6 +48,7 @@ var tmplFuncs = template.FuncMap{
 	"faviconSrc": faviconSrc,
 	"hexToRGB":   hexToRGB,
 	"inc":        func(i int) int { return i + 1 },
+	"assetVer":   func() string { return AppVersion },
 }
 
 type IndexData struct {

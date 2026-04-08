@@ -107,8 +107,15 @@ func main() {
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	r.Handle("/sw.js", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		content, err := assets.FS.ReadFile("static/sw.js")
+		if err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/javascript")
-		http.ServeFileFS(w, r, assets.FS, "static/sw.js")
+		w.Header().Set("Cache-Control", "no-cache")
+		fmt.Fprintf(w, "const APP_VERSION = %q;\n", api.AppVersion)
+		w.Write(content)
 	}))
 
 	// Auth routes

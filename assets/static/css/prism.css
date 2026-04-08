@@ -39,9 +39,9 @@
   --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14);
 
   /* Aurora blob colors – überschreibbar per Theme/App */
-  --aurora-1: color-mix(in srgb, var(--accent) 18%, transparent);
-  --aurora-2: rgba(6,182,212,0.11);
-  --aurora-3: rgba(139,92,246,0.08);
+  --aurora-1: color-mix(in srgb, var(--accent) 28%, transparent);
+  --aurora-2: rgba(6,182,212,0.20);
+  --aurora-3: rgba(139,92,246,0.14);
 
   /* Semantische Farbpalette */
   --indigo: #818cf8;
@@ -80,9 +80,9 @@
   --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
   --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.4);
 
-  --aurora-1: color-mix(in srgb, var(--accent) 10%, transparent);
-  --aurora-2: rgba(6,182,212,0.07);
-  --aurora-3: rgba(139,92,246,0.05);
+  --aurora-1: color-mix(in srgb, var(--accent) 22%, transparent);
+  --aurora-2: rgba(6,182,212,0.16);
+  --aurora-3: rgba(139,92,246,0.10);
 
   /* Semantische Farbpalette (light) */
   --indigo: #4f46e5;
@@ -117,9 +117,9 @@
     --nav-bg:  rgba(240,242,248,0.88);
     --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
     --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.4);
-    --aurora-1: color-mix(in srgb, var(--accent) 10%, transparent);
-    --aurora-2: rgba(6,182,212,0.07);
-    --aurora-3: rgba(139,92,246,0.05);
+    --aurora-1: color-mix(in srgb, var(--accent) 22%, transparent);
+    --aurora-2: rgba(6,182,212,0.16);
+    --aurora-3: rgba(139,92,246,0.10);
     color-scheme: light;
   }
 }

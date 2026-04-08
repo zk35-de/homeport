@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{if .ProfileName}}{{.ProfileName}} – {{end}}homeport</title>
-    <link rel="stylesheet" href="/static/css/prism.css">
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="/static/js/prism.js" defer></script>
+    <link rel="stylesheet" href="/static/css/prism.css?v={{assetVer}}">
+    <link rel="stylesheet" href="/static/style.css?v={{assetVer}}">
+    <script src="/static/js/prism.js?v={{assetVer}}" defer></script>
     <link rel="icon" type="image/png" href="/static/logo.png">
     <link rel="apple-touch-icon" href="/static/logo.png">
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#6366f1">
     {{if and .Prefs .Profile}}
-    <link id="user-theme" rel="stylesheet" href="/api/profile/{{.Profile}}/theme.css">
+    <link id="user-theme" rel="stylesheet" href="/api/profile/{{.Profile}}/theme.css?v={{assetVer}}">
     {{end}}
-    <script src="/static/htmx.min.js"></script>
-    <script src="/static/sse.js"></script>
-    <script src="/static/sortable.min.js"></script>
-    <script src="/static/js/app.js" defer></script>
+    <script src="/static/htmx.min.js?v={{assetVer}}"></script>
+    <script src="/static/sse.js?v={{assetVer}}"></script>
+    <script src="/static/sortable.min.js?v={{assetVer}}"></script>
+    <script src="/static/js/app.js?v={{assetVer}}" defer></script>
 </head>
 <body data-profile="{{if .Profile}}{{.Profile}}{{end}}" data-bg="{{if .Prefs}}{{.Prefs.BackgroundMode}}{{else}}aurora{{end}}">
     <div class="aurora" id="bg-aurora">
