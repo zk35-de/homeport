@@ -188,7 +188,8 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	t := i18n.T("de")
 	if r.Method == http.MethodGet {
-		s.renderLogin(w, "", "de")
+		limited, secs := LoginRateLimitInfo(r)
+		s.renderLogin(w, "", "de", limited, secs)
 		return
 	}
 
@@ -201,12 +202,13 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if !LoginRateLimit(r) {
 		time.Sleep(loginDelay)
-		s.renderLogin(w, t("login.error.ratelimit"), "de")
+		_, secs := LoginRateLimitInfo(r)
+		s.renderLogin(w, t("login.error.ratelimit"), "de", true, secs)
 		return
 	}
 
 	if !db.CheckPassword(profile, password) {
-		s.renderLogin(w, t("login.error.invalid"), "de")
+		s.renderLogin(w, t("login.error.invalid"), "de", false, 0)
 		return
 	}
 	LoginReset(r)
@@ -251,14 +253,18 @@ func (s *Server) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func (s *Server) renderLogin(w http.ResponseWriter, errMsg string, lang string) {
+func (s *Server) renderLogin(w http.ResponseWriter, errMsg string, lang string, rateLimited bool, retryAfter int) {
 	data := struct {
 		i18n.Translator
-		Error    string
-		Profiles []db.Profile
+		Error       string
+		Profiles    []db.Profile
+		RateLimited bool
+		RetryAfter  int
 	}{
-		Translator: i18n.NewTranslator(lang),
-		Error:      errMsg,
+		Translator:  i18n.NewTranslator(lang),
+		Error:       errMsg,
+		RateLimited: rateLimited,
+		RetryAfter:  retryAfter,
 	}
 	profiles, err := db.GetProfiles()
 	if err != nil {

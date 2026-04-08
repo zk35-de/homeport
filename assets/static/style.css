@@ -878,6 +878,8 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
 .favicon-preview { width: 20px; height: 20px; border-radius: 3px; }
 .favicon-preview.hidden { display: none; }
 .nav-logout-form { display: inline; }
+.nav-profile-label { color: var(--sub); padding: 0 0.3rem; font-size: 0.7rem; letter-spacing: 0.03em; }
+.manage-subsection-title { margin-top: 1.5rem; }
 
 /* Manage – form & layout utilities */
 .icon-input-row { display: flex; gap: 0.4rem; align-items: center; }

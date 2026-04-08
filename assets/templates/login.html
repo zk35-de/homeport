@@ -19,6 +19,12 @@
                 <h1 class="login-title">Homeport</h1>
             </div>
             <div class="glass-card login-card">
+                {{if .RateLimited}}
+                <div class="login-error">
+                    {{.T "login.error.ratelimit"}}
+                    {{if .RetryAfter}}<br><span class="login-retry-hint">{{.T "login.ratelimited.retry_prefix"}} {{.RetryAfter}} {{.T "login.ratelimited.retry_suffix"}}</span>{{end}}
+                </div>
+                {{else}}
                 {{if .Error}}
                 <div class="login-error">
                     {{.Error}}
@@ -39,6 +45,7 @@
                     </div>
                     <button type="submit">{{.T "login.submit"}}</button>
                 </form>
+                {{end}}
             </div>
         </div>
     </div>

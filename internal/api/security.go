@@ -158,6 +158,24 @@ func LoginReset(r *http.Request) {
 	loginMu.Unlock()
 }
 
+// LoginRateLimitInfo reports whether the IP is currently rate-limited and
+// how many seconds remain until the block expires. Does not modify state.
+func LoginRateLimitInfo(r *http.Request) (limited bool, secondsLeft int) {
+	ip := realIP(r)
+	loginMu.Lock()
+	defer loginMu.Unlock()
+	attempt, ok := loginAttempts[ip]
+	if !ok {
+		return false, 0
+	}
+	elapsed := time.Since(attempt.lastSeen)
+	if elapsed >= loginWindow || attempt.count <= loginMaxAttempts {
+		return false, 0
+	}
+	secs := int((loginWindow - elapsed).Seconds()) + 1
+	return true, secs
+}
+
 func realIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		if idx := strings.Index(xff, ","); idx > 0 {
