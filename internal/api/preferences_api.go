@@ -59,6 +59,18 @@ func applyPrefsPatch(current *db.UserPreferences, patch map[string]string) {
 	if v, ok := patch["background_mode"]; ok && (v == "aurora" || v == "none") {
 		current.BackgroundMode = v
 	}
+	if v, ok := patch["aurora_color"]; ok {
+		// Validation: must #RRGGBB sein (6 hex chars nach #)
+		if len(v) == 7 && v[0] == '#' {
+			current.AuroraColor = v
+		}
+	}
+	if v, ok := patch["aurora_intensity"]; ok && (v == "subtle" || v == "medium" || v == "vivid") {
+		current.AuroraIntensity = v
+	}
+	if v, ok := patch["aurora_animated"]; ok {
+		current.AuroraAnimated = v == "true" || v == "1"
+	}
 }
 
 // HandleSetPreferences partially updates user preferences for a profile.

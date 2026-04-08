@@ -676,8 +676,11 @@ func TestUserPreferences(t *testing.T) {
 
 	// SetUserPreferences
 	updated := &db.UserPreferences{
-		Theme:       "light",
-		AccentColor: "#ff0000",
+		Theme:           "light",
+		AccentColor:     "#ff0000",
+		AuroraColor:     "#00ff00",
+		AuroraIntensity: "vivid",
+		AuroraAnimated:  true,
 	}
 	if err := db.SetUserPreferences("markus", *updated); err != nil {
 		t.Fatalf("SetUserPreferences: %v", err)
@@ -692,6 +695,15 @@ func TestUserPreferences(t *testing.T) {
 	}
 	if prefs2.AccentColor != "#ff0000" {
 		t.Errorf("Expected accent '#ff0000', got %q", prefs2.AccentColor)
+	}
+	if prefs2.AuroraColor != "#00ff00" {
+		t.Errorf("Expected aurora color '#00ff00', got %q", prefs2.AuroraColor)
+	}
+	if prefs2.AuroraIntensity != "vivid" {
+		t.Errorf("Expected aurora intensity 'vivid', got %q", prefs2.AuroraIntensity)
+	}
+	if !prefs2.AuroraAnimated {
+		t.Error("Expected aurora animated true, got false")
 	}
 }
 

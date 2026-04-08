@@ -72,6 +72,49 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btn) setBgMode(btn.dataset.bg);
   });
 
+  // ── Aurora settings (intensity, animation, color) ────────────────
+  document.addEventListener('change', function(e) {
+    if (e.target.id === 'aurora-color-picker') {
+      const color = e.target.value;
+      savePrefs({ aurora_color: color });
+      document.body.style.setProperty('--aurora-color', color);
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    const preset = e.target.closest('.color-preset[data-color]');
+    if (preset) {
+      const color = preset.dataset.color;
+      savePrefs({ aurora_color: color });
+      document.body.style.setProperty('--aurora-color', color);
+      const picker = document.getElementById('aurora-color-picker');
+      if (picker) picker.value = color;
+    }
+
+    const intensityBtn = e.target.closest('.intensity-btn[data-intensity]');
+    if (intensityBtn) {
+      const intensity = intensityBtn.dataset.intensity;
+      savePrefs({ aurora_intensity: intensity });
+      const auroraDiv = document.getElementById('bg-aurora');
+      if (auroraDiv) {
+        auroraDiv.classList.remove('intensity-subtle', 'intensity-medium', 'intensity-vivid');
+        auroraDiv.classList.add('intensity-' + intensity);
+      }
+      document.querySelectorAll('.intensity-btn').forEach(b => b.classList.toggle('active', b.dataset.intensity === intensity));
+    }
+
+    const animBtn = e.target.closest('.anim-btn[data-animated]');
+    if (animBtn) {
+      const animated = animBtn.dataset.animated === 'true';
+      savePrefs({ aurora_animated: animated ? 'true' : 'false' });
+      const auroraDiv = document.getElementById('bg-aurora');
+      if (auroraDiv) auroraDiv.classList.toggle('animated', animated);
+      animBtn.dataset.animated = animated ? 'false' : 'true';
+      animBtn.classList.toggle('active', animated);
+      animBtn.textContent = animated ? animBtn.dataset.tOn : animBtn.dataset.tOff;
+    }
+  });
+
   // ── Favicon edit buttons (event delegation) ────────────────────
   document.addEventListener('click', function(e) {
     var editBtn = e.target.closest('.fetch-favicon-btn[data-svc-id]');
@@ -280,6 +323,8 @@ function setBgMode(mode) {
   document.querySelectorAll('.bg-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.bg === mode);
   });
+  var auroraPanel = document.getElementById('aurora-options');
+  if (auroraPanel) auroraPanel.classList.toggle('hidden', mode !== 'aurora');
   savePrefs({background_mode: mode});
 }
 

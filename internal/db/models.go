@@ -63,13 +63,16 @@ type ReorderItem struct {
 
 // UserPreferences holds per-profile UI preferences.
 type UserPreferences struct {
-	Profile        string `json:"profile"`
-	Theme          string `json:"theme"`
-	AccentColor    string `json:"accent_color"`
-	SearchEngine   string `json:"search_engine"`
-	Language       string `json:"language"`
-	CustomCSS      string `json:"custom_css"`
-	BackgroundMode string `json:"background_mode"`
+	Profile         string `json:"profile"`
+	Theme           string `json:"theme"`
+	AccentColor     string `json:"accent_color"`
+	SearchEngine    string `json:"search_engine"`
+	Language        string `json:"language"`
+	CustomCSS       string `json:"custom_css"`
+	BackgroundMode  string `json:"background_mode"`
+	AuroraColor     string `json:"aurora_color"`
+	AuroraIntensity string `json:"aurora_intensity"`
+	AuroraAnimated  bool   `json:"aurora_animated"`
 }
 
 type DiscoveryItem struct {

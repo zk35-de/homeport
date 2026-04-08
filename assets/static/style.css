@@ -902,6 +902,51 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
 .color-picker-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem; }
 .accent-hex { font-size: 0.8rem; color: var(--sub); }
 .css-editor { width: 100%; font-family: monospace; font-size: 0.8rem; resize: vertical; }
+
+/* Aurora Options */
+.aurora-options-panel {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 280px;
+}
+.aurora-color-row {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+#aurora-color-picker {
+    width: 40px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+}
+.color-preset {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    padding: 0;
+}
+.color-preset:hover { transform: scale(1.15); }
+.pref-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 .btn-group { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
 .form-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
 .form-row-wrap { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }

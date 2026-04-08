@@ -144,10 +144,13 @@ var migrations = []struct {
 	{10, `ALTER TABLE discovery_inbox ADD COLUMN source_id INTEGER REFERENCES discovery_sources(id) ON DELETE SET NULL`, true},
 	{11, `ALTER TABLE discovery_inbox ADD COLUMN external_id TEXT NOT NULL DEFAULT ''`, true},
 	{12, `ALTER TABLE services ADD COLUMN no_check INTEGER NOT NULL DEFAULT 0`, true},
+	{13, `ALTER TABLE user_preferences ADD COLUMN aurora_color TEXT NOT NULL DEFAULT '#6366f1'`, true},
+	{14, `ALTER TABLE user_preferences ADD COLUMN aurora_intensity TEXT NOT NULL DEFAULT 'medium'`, true},
+	{15, `ALTER TABLE user_preferences ADD COLUMN aurora_animated INTEGER NOT NULL DEFAULT 0`, true},
 }
 
 // maxMigrationVersion is the highest version number in the migrations list.
-const maxMigrationVersion = 12
+const maxMigrationVersion = 15
 
 // Migrate applies all pending migrations to db using PRAGMA user_version as the version tracker.
 // It is safe to call on both fresh and existing (pre-migration) databases.

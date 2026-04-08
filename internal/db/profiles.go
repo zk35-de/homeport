@@ -175,16 +175,26 @@ func UpdatePageSort(id, sortOrder int) error {
 
 func GetUserPreferences(profile string) (*UserPreferences, error) {
 	p := &UserPreferences{
-		Profile:        profile,
-		Theme:          "dark",
-		AccentColor:    "#6366f1",
-		SearchEngine:   "https://duckduckgo.com/",
-		Language:       "de",
-		BackgroundMode: "aurora",
+		Profile:         profile,
+		Theme:           "dark",
+		AccentColor:     "#6366f1",
+		SearchEngine:    "https://duckduckgo.com/",
+		Language:        "de",
+		BackgroundMode:  "aurora",
+		AuroraColor:     "#6366f1",
+		AuroraIntensity: "medium",
+		AuroraAnimated:  false,
 	}
-	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, language, COALESCE(custom_css,''), COALESCE(background_mode,'aurora')
+	row := DB.QueryRow(`SELECT theme, accent_color, search_engine, language,
+		COALESCE(custom_css,''), COALESCE(background_mode,'aurora'),
+		COALESCE(aurora_color,'#6366f1'), COALESCE(aurora_intensity,'medium'),
+		COALESCE(aurora_animated,0)
 		FROM user_preferences WHERE profile = ?`, profile)
-	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Language, &p.CustomCSS, &p.BackgroundMode)
+	var auroraAnimated int
+	err := row.Scan(&p.Theme, &p.AccentColor, &p.SearchEngine, &p.Language,
+		&p.CustomCSS, &p.BackgroundMode,
+		&p.AuroraColor, &p.AuroraIntensity, &auroraAnimated)
+	p.AuroraAnimated = auroraAnimated == 1
 	if err == sql.ErrNoRows {
 		return p, nil
 	}
@@ -195,17 +205,25 @@ func GetUserPreferences(profile string) (*UserPreferences, error) {
 }
 
 func SetUserPreferences(profile string, prefs UserPreferences) error {
-	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, language, custom_css, background_mode)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+	auroraAnimated := 0
+	if prefs.AuroraAnimated {
+		auroraAnimated = 1
+	}
+	_, err := DB.Exec(`INSERT INTO user_preferences (profile, theme, accent_color, search_engine, language, custom_css, background_mode, aurora_color, aurora_intensity, aurora_animated)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(profile) DO UPDATE SET
 			theme = excluded.theme,
 			accent_color = excluded.accent_color,
 			search_engine = excluded.search_engine,
 			language = excluded.language,
 			custom_css = excluded.custom_css,
-			background_mode = excluded.background_mode`,
+			background_mode = excluded.background_mode,
+			aurora_color = excluded.aurora_color,
+			aurora_intensity = excluded.aurora_intensity,
+			aurora_animated = excluded.aurora_animated`,
 		profile, prefs.Theme, prefs.AccentColor, prefs.SearchEngine,
-		prefs.Language, prefs.CustomCSS, prefs.BackgroundMode)
+		prefs.Language, prefs.CustomCSS, prefs.BackgroundMode,
+		prefs.AuroraColor, prefs.AuroraIntensity, auroraAnimated)
 	return err
 }
 
