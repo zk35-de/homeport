@@ -1,4 +1,13 @@
+// Apply background color from data-color attribute to avoid inline style= CSP violations.
+// Called on load and after HTMX swaps that re-render the profile list.
+function initAuroraSwatches(root) {
+  (root || document).querySelectorAll('.profile-aurora-color[data-color]').forEach(function(el) {
+    el.style.background = el.dataset.color;
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  initAuroraSwatches();
   // ── Favicon fetch (new service form) ──────────────────────────────
   const btn = document.getElementById('fetch-favicon-btn');
   const iconInput = document.getElementById('svc-icon-input');
@@ -96,6 +105,11 @@ document.addEventListener('DOMContentLoaded', function() {
       animBtn.classList.toggle('active', animated);
       animBtn.textContent = animated ? animBtn.dataset.tOn : animBtn.dataset.tOff;
     }
+  });
+
+  // Re-init swatches after HTMX swaps (e.g. profile list reload after default/delete)
+  document.addEventListener('htmx:afterSwap', function(e) {
+    initAuroraSwatches(e.target);
   });
 
   // ── Profil-Aurora-Farbe (per Profile) ────────────────────────────

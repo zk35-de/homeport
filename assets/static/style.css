@@ -319,6 +319,7 @@
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--glass-border);
+    cursor: pointer;
 }
 
 .manage-service-list {
@@ -977,6 +978,26 @@ html.htmx-loading .htmx-loading-bar { width: 70%; }
     transition: border-color 0.15s, transform 0.15s;
 }
 .profile-aurora-color:hover { border-color: var(--accent); transform: scale(1.1); }
+
+/* Aurora color picker label – replaces inline style="position:relative;display:inline-flex;..." */
+.profile-aurora-label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Hidden color input overlay – replaces inline style="position:absolute;inset:0;opacity:0;..." */
+.profile-aurora-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+}
 
 .pref-label {
     display: block;
