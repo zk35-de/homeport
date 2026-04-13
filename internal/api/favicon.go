@@ -17,9 +17,23 @@ var faviconClient = &http.Client{
 // iconLinkRe matches <link rel="icon|shortcut icon" href="...">
 var iconLinkRe = regexp.MustCompile(`(?i)<link[^>]+rel=["'](?:shortcut )?icon["'][^>]+href=["']([^"']+)["']|<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:shortcut )?icon["']`)
 
+// imageExtensions lists path suffixes that indicate a direct image URL.
+var imageExtensions = []string{".ico", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"}
+
+func isDirectImageURL(u *url.URL) bool {
+	p := strings.ToLower(u.Path)
+	for _, ext := range imageExtensions {
+		if strings.HasSuffix(p, ext) {
+			return true
+		}
+	}
+	return false
+}
+
 // HandleFavicon proxies a favicon for a given URL.
 // GET /api/favicon?url=https://example.com
 // Strategy:
+//  0. If URL points directly to an image file, try it first
 //  1. Try {base}/favicon.ico
 //  2. Fetch HTML, parse <link rel="icon"> → try that path
 //  3. Fallback: DuckDuckGo icons (public domains only)
@@ -34,6 +48,14 @@ func HandleFavicon(w http.ResponseWriter, r *http.Request) {
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		http.Error(w, "invalid url", http.StatusBadRequest)
 		return
+	}
+
+	// 0. Direct image URL (e.g. https://example.com/assets/favicon.png)
+	if isDirectImageURL(parsed) {
+		if img, ct := fetchImage(rawURL); img != nil {
+			serveImage(w, img, ct)
+			return
+		}
 	}
 
 	base := parsed.Scheme + "://" + parsed.Host
