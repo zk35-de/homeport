@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/tls"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,7 +12,9 @@ import (
 
 var faviconClient = &http.Client{
 	Timeout: 5 * time.Second,
-	// Follow redirects (default behaviour)
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // homelab: self-signed certs on internal services
+	},
 }
 
 // iconLinkRe matches <link rel="icon|shortcut icon" href="...">
