@@ -17,6 +17,9 @@ var faviconClient = &http.Client{
 // iconLinkRe matches <link rel="icon|shortcut icon" href="...">
 var iconLinkRe = regexp.MustCompile(`(?i)<link[^>]+rel=["'](?:shortcut )?icon["'][^>]+href=["']([^"']+)["']|<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:shortcut )?icon["']`)
 
+// baseHrefRe matches <base href="..."> for resolving relative URLs correctly.
+var baseHrefRe = regexp.MustCompile(`(?i)<base[^>]+href=["']([^"']+)["']`)
+
 // imageExtensions lists path suffixes that indicate a direct image URL.
 var imageExtensions = []string{".ico", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"}
 
@@ -113,6 +116,18 @@ func fetchIconPathFromHTML(pageURL string, base *url.URL) string {
 		return ""
 	}
 
+	// Honour <base href="..."> for correct relative URL resolution.
+	// Some apps (e.g. UniFi) mount their UI under a sub-path and use <base href>
+	// so that relative asset paths resolve correctly.
+	resolveBase := base
+	if bm := baseHrefRe.FindSubmatch(buf); bm != nil {
+		if b, err := url.Parse(string(bm[1])); err == nil {
+			if resolved := base.ResolveReference(b); resolved.Scheme == "http" || resolved.Scheme == "https" {
+				resolveBase = resolved
+			}
+		}
+	}
+
 	matches := iconLinkRe.FindSubmatch(buf)
 	if matches == nil {
 		return ""
@@ -127,13 +142,12 @@ func fetchIconPathFromHTML(pageURL string, base *url.URL) string {
 		return ""
 	}
 
-	// Resolve relative to base, then validate the resolved scheme.
-	// Absolute hrefs from untrusted HTML could override the scheme.
+	// Resolve relative to resolveBase (respects <base href>), then validate scheme.
 	ref, err := url.Parse(href)
 	if err != nil {
 		return ""
 	}
-	resolved := base.ResolveReference(ref)
+	resolved := resolveBase.ResolveReference(ref)
 	if resolved.Scheme != "http" && resolved.Scheme != "https" {
 		return ""
 	}
