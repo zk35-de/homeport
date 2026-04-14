@@ -27,6 +27,7 @@
     <div class="htmx-loading-bar" id="htmx-loading-bar"></div>
     <nav>
         <a href="/" class="brand">homeport</a>
+        <span class="version-badge">{{assetVer}}</span>
         <span class="brand-sep">·</span>
         {{range .Profiles}}
         <a href="{{if .IsDefault}}/{{else}}/{{.Slug}}{{end}}">{{.Name}}</a>
