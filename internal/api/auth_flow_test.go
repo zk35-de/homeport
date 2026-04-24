@@ -646,3 +646,64 @@ func TestManageAccess_UnauthenticatedRedirected(t *testing.T) {
 		t.Errorf("expected redirect to /login, got %q", loc)
 	}
 }
+
+// themeCSSRouter extends authRouter with the /api/profile/{slug}/theme.css route.
+func themeCSSRouter(srv *api.Server, cfg *config.Config) http.Handler {
+	r := chi.NewRouter()
+	r.Use(api.CSRFMiddleware(nil))
+	r.Use(api.RequireAuth(cfg))
+	r.Get("/login", srv.HandleLogin)
+	r.Get("/", srv.HandleIndex)
+	r.Get("/{slug}", srv.HandleIndex)
+	r.Route("/api", func(r chi.Router) {
+		r.Get("/profile/{slug}/theme.css", api.HandleProfileThemeCSS)
+	})
+	return r
+}
+
+// TestThemeCSSAccessibleWithoutAuth verifies that /api/profile/{slug}/theme.css
+// is accessible without a session (#179). Without this, unauthenticated visitors
+// see the default indigo aurora color instead of the configured one.
+func TestThemeCSSAccessibleWithoutAuth(t *testing.T) {
+	srv, cleanup := setupTestWithLogin(t)
+	defer cleanup()
+	db.DB.SetMaxOpenConns(1)
+
+	// markus has a password → profile requires auth for the page itself
+	if err := db.SetPassword("markus", "markus"); err != nil {
+		t.Fatalf("SetPassword: %v", err)
+	}
+	// Store an aurora color for markus
+	prefs := &db.UserPreferences{AuroraColor: "#ff6a00"}
+	if err := db.SetUserPreferences("markus", *prefs); err != nil {
+		t.Fatalf("SetUserPreferences: %v", err)
+	}
+
+	cfg := &config.Config{SessionDays: 30}
+	srv.Config = cfg
+	ts := httptest.NewServer(themeCSSRouter(srv, cfg))
+	defer ts.Close()
+
+	// Fresh client – no session cookie
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar: jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	resp, err := client.Get(ts.URL + "/api/profile/markus/theme.css")
+	if err != nil {
+		t.Fatalf("GET /api/profile/markus/theme.css: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d – theme.css must be accessible without auth", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(ct, "text/css") {
+		t.Errorf("expected Content-Type text/css, got %q", ct)
+	}
+}

@@ -120,7 +120,8 @@ func RequireAuth(cfg *config.Config) func(http.Handler) http.Handler {
 			path := r.URL.Path
 			if path == "/login" || path == "/logout" ||
 				strings.HasPrefix(path, "/static/") ||
-				path == "/api/health" {
+				path == "/api/health" ||
+				strings.HasSuffix(path, "/theme.css") {
 				next.ServeHTTP(w, r)
 				return
 			}
