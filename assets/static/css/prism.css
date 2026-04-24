@@ -286,9 +286,11 @@ body:not([data-bg="aurora"]) .aurora { display: none; }
   50%      { transform: translate(-8%,5%) scale(1.14); }
 }
 
-/* prefers-reduced-motion */
+/* prefers-reduced-motion: nur wenn User nicht explizit Animation aktiviert hat */
 @media (prefers-reduced-motion: reduce) {
-  .ab-1, .ab-2, .ab-3 { animation: none !important; }
+  .aurora:not(.animated) .ab-1,
+  .aurora:not(.animated) .ab-2,
+  .aurora:not(.animated) .ab-3 { animation: none; }
 }
 
 /* Mobile GPU load reduction */
