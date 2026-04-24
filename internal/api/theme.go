@@ -40,7 +40,7 @@ func HandleProfileThemeCSS(w http.ResponseWriter, r *http.Request) {
 
 	css := sb.String()
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(css)))
 	w.Write([]byte(css))
 }
