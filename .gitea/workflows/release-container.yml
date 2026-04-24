@@ -82,6 +82,6 @@ jobs:
           GITEA_TOKEN: ${{ secrets.HOMEPORTCI }}
         run: |
           podman login ${REGISTRY} -u secalpha -p ${GITEA_TOKEN}
-          podman build --build-arg VERSION=${TAG} -f Containerfile -t ${IMAGE}:${TAG} -t ${IMAGE}:latest .
+          podman build --no-cache --build-arg VERSION=${TAG} -f Containerfile -t ${IMAGE}:${TAG} -t ${IMAGE}:latest .
           podman push ${IMAGE}:${TAG}
           podman push ${IMAGE}:latest
