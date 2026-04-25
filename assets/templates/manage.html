@@ -235,6 +235,13 @@
               data-t-off="{{.T "manage.aurora.anim_off"}}">
         {{if .Prefs.AuroraAnimated}}{{.T "manage.aurora.anim_on"}}{{else}}{{.T "manage.aurora.anim_off"}}{{end}}
       </button>
+
+      <!-- Farbe -->
+      <label class="pref-label">{{.T "manage.aurora.color"}}</label>
+      <div class="color-picker-row">
+        <input type="color" id="aurora-color-picker" value="{{if .Prefs.AuroraColor}}{{.Prefs.AuroraColor}}{{else}}#6366f1{{end}}">
+        <span id="aurora-color-hex" class="accent-hex">{{if .Prefs.AuroraColor}}{{.Prefs.AuroraColor}}{{else}}#6366f1{{end}}</span>
+      </div>
     </div>
 
     <div class="form-group flex-no-shrink">

@@ -65,6 +65,19 @@ document.addEventListener('DOMContentLoaded', function() {
     accentPicker.addEventListener('change', function() { saveAccent(this.value); });
   }
 
+  // ── Aurora color picker ────────────────────────────────────────
+  var auroraColorPicker = document.getElementById('aurora-color-picker');
+  if (auroraColorPicker) {
+    auroraColorPicker.addEventListener('input', function() {
+      document.documentElement.style.setProperty('--aurora-color', this.value);
+      var hex = document.getElementById('aurora-color-hex');
+      if (hex) hex.textContent = this.value;
+    });
+    auroraColorPicker.addEventListener('change', function() {
+      savePrefs({ aurora_color: this.value });
+    });
+  }
+
   document.getElementById('reset-accent-btn')?.addEventListener('click', resetAccent);
   document.getElementById('save-css-btn')?.addEventListener('click', saveCustomCSS);
   document.getElementById('reset-css-btn')?.addEventListener('click', resetCustomCSS);
