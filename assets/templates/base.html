@@ -32,7 +32,7 @@
         {{range .Profiles}}
         <a href="{{if .IsDefault}}/{{else}}/{{.Slug}}{{end}}">{{.Name}}</a>
         {{end}}
-        <a href="/manage" class="nav-action">{{.T "nav.manage"}}</a>
+        <a href="/manage{{if .Profile}}?profile={{.Profile}}{{end}}" class="nav-action">{{.T "nav.manage"}}</a>
         <button class="btn-icon nav-lang-toggle" title="{{.T "manage.language_toggle"}}" aria-label="{{.T "manage.language_toggle"}}" data-lang="{{if .Prefs}}{{.Prefs.Language}}{{else}}de{{end}}">DE</button>
         <button class="btn-icon nav-theme-toggle" title="{{.T "manage.theme_toggle"}}" aria-label="{{.T "manage.theme_toggle"}}">🌙</button>
         {{if .Profile}}<span class="nav-profile-label">👤 {{.ProfileName}}</span><form method="post" action="/logout" class="nav-logout-form"><button class="btn-icon" title="{{.T "nav.logout"}}" aria-label="{{.T "nav.logout"}}">⎋</button></form>{{end}}

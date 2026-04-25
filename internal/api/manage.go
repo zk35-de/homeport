@@ -87,13 +87,20 @@ func (s *Server) HandleManage(w http.ResponseWriter, r *http.Request) {
 	defaultSlug := ""
 	profileName := ""
 
-	// Admin / no-auth: use default profile for UI context.
+	// Admin / no-auth: use ?profile= query param or default profile for UI context.
 	if contextSlug == "" {
+		if paramSlug := r.URL.Query().Get("profile"); paramSlug != "" {
+			if p, pErr := db.GetProfileBySlug(paramSlug); pErr == nil && p != nil {
+				contextSlug = paramSlug
+			}
+		}
 		if def, defErr := db.GetDefaultProfile(); defErr != nil {
 			slog.Error("GetDefaultProfile", "err", defErr)
 		} else if def != nil {
-			contextSlug = def.Slug
 			defaultSlug = def.Slug
+			if contextSlug == "" {
+				contextSlug = def.Slug
+			}
 		}
 	} else {
 		// Non-admin: context is the session profile; still need the default slug.

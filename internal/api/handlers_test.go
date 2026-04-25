@@ -202,6 +202,49 @@ func TestHandleManage(t *testing.T) {
 	}
 }
 
+func TestHandleManageProfileContext(t *testing.T) {
+	srv, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create a second profile and give it distinct prefs.
+	db.AddProfile("Extra", "extra")
+	db.SetUserPreferences("extra", db.UserPreferences{AccentColor: "#123456"})
+
+	// Without ?profile=: should use default profile context.
+	req := httptest.NewRequest("GET", "/manage", nil)
+	rr := httptest.NewRecorder()
+	srv.HandleManage(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rr.Code)
+	}
+	def, _ := db.GetDefaultProfile()
+	if !strings.Contains(rr.Body.String(), "Profile:"+def.Slug) {
+		t.Errorf("without ?profile= expected default slug %q in body, got: %s", def.Slug, rr.Body.String())
+	}
+
+	// With ?profile=extra: should switch context to "extra".
+	req2 := httptest.NewRequest("GET", "/manage?profile=extra", nil)
+	rr2 := httptest.NewRecorder()
+	srv.HandleManage(rr2, req2)
+	if rr2.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rr2.Code)
+	}
+	if !strings.Contains(rr2.Body.String(), "Profile:extra") {
+		t.Errorf("with ?profile=extra expected 'Profile:extra' in body, got: %s", rr2.Body.String())
+	}
+
+	// With ?profile=nonexistent: should fall back to default.
+	req3 := httptest.NewRequest("GET", "/manage?profile=nonexistent", nil)
+	rr3 := httptest.NewRecorder()
+	srv.HandleManage(rr3, req3)
+	if rr3.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rr3.Code)
+	}
+	if !strings.Contains(rr3.Body.String(), "Profile:"+def.Slug) {
+		t.Errorf("with invalid ?profile= expected fallback to default, got: %s", rr3.Body.String())
+	}
+}
+
 func TestHandleAddCategory(t *testing.T) {
 	srv, cleanup := setupTest(t)
 	defer cleanup()
