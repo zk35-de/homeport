@@ -357,9 +357,9 @@ function previewAccent(hex) {
 function saveAccent(hex) {
   previewAccent(hex);
   savePrefs({accent_color: hex});
-  // Reload user-theme link to pick up new accent
   var link = document.getElementById('user-theme');
-  if (link) link.href = link.href.replace(/[?&]t=\d+/, '') + (link.href.includes('?') ? '&' : '?') + 't=' + Date.now();
+  var slug = document.body.dataset.profile || 'default';
+  if (link) link.href = '/api/profile/' + encodeURIComponent(slug) + '/theme.css?t=' + Date.now();
 }
 
 function resetAccent() {
@@ -372,9 +372,9 @@ function resetAccent() {
 async function saveCustomCSS() {
   const css = document.getElementById('custom-css-input').value;
   await savePrefs({custom_css: css});
-  // Reload user-theme link to pick up new custom CSS
   var link = document.getElementById('user-theme');
-  if (link) link.href = link.href.replace(/[?&]t=\d+/, '') + (link.href.includes('?') ? '&' : '?') + 't=' + Date.now();
+  var slug = document.body.dataset.profile || 'default';
+  if (link) link.href = '/api/profile/' + encodeURIComponent(slug) + '/theme.css?t=' + Date.now();
 }
 
 function resetCustomCSS() {
