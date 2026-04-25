@@ -127,9 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update swatch
       const swatch = e.target.closest('label').querySelector('.profile-aurora-color');
       if (swatch) swatch.style.background = color;
-      // Live-update: theme.css für das geänderte Profil laden (nicht das Manage-Seiten-Profil)
-      var link = document.getElementById('user-theme');
-      if (link) link.href = '/api/profile/' + encodeURIComponent(profileSlug) + '/theme.css?t=' + Date.now();
+      // Live-preview: CSS-Variable direkt setzen für sofortiges visuelles Feedback
+      document.documentElement.style.setProperty('--aurora-color', color);
     }
   });
 
