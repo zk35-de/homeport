@@ -1,4 +1,4 @@
-/* PRISM Design Tokens v1.2 – secalpha/prism-ui */
+/* PRISM Design Tokens v2.0 – secalpha/prism-ui */
 /* Light/Dark Mode + Per-App Accent Override */
 
 /* ── Dark Mode (Default) ── */
@@ -25,18 +25,23 @@
   --glass:          rgba(255,255,255,0.04);
   --glass-h:        rgba(255,255,255,0.075);
   --glass-border:   rgba(255,255,255,0.1);
-  --glass-border-a: rgba(var(--accent-rgb), 0.45);
+  --glass-border-a: color-mix(in srgb, var(--accent) 45%, transparent);
 
   --card-bg: linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.015) 100%);
   --nav-bg:  rgba(4,6,15,0.85);
 
   --shadow-card: 0 2px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
-  --shadow-btn:  0 4px 16px rgba(var(--accent-rgb),0.28), inset 0 1px 0 rgba(255,255,255,0.14);
+  --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14);
 
-  /* Aurora blob colors – überschreibbar per App */
-  --aurora-1: rgba(var(--accent-rgb), 0.18);
+  /* Aurora blob colors – überschreibbar per Theme/App */
+  --aurora-1: color-mix(in srgb, var(--accent) 18%, transparent);
   --aurora-2: rgba(6,182,212,0.11);
   --aurora-3: rgba(139,92,246,0.08);
+  /* Aurora opacity + color – default für prism-aurora.css */
+  --aurora-color: var(--accent);
+  --aurora-op-1: 0.18;
+  --aurora-op-2: 0.11;
+  --aurora-op-3: 0.08;
 
   /* Semantische Farbpalette */
   --indigo: #818cf8;
@@ -67,15 +72,15 @@
   --glass:          rgba(255,255,255,0.6);
   --glass-h:        rgba(255,255,255,0.8);
   --glass-border:   rgba(0,0,0,0.1);
-  --glass-border-a: rgba(var(--accent-rgb), 0.4);
+  --glass-border-a: color-mix(in srgb, var(--accent) 40%, transparent);
 
   --card-bg: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.55) 100%);
   --nav-bg:  rgba(240,242,248,0.88);
 
   --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
-  --shadow-btn:  0 4px 16px rgba(var(--accent-rgb),0.22), inset 0 1px 0 rgba(255,255,255,0.4);
+  --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.4);
 
-  --aurora-1: rgba(var(--accent-rgb), 0.10);
+  --aurora-1: color-mix(in srgb, var(--accent) 10%, transparent);
   --aurora-2: rgba(6,182,212,0.07);
   --aurora-3: rgba(139,92,246,0.05);
 
@@ -107,53 +112,29 @@
     --glass:          rgba(255,255,255,0.6);
     --glass-h:        rgba(255,255,255,0.8);
     --glass-border:   rgba(0,0,0,0.1);
-    --glass-border-a: rgba(var(--accent-rgb), 0.4);
+    --glass-border-a: color-mix(in srgb, var(--accent) 40%, transparent);
     --card-bg: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.55) 100%);
     --nav-bg:  rgba(240,242,248,0.88);
     --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
-    --shadow-btn:  0 4px 16px rgba(var(--accent-rgb),0.22), inset 0 1px 0 rgba(255,255,255,0.4);
-    --aurora-1: rgba(var(--accent-rgb), 0.10);
+    --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.4);
+    --aurora-1: color-mix(in srgb, var(--accent) 10%, transparent);
     --aurora-2: rgba(6,182,212,0.07);
     --aurora-3: rgba(139,92,246,0.05);
     color-scheme: light;
   }
 }
 
-/* ── Per-App Accent Overrides ── */
-/* Default: Indigo (zk35-MAP) */
-:root {
-  --accent-rgb: 99,102,241;
-}
-
-/* elplan: Amber */
-.app-elplan {
-  --accent:       #f59e0b;
-  --accent-hover: #fbbf24;
-  --accent-rgb:   245,158,11;
-  --aurora-2: rgba(245,158,11,0.08);
-}
-
-/* itmap: Cyan */
-.app-itmap {
-  --accent:       #06b6d4;
-  --accent-hover: #22d3ee;
-  --accent-rgb:   6,182,212;
-  --aurora-2: rgba(6,182,212,0.12);
-}
-
-/* panelforge: Violet */
-.app-panelforge {
-  --accent:       #8b5cf6;
-  --accent-hover: #a78bfa;
-  --accent-rgb:   139,92,246;
-  --aurora-1: rgba(139,92,246,0.20);
-  --aurora-2: rgba(99,102,241,0.10);
-}
+/* ── Per-App Accent Overrides (Legacy – bevorzuge prism-themes.css) ── */
+.app-elplan    { --accent: #f59e0b; --accent-hover: #fbbf24; --aurora-2: color-mix(in srgb, var(--accent) 8%, transparent); }
+.app-itmap     { --accent: #06b6d4; --accent-hover: #22d3ee; --aurora-2: color-mix(in srgb, var(--accent) 12%, transparent); }
+.app-panelforge { --accent: #8b5cf6; --accent-hover: #a78bfa; --aurora-1: color-mix(in srgb, var(--accent) 20%, transparent); --aurora-2: rgba(99,102,241,0.10); }
 
 /* ── Typography + Spacing ── */
 :root {
   --mono: 'Fira Code', 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
   --font: var(--mono);
+  /* --font-body: Fließtext-Font – per Theme überschreibbar, default Mono */
+  --font-body: var(--mono);
   --font-size-base: 13px;
   --line-height: 1.6;
   --space-xs:  0.3rem;
@@ -168,4 +149,9 @@
   --radius-xl:  14px;
   --radius-2xl: 16px;
   --nav-height: 50px;
+}
+
+/* ── Mobile Font Scaling ── */
+@media (max-width: 768px) {
+  :root { --font-size-base: 14px; }
 }

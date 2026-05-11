@@ -1,4 +1,5 @@
 /* PRISM Base – Reset + Body + Typography */
+@import './prism-tokens.css';
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -9,7 +10,9 @@ a { color: inherit; text-decoration: none; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font);
+  /* --font-body: per Theme überschreibbar (z.B. system-ui für Lesbarkeit) */
+  /* --font (Mono) bleibt für Nav, Buttons, Badges, Code */
+  font-family: var(--font-body);
   font-size: var(--font-size-base);
   line-height: var(--line-height);
   min-height: 100vh;
@@ -18,7 +21,7 @@ body {
 
 h1 {
   font-size: 1.05rem; margin-bottom: 1.2rem;
-  color: rgba(255,255,255,0.9);
+  color: var(--text);
   font-weight: 300; letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -34,8 +37,8 @@ h3 {
 
 code {
   font-family: var(--mono); font-size: 0.88em;
-  color: rgba(99,102,241,0.9);
-  background: rgba(99,102,241,0.1);
+  color: color-mix(in srgb, var(--accent) 90%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   padding: 0.1rem 0.32rem; border-radius: var(--radius-sm);
 }
 

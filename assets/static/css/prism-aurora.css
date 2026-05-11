@@ -1,48 +1,45 @@
 /* PRISM Aurora – Animierter Hintergrund (opt-in) */
-.aurora-options-panel.hidden { display: none; }
-
-:root {
-  --aurora-color: #6366f1;
-  --aurora-op-1: 0.18;
-  --aurora-op-2: 0.11;
-  --aurora-op-3: 0.08;
-}
+/* Issue #9: Use CSS custom properties --aurora-1/2/3 for blob colors */
 
 .aurora {
   position: fixed; inset: 0; z-index: 0;
   pointer-events: none; overflow: hidden;
 }
-
-/* Intensität – wird als Klasse auf .aurora gesetzt */
-.aurora.intensity-subtle { --aurora-op-1: 0.08; --aurora-op-2: 0.05; --aurora-op-3: 0.04; }
-.aurora.intensity-medium { --aurora-op-1: 0.18; --aurora-op-2: 0.11; --aurora-op-3: 0.08; }
-.aurora.intensity-vivid  { --aurora-op-1: 0.35; --aurora-op-2: 0.22; --aurora-op-3: 0.16; }
-
 .ab { position: absolute; border-radius: 50%; filter: blur(90px); }
+
+/* ── Intensity Control (from homeport) ── */
+/* WICHTIG: color-mix() erwartet <percentage>, keine <number>.
+   0.08 → 8%, 0.18 → 18%, 0.35 → 35% usw. */
+.aurora.intensity-subtle { --aurora-op-1: 8%;  --aurora-op-2: 5%;  --aurora-op-3: 4%;  }
+.aurora.intensity-medium { --aurora-op-1: 18%; --aurora-op-2: 11%; --aurora-op-3: 8%;  }
+.aurora.intensity-vivid  { --aurora-op-1: 35%; --aurora-op-2: 22%; --aurora-op-3: 16%; }
 
 .ab-1 {
   width: 70vmax; height: 70vmax;
-  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
-  opacity: var(--aurora-op-1);
+  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-1) var(--aurora-op-1, 100%), transparent) 0%, transparent 70%);
   top: -25%; left: -20%;
-  animation: none;
 }
 .ab-2 {
   width: 55vmax; height: 55vmax;
-  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
-  opacity: var(--aurora-op-2);
+  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-2) var(--aurora-op-2, 100%), transparent) 0%, transparent 70%);
   bottom: -15%; right: -15%;
-  animation: none;
 }
 .ab-3 {
   width: 35vmax; height: 35vmax;
-  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
-  opacity: var(--aurora-op-3);
+  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-3) var(--aurora-op-3, 100%), transparent) 0%, transparent 70%);
   top: 45%; left: 35%;
-  animation: none;
 }
 
-/* Animation-Toggle – Klasse .animated auf .aurora */
+/* ── Animation Control (from homeport) ── */
+
+/* Animation standardmäßig aus (nur wenn .animated gesetzt) */
+.aurora:not(.animated) .ab-1,
+.aurora:not(.animated) .ab-2,
+.aurora:not(.animated) .ab-3 {
+  animation: none !important;
+}
+
+/* Nur wenn .animated gesetzt */
 .aurora.animated .ab-1 { animation: drift-1 26s ease-in-out infinite; }
 .aurora.animated .ab-2 { animation: drift-2 32s ease-in-out infinite; }
 .aurora.animated .ab-3 { animation: drift-3 19s ease-in-out infinite; }
@@ -60,4 +57,18 @@
 @keyframes drift-3 {
   0%,100% { transform: translate(0,0) scale(1); }
   50%      { transform: translate(-8%,5%) scale(1.14); }
+}
+
+/* ── Accessibility & Optimization (keep existing) ── */
+
+/* Issue #7: prefers-reduced-motion support for Aurora animations */
+@media (prefers-reduced-motion: reduce) {
+  .ab-1, .ab-2, .ab-3 {
+    animation: none !important;
+  }
+}
+
+/* Issue #11: Mobile GPU load reduction */
+@media (max-width: 768px) {
+  .ab { filter: blur(60px); }
 }

@@ -1,6 +1,5 @@
-/* PRISM UI v2.0.0 – secalpha/prism-ui */
+/* PRISM UI v2.1.0 – secalpha/prism-ui */
 /* Bundle: alle Module konkateniert – @imports entfernt */
-
 
 /* ── prism-tokens.css ── */
 /* PRISM Design Tokens v2.0 – secalpha/prism-ui */
@@ -39,9 +38,14 @@
   --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14);
 
   /* Aurora blob colors – überschreibbar per Theme/App */
-  --aurora-1: color-mix(in srgb, var(--accent) 28%, transparent);
-  --aurora-2: rgba(6,182,212,0.20);
-  --aurora-3: rgba(139,92,246,0.14);
+  --aurora-1: color-mix(in srgb, var(--accent) 18%, transparent);
+  --aurora-2: rgba(6,182,212,0.11);
+  --aurora-3: rgba(139,92,246,0.08);
+  /* Aurora opacity + color – default für prism-aurora.css */
+  --aurora-color: var(--accent);
+  --aurora-op-1: 0.18;
+  --aurora-op-2: 0.11;
+  --aurora-op-3: 0.08;
 
   /* Semantische Farbpalette */
   --indigo: #818cf8;
@@ -80,9 +84,9 @@
   --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
   --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.4);
 
-  --aurora-1: color-mix(in srgb, var(--accent) 22%, transparent);
-  --aurora-2: rgba(6,182,212,0.16);
-  --aurora-3: rgba(139,92,246,0.10);
+  --aurora-1: color-mix(in srgb, var(--accent) 10%, transparent);
+  --aurora-2: rgba(6,182,212,0.07);
+  --aurora-3: rgba(139,92,246,0.05);
 
   /* Semantische Farbpalette (light) */
   --indigo: #4f46e5;
@@ -117,9 +121,9 @@
     --nav-bg:  rgba(240,242,248,0.88);
     --shadow-card: 0 2px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
     --shadow-btn:  0 4px 16px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.4);
-    --aurora-1: color-mix(in srgb, var(--accent) 22%, transparent);
-    --aurora-2: rgba(6,182,212,0.16);
-    --aurora-3: rgba(139,92,246,0.10);
+    --aurora-1: color-mix(in srgb, var(--accent) 10%, transparent);
+    --aurora-2: rgba(6,182,212,0.07);
+    --aurora-3: rgba(139,92,246,0.05);
     color-scheme: light;
   }
 }
@@ -156,8 +160,10 @@
   :root { --font-size-base: 14px; }
 }
 
+
 /* ── prism-base.css ── */
 /* PRISM Base – Reset + Body + Typography */
+@import './prism-tokens.css';
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -219,87 +225,10 @@ main {
   .grid-2 { grid-template-columns: 1fr; }
 }
 
-/* ── prism-aurora.css ── */
-/* PRISM Aurora – Animierter Hintergrund (opt-in) */
-
-.aurora-options-panel.hidden { display: none; }
-
-:root {
-  --aurora-color: #6366f1;
-  --aurora-op-1: 0.18;
-  --aurora-op-2: 0.11;
-  --aurora-op-3: 0.08;
-}
-
-.aurora {
-  position: fixed; inset: 0; z-index: 0;
-  pointer-events: none; overflow: hidden;
-}
-body:not([data-bg="aurora"]) .aurora { display: none; }
-
-/* Intensität */
-.aurora.intensity-subtle { --aurora-op-1: 0.08; --aurora-op-2: 0.05; --aurora-op-3: 0.04; }
-.aurora.intensity-medium { --aurora-op-1: 0.18; --aurora-op-2: 0.11; --aurora-op-3: 0.08; }
-.aurora.intensity-vivid  { --aurora-op-1: 0.35; --aurora-op-2: 0.22; --aurora-op-3: 0.16; }
-
-.ab { position: absolute; border-radius: 50%; filter: blur(90px); }
-
-.ab-1 {
-  width: 70vmax; height: 70vmax;
-  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
-  opacity: var(--aurora-op-1);
-  top: -25%; left: -20%;
-  animation: none;
-}
-.ab-2 {
-  width: 55vmax; height: 55vmax;
-  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
-  opacity: var(--aurora-op-2);
-  bottom: -15%; right: -15%;
-  animation: none;
-}
-.ab-3 {
-  width: 35vmax; height: 35vmax;
-  background: radial-gradient(circle, var(--aurora-color) 0%, transparent 70%);
-  opacity: var(--aurora-op-3);
-  top: 45%; left: 35%;
-  animation: none;
-}
-
-/* Animation-Toggle */
-.aurora.animated .ab-1 { animation: drift-1 26s ease-in-out infinite; }
-.aurora.animated .ab-2 { animation: drift-2 32s ease-in-out infinite; }
-.aurora.animated .ab-3 { animation: drift-3 19s ease-in-out infinite; }
-
-@keyframes drift-1 {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33%      { transform: translate(7%,4%) scale(1.06); }
-  66%      { transform: translate(-3%,7%) scale(0.96); }
-}
-@keyframes drift-2 {
-  0%,100% { transform: translate(0,0) scale(1); }
-  40%      { transform: translate(-5%,-3%) scale(1.09); }
-  70%      { transform: translate(3%,-7%) scale(0.93); }
-}
-@keyframes drift-3 {
-  0%,100% { transform: translate(0,0) scale(1); }
-  50%      { transform: translate(-8%,5%) scale(1.14); }
-}
-
-/* prefers-reduced-motion: nur wenn User nicht explizit Animation aktiviert hat */
-@media (prefers-reduced-motion: reduce) {
-  .aurora:not(.animated) .ab-1,
-  .aurora:not(.animated) .ab-2,
-  .aurora:not(.animated) .ab-3 { animation: none; }
-}
-
-/* Mobile GPU load reduction */
-@media (max-width: 768px) {
-  .ab { filter: blur(60px); }
-}
 
 /* ── prism-components.css ── */
 /* PRISM Components – Nav, Cards, Buttons, Badges, Forms, Tabs, Spinner, Status-Dot */
+@import './prism-tokens.css';
 
 /* ── Navigation ── */
 nav {
@@ -615,74 +544,6 @@ details > div { padding: 0 var(--space-md) var(--space-md); }
   .status-dot.ok { animation: none; }
 }
 
-/* ── prism-toast.css ── */
-/* PRISM Toast – Notifications (Issue #12) */
-
-/* ── Toast Container ── */
-.toast-container {
-  position: fixed;
-  /* Issue #11/#15: safe-area + logical position */
-  bottom: max(var(--space-lg), env(safe-area-inset-bottom));
-  inset-inline-end: var(--space-lg);
-  z-index: 9000;
-  display: flex; flex-direction: column; gap: var(--space-sm);
-  pointer-events: none;
-}
-
-/* ── Toast ── */
-.toast {
-  pointer-events: auto;
-  display: flex; align-items: center; gap: var(--space-sm);
-  padding: 0.55rem var(--space-md);
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid var(--glass-border);
-  background: var(--glass-h);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-  font-family: var(--mono); font-size: 0.78rem;
-  color: var(--text);
-  min-width: 220px; max-width: 380px;
-  animation: toast-in 0.22s ease-out;
-}
-
-@keyframes toast-in {
-  from { transform: translateY(12px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-
-/* ── Varianten ── */
-.toast.ok {
-  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
-  background: color-mix(in srgb, var(--ok) 8%, var(--glass-h));
-}
-.toast.ok::before {
-  content: '\2713';
-  color: var(--ok); font-weight: 700; flex-shrink: 0;
-}
-
-.toast.warn {
-  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
-  background: color-mix(in srgb, var(--warn) 8%, var(--glass-h));
-}
-.toast.warn::before {
-  content: '!';
-  color: var(--warn); font-weight: 700; flex-shrink: 0;
-}
-
-.toast.fehler {
-  border-color: color-mix(in srgb, var(--fehler) 35%, transparent);
-  background: color-mix(in srgb, var(--fehler) 8%, var(--glass-h));
-}
-.toast.fehler::before {
-  content: '\2715';
-  color: var(--fehler); font-weight: 700; flex-shrink: 0;
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .toast { animation: none; }
-}
 
 /* ── prism-themes.css ── */
 /* PRISM Themes v2.0 – secalpha/prism-ui */
@@ -831,4 +692,152 @@ details > div { padding: 0 var(--space-md) var(--space-md); }
   --aurora-1: color-mix(in srgb, var(--accent) 14%, transparent);
   --aurora-2: rgba(124,58,237,0.09);
   --aurora-3: rgba(67,20,128,0.06);
+}
+
+
+/* ── prism-aurora.css ── */
+/* PRISM Aurora – Animierter Hintergrund (opt-in) */
+/* Issue #9: Use CSS custom properties --aurora-1/2/3 for blob colors */
+
+.aurora {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.ab { position: absolute; border-radius: 50%; filter: blur(90px); }
+
+/* ── Intensity Control (from homeport) ── */
+/* WICHTIG: color-mix() erwartet <percentage>, keine <number>.
+   0.08 → 8%, 0.18 → 18%, 0.35 → 35% usw. */
+.aurora.intensity-subtle { --aurora-op-1: 8%;  --aurora-op-2: 5%;  --aurora-op-3: 4%;  }
+.aurora.intensity-medium { --aurora-op-1: 18%; --aurora-op-2: 11%; --aurora-op-3: 8%;  }
+.aurora.intensity-vivid  { --aurora-op-1: 35%; --aurora-op-2: 22%; --aurora-op-3: 16%; }
+
+.ab-1 {
+  width: 70vmax; height: 70vmax;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-1) var(--aurora-op-1, 100%), transparent) 0%, transparent 70%);
+  top: -25%; left: -20%;
+}
+.ab-2 {
+  width: 55vmax; height: 55vmax;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-2) var(--aurora-op-2, 100%), transparent) 0%, transparent 70%);
+  bottom: -15%; right: -15%;
+}
+.ab-3 {
+  width: 35vmax; height: 35vmax;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aurora-3) var(--aurora-op-3, 100%), transparent) 0%, transparent 70%);
+  top: 45%; left: 35%;
+}
+
+/* ── Animation Control (from homeport) ── */
+
+/* Animation standardmäßig aus (nur wenn .animated gesetzt) */
+.aurora:not(.animated) .ab-1,
+.aurora:not(.animated) .ab-2,
+.aurora:not(.animated) .ab-3 {
+  animation: none !important;
+}
+
+/* Nur wenn .animated gesetzt */
+.aurora.animated .ab-1 { animation: drift-1 26s ease-in-out infinite; }
+.aurora.animated .ab-2 { animation: drift-2 32s ease-in-out infinite; }
+.aurora.animated .ab-3 { animation: drift-3 19s ease-in-out infinite; }
+
+@keyframes drift-1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(7%,4%) scale(1.06); }
+  66%      { transform: translate(-3%,7%) scale(0.96); }
+}
+@keyframes drift-2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  40%      { transform: translate(-5%,-3%) scale(1.09); }
+  70%      { transform: translate(3%,-7%) scale(0.93); }
+}
+@keyframes drift-3 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%      { transform: translate(-8%,5%) scale(1.14); }
+}
+
+/* ── Accessibility & Optimization (keep existing) ── */
+
+/* Issue #7: prefers-reduced-motion support for Aurora animations */
+@media (prefers-reduced-motion: reduce) {
+  .ab-1, .ab-2, .ab-3 {
+    animation: none !important;
+  }
+}
+
+/* Issue #11: Mobile GPU load reduction */
+@media (max-width: 768px) {
+  .ab { filter: blur(60px); }
+}
+
+
+/* ── prism-toast.css ── */
+/* PRISM Toast – Notifications (Issue #12) */
+@import './prism-tokens.css';
+
+/* ── Toast Container ── */
+.toast-container {
+  position: fixed;
+  /* Issue #11/#15: safe-area + logical position */
+  bottom: max(var(--space-lg), env(safe-area-inset-bottom));
+  inset-inline-end: var(--space-lg);
+  z-index: 9000;
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  pointer-events: none;
+}
+
+/* ── Toast ── */
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: 0.55rem var(--space-md);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-h);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  font-family: var(--mono); font-size: 0.78rem;
+  color: var(--text);
+  min-width: 220px; max-width: 380px;
+  animation: toast-in 0.22s ease-out;
+}
+
+@keyframes toast-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Varianten ── */
+.toast.ok {
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+  background: color-mix(in srgb, var(--ok) 8%, var(--glass-h));
+}
+.toast.ok::before {
+  content: '\2713';
+  color: var(--ok); font-weight: 700; flex-shrink: 0;
+}
+
+.toast.warn {
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  background: color-mix(in srgb, var(--warn) 8%, var(--glass-h));
+}
+.toast.warn::before {
+  content: '!';
+  color: var(--warn); font-weight: 700; flex-shrink: 0;
+}
+
+.toast.fehler {
+  border-color: color-mix(in srgb, var(--fehler) 35%, transparent);
+  background: color-mix(in srgb, var(--fehler) 8%, var(--glass-h));
+}
+.toast.fehler::before {
+  content: '\2715';
+  color: var(--fehler); font-weight: 700; flex-shrink: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
 }

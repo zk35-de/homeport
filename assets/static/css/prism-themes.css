@@ -1,0 +1,147 @@
+/* PRISM Themes v2.0 – secalpha/prism-ui */
+/* Vordefinierte Themes: <body class="theme-NAME"> */
+/* Jedes Theme überschreibt: --accent, --accent-hover, --aurora-*, --font-body */
+/* Kombinierbar mit data-theme="light|dark" */
+
+/* ──────────────────────────────────────────────
+   TECH  –  Indigo · Mono · Standard
+   Gedacht für: Secra-IT, itmap, technische Tools,
+   CLI-nahe UIs. Identisch mit :root-Default,
+   explizit setzbar.
+────────────────────────────────────────────── */
+.theme-tech {
+  --accent:       #6366f1;
+  --accent-hover: #818cf8;
+  --font-body:    var(--mono);
+  --aurora-1: color-mix(in srgb, var(--accent) 18%, transparent);
+  --aurora-2: rgba(6,182,212,0.11);
+  --aurora-3: rgba(139,92,246,0.08);
+}
+
+/* ──────────────────────────────────────────────
+   WARM  –  Orange · Sans-Serif · Menschlich
+   Gedacht für: Alfred, Andrea-UIs, Home-Assistants,
+   alles was nicht "Entwickler-Tool" ist.
+────────────────────────────────────────────── */
+.theme-warm {
+  --accent:       #f97316;
+  --accent-hover: #fb923c;
+  --font-body:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --aurora-1: color-mix(in srgb, var(--accent) 16%, transparent);
+  --aurora-2: rgba(251,146,60,0.09);
+  --aurora-3: rgba(234,88,12,0.06);
+}
+
+/* ──────────────────────────────────────────────
+   AMBER  –  Amber · Mono · Handwerk
+   Gedacht für: elplan, panelforge, Installations-
+   und Planungstools. Technisch, aber wärmer.
+────────────────────────────────────────────── */
+.theme-amber {
+  --accent:       #f59e0b;
+  --accent-hover: #fbbf24;
+  --font-body:    var(--mono);
+  --aurora-1: color-mix(in srgb, var(--accent) 16%, transparent);
+  --aurora-2: rgba(245,158,11,0.10);
+  --aurora-3: rgba(180,83,9,0.06);
+}
+
+/* ──────────────────────────────────────────────
+   CYAN  –  Cyan · Mono · Netzwerk & Daten
+   Gedacht für: itmap, Netzwerk-Dashboards,
+   Monitoring, Infrastruktur-Tools.
+────────────────────────────────────────────── */
+.theme-cyan {
+  --accent:       #06b6d4;
+  --accent-hover: #22d3ee;
+  --font-body:    var(--mono);
+  --aurora-1: color-mix(in srgb, var(--accent) 16%, transparent);
+  --aurora-2: rgba(6,182,212,0.12);
+  --aurora-3: rgba(14,116,144,0.07);
+}
+
+/* ──────────────────────────────────────────────
+   GREEN  –  Grün · Sans-Serif · Natur & Gesundheit
+   Gedacht für: Garten-Tools, Health-UIs,
+   Umwelt-Dashboards – leserlich, beruhigend.
+────────────────────────────────────────────── */
+.theme-green {
+  --accent:       #22c55e;
+  --accent-hover: #4ade80;
+  --font-body:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --aurora-1: color-mix(in srgb, var(--accent) 14%, transparent);
+  --aurora-2: rgba(34,197,94,0.09);
+  --aurora-3: rgba(21,128,61,0.06);
+}
+
+/* ──────────────────────────────────────────────
+   VIOLET  –  Violett · Mono · Kreativ & Ruhig
+   Gedacht für: panelforge, Konfigurations-UIs,
+   kreative Tools wo ein bisschen "Magie" passt.
+────────────────────────────────────────────── */
+.theme-violet {
+  --accent:       #8b5cf6;
+  --accent-hover: #a78bfa;
+  --font-body:    var(--mono);
+  --aurora-1: color-mix(in srgb, var(--accent) 18%, transparent);
+  --aurora-2: rgba(139,92,246,0.11);
+  --aurora-3: rgba(99,102,241,0.08);
+}
+
+/* ──────────────────────────────────────────────
+   ROSE  –  Rose · Mono · Alert & Monitoring
+   Gedacht für: Statusboards, kritische Systeme,
+   Incident-UIs. Signalfarbe ohne Aggressivität.
+────────────────────────────────────────────── */
+.theme-rose {
+  --accent:       #f43f5e;
+  --accent-hover: #fb7185;
+  --font-body:    var(--mono);
+  --aurora-1: color-mix(in srgb, var(--accent) 14%, transparent);
+  --aurora-2: rgba(244,63,94,0.09);
+  --aurora-3: rgba(159,18,57,0.06);
+}
+
+/* ──────────────────────────────────────────────
+   SLATE  –  Grau-Blau · Sans-Serif · Neutral
+   Gedacht für: Reports, Docs, Admin-Bereiche
+   wo Farbe ablenkt. Professionell, zurückhaltend.
+────────────────────────────────────────────── */
+.theme-slate {
+  --accent:       #64748b;
+  --accent-hover: #94a3b8;
+  --font-body:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --aurora-1: color-mix(in srgb, var(--accent) 12%, transparent);
+  --aurora-2: rgba(100,116,139,0.08);
+  --aurora-3: rgba(51,65,85,0.05);
+}
+
+/* ──────────────────────────────────────────────
+   KITCHEN  –  Erdiges Amber · Serif · Kochen
+   Gedacht für: kochwerk – warme Atmosphäre,
+   Rezepte lesen, Serif für längere Texte.
+────────────────────────────────────────────── */
+.theme-kitchen {
+  --accent:       #d97706;
+  --accent-hover: #f59e0b;
+  --font-body:    Georgia, 'Palatino Linotype', Palatino, serif;
+  --line-height:  1.75;
+  --aurora-1: color-mix(in srgb, var(--accent) 16%, transparent);
+  --aurora-2: rgba(217,119,6,0.10);
+  --aurora-3: rgba(180,83,9,0.07);
+}
+
+/* ──────────────────────────────────────────────
+   NIGHT  –  Tiefviolett · Serif · Lesen & Diary
+   Gedacht für: diary, Notizen, Lese-UIs –
+   maximale Ruhe, Serif für Lesefluss.
+────────────────────────────────────────────── */
+.theme-night {
+  --accent:       #7c3aed;
+  --accent-hover: #8b5cf6;
+  --font-body:    Georgia, 'Palatino Linotype', Palatino, serif;
+  --line-height:  1.8;
+  --aurora-1: color-mix(in srgb, var(--accent) 14%, transparent);
+  --aurora-2: rgba(124,58,237,0.09);
+  --aurora-3: rgba(67,20,128,0.06);
+}
