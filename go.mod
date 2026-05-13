@@ -3,9 +3,9 @@ module github.com/zk35-de/homeport
 go 1.26.3
 
 require (
-	github.com/emersion/go-ical v0.0.0-20250609112844-439c63cef608
 	github.com/go-chi/chi/v5 v5.2.5
-	golang.org/x/crypto v0.49.0
+	golang.org/x/crypto v0.51.0
+	golang.org/x/term v0.43.0
 	modernc.org/sqlite v1.47.0
 )
 
@@ -15,9 +15,8 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/teambition/rrule-go v1.8.2 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/term v0.41.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
